@@ -29,6 +29,7 @@ public class CheckDeviceRunnable implements Runnable
 	public void addObserver(final Observer observer)
 	{
 		this.statusObservable.addObserver(observer);
+		this.statusObservable.update(getStatus());
 	}
 	
 	public Status getStatus()

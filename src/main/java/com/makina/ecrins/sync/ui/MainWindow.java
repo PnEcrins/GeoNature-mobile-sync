@@ -1,10 +1,16 @@
 package com.makina.ecrins.sync.ui;
 
 import java.util.ResourceBundle;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.Logger;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
@@ -13,8 +19,10 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Shell;
+import org.json.JSONObject;
 
 import com.makina.ecrins.sync.adb.CheckDeviceRunnable;
+import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 
 /**
  * Main application window.
@@ -23,6 +31,8 @@ import com.makina.ecrins.sync.adb.CheckDeviceRunnable;
  */
 public class MainWindow
 {
+	private static final Logger LOG = Logger.getLogger(MainWindow.class);
+	
 	protected Shell shell;
 	protected SmartphoneStatusWidget smartphoneStatusWidget;
 	
@@ -31,6 +41,7 @@ public class MainWindow
 		final Display display = Display.getDefault();
 		createContents(display);
 		
+		final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
 		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 		
 		try
@@ -43,10 +54,33 @@ public class MainWindow
 				@Override
 				public void run()
 				{
-					CheckDeviceRunnable checkDeviceRunnable = new CheckDeviceRunnable();
-					checkDeviceRunnable.addObserver(smartphoneStatusWidget);
+					CompletionService<JSONObject> completionService = new ExecutorCompletionService<JSONObject>(threadExecutor);
+					Future<JSONObject> future = completionService.submit(LoadSettingsCallable.getInstance());
 					
-					scheduler.scheduleAtFixedRate(checkDeviceRunnable, 2, 2, TimeUnit.SECONDS);
+					try
+					{
+						JSONObject jsonSettings = completionService.take().get();
+						
+						if (jsonSettings.length() > 0)
+						{
+							CheckDeviceRunnable checkDeviceRunnable = new CheckDeviceRunnable();
+							checkDeviceRunnable.addObserver(smartphoneStatusWidget);
+							
+							scheduler.scheduleAtFixedRate(checkDeviceRunnable, 2, 2, TimeUnit.SECONDS);
+						}
+					}
+					catch (InterruptedException ie)
+					{
+						LOG.error(ie.getMessage(), ie);
+					}
+					catch (ExecutionException ee)
+					{
+						LOG.error(ee.getMessage(), ee);
+					}
+					finally
+					{
+						future.cancel(true);
+					}
 				}
 			})).start();
 			

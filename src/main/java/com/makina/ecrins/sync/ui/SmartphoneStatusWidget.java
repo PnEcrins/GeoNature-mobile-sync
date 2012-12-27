@@ -54,7 +54,7 @@ public class SmartphoneStatusWidget implements Observer
 		{
 			public void paintControl(PaintEvent pe)
 			{
-				pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_pending.png"), 0, 0);
+				pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_none.png"), 0, 0);
 			}
 		});
 
@@ -77,7 +77,7 @@ public class SmartphoneStatusWidget implements Observer
 		fd_labelSmartphoneStatus.top = new FormAttachment(canvasSmartphoneStatus, 5, SWT.TOP);
 		fd_labelSmartphoneStatus.left = new FormAttachment(labelSmartphoneSeparator, 5);
 		labelSmartphoneStatus.setLayoutData(fd_labelSmartphoneStatus);
-		labelSmartphoneStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status.pending"));
+		labelSmartphoneStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status.none"));
 	}
 	
 	@Override
