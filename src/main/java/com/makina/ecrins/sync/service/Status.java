@@ -1,5 +1,10 @@
-package com.makina.adb.dummy;
+package com.makina.ecrins.sync.service;
 
+/**
+ * Service status.
+ * 
+ * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
+ */
 public enum Status
 {
 	STATUS_NONE(0, "none"),
