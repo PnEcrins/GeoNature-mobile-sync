@@ -17,6 +17,7 @@ public class LoadSettingsCallable implements Callable<JSONObject>
 {
 	private static final Logger LOG = Logger.getLogger(LoadSettingsCallable.class);
 	
+	public static final String KEY_SYNC = "sync";
 	public static final String KEY_SERVER_URL = "url";
 	public static final String KEY_TOKEN = "token";
 	public static final String KEY_STATUS_URL = "status_url";

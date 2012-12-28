@@ -40,8 +40,6 @@ public class CheckDeviceRunnable implements Runnable
 	@Override
 	public void run()
 	{
-		this.statusObservable.update(getStatus());
-		
 		try
 		{
 			if (getStatus().equals(Status.STATUS_NONE))

@@ -22,6 +22,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.json.JSONObject;
 
 import com.makina.ecrins.sync.adb.CheckDeviceRunnable;
+import com.makina.ecrins.sync.server.CheckServerRunnable;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 
 /**
@@ -35,14 +36,18 @@ public class MainWindow
 	
 	protected Shell shell;
 	protected SmartphoneStatusWidget smartphoneStatusWidget;
+	protected ServerStatusWidget serverStatusWidget;
 	
+	/**
+	 * open the main window and launch tasks
+	 */
 	public void open()
 	{
 		final Display display = Display.getDefault();
 		createContents(display);
 		
 		final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
-		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 		
 		try
 		{
@@ -65,8 +70,11 @@ public class MainWindow
 						{
 							CheckDeviceRunnable checkDeviceRunnable = new CheckDeviceRunnable();
 							checkDeviceRunnable.addObserver(smartphoneStatusWidget);
-							
 							scheduler.scheduleAtFixedRate(checkDeviceRunnable, 2, 2, TimeUnit.SECONDS);
+							
+							CheckServerRunnable checkServerRunnable = new CheckServerRunnable();
+							checkServerRunnable.addObserver(serverStatusWidget);
+							scheduler.scheduleAtFixedRate(checkServerRunnable, 5, 5, TimeUnit.SECONDS);
 						}
 					}
 					catch (InterruptedException ie)
@@ -105,6 +113,9 @@ public class MainWindow
 		}
 	}
 	
+	/**
+	 * create contents of the window
+	 */
 	protected void createContents(Display display)
 	{
 		shell = new Shell(display, SWT.CLOSE | SWT.TITLE | SWT.MIN);
@@ -139,6 +150,7 @@ public class MainWindow
 		groupStatuses.setLayoutData(fdGroupStatuses);
 		
 		smartphoneStatusWidget = new SmartphoneStatusWidget(display, groupStatuses);
+		serverStatusWidget = new ServerStatusWidget(display, groupStatuses);
 	}
 	
 	public static void main(String[] args)
