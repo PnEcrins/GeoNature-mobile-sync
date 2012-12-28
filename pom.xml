@@ -5,6 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.makina.ecrins</groupId>
 	<artifactId>sync</artifactId>
+	<packaging>jar</packaging>
 	<version>0.0.1</version>
 	<name>geobi-ecrins-sync</name>
 	
@@ -27,6 +28,48 @@
 		</repository>
 	</repositories>
 	
+	<profiles>
+		<profile>
+			<id>win</id>
+			<activation>
+				<os>
+					<family>windows</family>
+				</os>
+			</activation>
+			<properties>
+				<assembly.name>win32</assembly.name>
+				<swt.group>org.eclipse.swt</swt.group>
+				<swt.artifact>win32.win32</swt.artifact>
+			</properties>
+		</profile>
+		<profile>
+			<id>linux</id>
+			<activation>
+				<os>
+					<family>unix</family>
+				</os>
+			</activation>
+			<properties>
+				<assembly.name>linux-gtk</assembly.name>
+				<swt.group>org.eclipse.swt</swt.group>
+				<swt.artifact>gtk.linux</swt.artifact>
+			</properties>
+		</profile>
+		<profile>
+			<id>macosx</id>
+			<activation>
+				<os>
+					<family>mac</family>
+				</os>
+			</activation>
+			<properties>
+				<assembly.name>macosx-cocoa</assembly.name>
+				<swt.group>org.eclipse.swt</swt.group>
+				<swt.artifact>cocoa.macosx</swt.artifact>
+			</properties>
+		</profile>
+	</profiles>
+	
 	<dependencies>
 		<dependency>
 			<groupId>log4j</groupId>
@@ -35,7 +78,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.swt</groupId>
-			<artifactId>org.eclipse.swt.cocoa.macosx.x86_64</artifactId>
+			<artifactId>${swt.group}.${swt.artifact}.${os.arch}</artifactId>
 			<version>4.2.1</version>
 		</dependency>
 		<dependency>
@@ -81,6 +124,26 @@
 					<encoding>${project.build.sourceEncoding}</encoding>
 				</configuration>
 				<version>2.5.1</version>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.4</version>
+				<configuration>
+					<descriptors>
+						<descriptor>src/main/assembly/${assembly.name}.xml</descriptor>
+					</descriptors>
+					<archive>
+						<manifest>
+							<addClasspath>true</addClasspath>
+							<mainClass>com.makina.ecrins.sync.ui.MainWindow</mainClass>
+							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+							<addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+						</manifest>
+						<manifestEntries>
+							<Built-By>Sebastien Grimault &#60;sebastien.grimault@makina-corpus.com&#62;</Built-By>
+						</manifestEntries>
+					</archive>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
