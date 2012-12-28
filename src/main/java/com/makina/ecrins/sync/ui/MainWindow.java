@@ -15,9 +15,12 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.json.JSONObject;
 
@@ -151,6 +154,22 @@ public class MainWindow
 		
 		smartphoneStatusWidget = new SmartphoneStatusWidget(display, groupStatuses);
 		serverStatusWidget = new ServerStatusWidget(display, groupStatuses);
+		
+		Button buttonQuit = new Button(composite, SWT.NONE);
+		FormData fdButtonValidate = new FormData();
+		fdButtonValidate.right = new FormAttachment(100, -5);
+		fdButtonValidate.bottom = new FormAttachment(100);
+		buttonQuit.setLayoutData(fdButtonValidate);
+		buttonQuit.setText(ResourceBundle.getBundle("messages").getString("MainWindow.buttonQuit.text"));
+		
+		buttonQuit.addListener(SWT.Selection, new Listener()
+		{
+			@Override
+			public void handleEvent(Event e)
+			{
+				shell.dispose();
+			}
+		});
 	}
 	
 	public static void main(String[] args)
