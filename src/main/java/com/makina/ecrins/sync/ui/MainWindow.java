@@ -170,6 +170,18 @@ public class MainWindow
 				shell.dispose();
 			}
 		});
+		
+		Group groupUpdate = new Group(composite, SWT.NONE);
+		groupUpdate.setFont(UIResourceManager.getFont("Lucida Grande", 11, SWT.BOLD));
+		groupUpdate.setBackground(UIResourceManager.getColor(SWT.COLOR_WIDGET_BACKGROUND));
+		groupUpdate.setText(ResourceBundle.getBundle("messages").getString("MainWindow.groupUpdate.text"));
+		groupUpdate.setLayout(new FormLayout());
+		FormData fdGroupUpdate = new FormData();
+		fdGroupUpdate.top = new FormAttachment(groupStatuses);
+		fdGroupUpdate.left = new FormAttachment(0, 5);
+		fdGroupUpdate.right = new FormAttachment(100, -5);
+		fdGroupUpdate.height = 195;
+		groupUpdate.setLayoutData(fdGroupUpdate);
 	}
 	
 	public static void main(String[] args)

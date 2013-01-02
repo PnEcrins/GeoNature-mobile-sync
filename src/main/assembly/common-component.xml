@@ -1,7 +1,7 @@
 <component>
 	<dependencySets>
 		<dependencySet>
-			<unpack>false</unpack>
+			<unpack>true</unpack>
 			<scope>runtime</scope>
 			<useProjectArtifact>false</useProjectArtifact>
 		</dependencySet>

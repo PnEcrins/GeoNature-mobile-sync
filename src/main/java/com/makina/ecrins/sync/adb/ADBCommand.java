@@ -10,7 +10,10 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.log4j.Logger;
+
+import com.makina.ecrins.sync.util.FileUtils;
 
 /**
  * Wrapper class used for invoking adb command.
@@ -30,6 +33,9 @@ public class ADBCommand
 			try
 			{
 				adbCommandPath = extractAdbCommand().getAbsolutePath();
+				
+				LOG.debug("using adb command '" + adbCommandPath + "'");
+				LOG.debug(getVersion());
 			}
 			catch (IOException ioe)
 			{
@@ -39,8 +45,10 @@ public class ADBCommand
 			{
 				LOG.error(ie.getMessage(), ie);
 			}
-			
-			LOG.debug("using adb command '" + adbCommandPath + "'");
+			catch (UnsupportedOSVersionException uosve)
+			{
+				LOG.error(uosve.getMessage(), uosve);
+			}
 		}
 	}
 
@@ -99,7 +107,21 @@ public class ADBCommand
 		pb.start().waitFor();
 	}
 	
-	private synchronized static File extractAdbCommand() throws IOException, InterruptedException
+	/**
+	 * Gets the version number
+	 * 
+	 * @return the version number
+	 * @throws IOException 
+	 */
+	public String getVersion() throws IOException
+	{
+		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "version");
+		Process p = pb.start();
+		
+		return FileUtils.readInputStreamAsString(p.getInputStream());
+	}
+	
+	private synchronized static File extractAdbCommand() throws IOException, InterruptedException, UnsupportedOSVersionException
 	{
 		File tempFile = File.createTempFile("adb_", Long.toString(System.currentTimeMillis()));
 		tempFile.deleteOnExit();
@@ -110,7 +132,7 @@ public class ADBCommand
 		
 		try
 		{
-			is = ClassLoader.getSystemResourceAsStream("s_adb");
+			is = getAdbCommandFromSystemResource();
 			os = new FileOutputStream(tempFile);
 			int i = 0;
 			
@@ -132,13 +154,49 @@ public class ADBCommand
 			}
 		}
 		
-		if (!System.getProperty("os.name").toLowerCase().contains("win"))
+		if (!SystemUtils.IS_OS_WINDOWS)
 		{
 			ProcessBuilder pb = new ProcessBuilder("chmod", "u+x", tempFile.getAbsolutePath());
 			pb.start().waitFor();
 		}
 		
 		return tempFile;
+	}
+	
+	private static InputStream getAdbCommandFromSystemResource() throws UnsupportedOSVersionException
+	{
+		LOG.debug(SystemUtils.OS_NAME + " (" + SystemUtils.OS_ARCH + ", version : " + SystemUtils.OS_VERSION + ")");
+		
+		if (SystemUtils.IS_OS_WINDOWS)
+		{
+			if (SystemUtils.OS_ARCH.equalsIgnoreCase("x86"))
+			{
+				return ClassLoader.getSystemResourceAsStream("adb-win32-" + SystemUtils.OS_ARCH + "_1.0.31.exe");
+			}
+			else
+			{
+				throw new UnsupportedOSVersionException();
+			}
+		}
+		else if (SystemUtils.IS_OS_LINUX)
+		{
+			if (SystemUtils.OS_ARCH.equalsIgnoreCase("i386"))
+			{
+				return ClassLoader.getSystemResourceAsStream("adb-linux-x86_1.0.31");
+			}
+			else
+			{
+				return ClassLoader.getSystemResourceAsStream("adb-linux-x86_64_1.0.31");
+			}
+		}
+		else if (SystemUtils.IS_OS_MAC_OSX)
+		{
+			return ClassLoader.getSystemResourceAsStream("adb-macosx-cocoa_1.0.31");
+		}
+		else
+		{
+			throw new UnsupportedOSVersionException();
+		}
 	}
 	
 	private static class ADBCommandHolder
