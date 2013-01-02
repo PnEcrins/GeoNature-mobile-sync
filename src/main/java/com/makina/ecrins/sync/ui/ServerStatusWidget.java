@@ -25,27 +25,28 @@ import com.makina.ecrins.sync.service.Status;
 public class ServerStatusWidget implements Observer
 {
 	private Display display;
-	private Composite composite;
+	private Composite parent;
+	
 	private Canvas canvasServerStatus;
 	private Label labelServer;
 	private Label labelServerSeparator;
 	private Label labelServerStatus;
 	
-	public ServerStatusWidget(Display display, Composite composite)
+	public ServerStatusWidget(Display display, Composite parent)
 	{
 		this.display = display;
-		this.composite = composite;
+		this.parent = parent;
 		
 		createContents();
 	}
 
 	private void createContents()
 	{
-		canvasServerStatus = new Canvas(composite, SWT.NONE);
+		canvasServerStatus = new Canvas(parent, SWT.NONE);
 		canvasServerStatus.setLayout(new FormLayout());
 		FormData fd_canvasServerStatus = new FormData();
-		fd_canvasServerStatus.left = new FormAttachment(composite, 10);
-		fd_canvasServerStatus.top = new FormAttachment(composite, 37);
+		fd_canvasServerStatus.left = new FormAttachment(parent, 10);
+		fd_canvasServerStatus.top = new FormAttachment(parent, 37);
 		fd_canvasServerStatus.height = 22;
 		fd_canvasServerStatus.width = 22;
 		canvasServerStatus.setLayoutData(fd_canvasServerStatus);
@@ -57,26 +58,26 @@ public class ServerStatusWidget implements Observer
 			}
 		});
 		
-		labelServer = new Label(composite, SWT.NONE);
+		labelServer = new Label(parent, SWT.NONE);
 		FormData fdLabelServer = new FormData();
 		fdLabelServer.top = new FormAttachment(canvasServerStatus, 5, SWT.TOP);
 		fdLabelServer.left = new FormAttachment(canvasServerStatus, 5);
 		labelServer.setLayoutData(fdLabelServer);
-		labelServer.setText(ResourceBundle.getBundle("messages").getString("MainWindow.labelServer.text")); //$NON-NLS-1$ //$NON-NLS-2$
+		labelServer.setText(ResourceBundle.getBundle("messages").getString("MainWindow.labelServer.text"));
 		
-		labelServerSeparator = new Label(composite, SWT.NONE);
+		labelServerSeparator = new Label(parent, SWT.NONE);
 		FormData fdlabelServerSeparator = new FormData();
 		fdlabelServerSeparator.top = new FormAttachment(canvasServerStatus, 5, SWT.TOP);
 		fdlabelServerSeparator.left = new FormAttachment(40);
 		labelServerSeparator.setLayoutData(fdlabelServerSeparator);
 		labelServerSeparator.setText(":");
 		
-		labelServerStatus = new Label(composite, SWT.NONE);
+		labelServerStatus = new Label(parent, SWT.NONE);
 		FormData fd_labelServerStatus = new FormData();
 		fd_labelServerStatus.top = new FormAttachment(canvasServerStatus, 5, SWT.TOP);
 		fd_labelServerStatus.left = new FormAttachment(labelServerSeparator, 5);
 		labelServerStatus.setLayoutData(fd_labelServerStatus);
-		labelServerStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status.none")); //$NON-NLS-1$ //$NON-NLS-2$
+		labelServerStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status.none"));
 	}
 
 	@Override

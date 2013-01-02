@@ -40,6 +40,7 @@ public class MainWindow
 	protected Shell shell;
 	protected SmartphoneStatusWidget smartphoneStatusWidget;
 	protected ServerStatusWidget serverStatusWidget;
+	protected ConsoleLogWidget consoleLogWidget;
 	
 	/**
 	 * open the main window and launch tasks
@@ -182,6 +183,8 @@ public class MainWindow
 		fdGroupUpdate.right = new FormAttachment(100, -5);
 		fdGroupUpdate.height = 195;
 		groupUpdate.setLayoutData(fdGroupUpdate);
+		
+		consoleLogWidget = new ConsoleLogWidget(display, composite, groupUpdate);
 	}
 	
 	public static void main(String[] args)

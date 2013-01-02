@@ -25,27 +25,28 @@ import com.makina.ecrins.sync.service.Status;
 public class SmartphoneStatusWidget implements Observer
 {
 	private Display display;
-	private Composite composite;
+	private Composite parent;
+	
 	private Canvas canvasSmartphoneStatus;
 	private Label labelSmartphone;
 	private Label labelSmartphoneSeparator;
 	private Label labelSmartphoneStatus;
 	
-	public SmartphoneStatusWidget(Display display, Composite composite)
+	public SmartphoneStatusWidget(Display display, Composite parent)
 	{
 		this.display = display;
-		this.composite = composite;
+		this.parent = parent;
 		
 		createContents();
 	}
 
 	private void createContents()
 	{
-		canvasSmartphoneStatus = new Canvas(composite, SWT.NONE);
+		canvasSmartphoneStatus = new Canvas(parent, SWT.NONE);
 		canvasSmartphoneStatus.setLayout(new FormLayout());
 		FormData fd_canvasSmartphoneStatus = new FormData();
-		fd_canvasSmartphoneStatus.left = new FormAttachment(composite, 10);
-		fd_canvasSmartphoneStatus.top = new FormAttachment(composite, 10);
+		fd_canvasSmartphoneStatus.left = new FormAttachment(parent, 10);
+		fd_canvasSmartphoneStatus.top = new FormAttachment(parent, 10);
 		fd_canvasSmartphoneStatus.height = 22;
 		fd_canvasSmartphoneStatus.width = 22;
 		canvasSmartphoneStatus.setLayoutData(fd_canvasSmartphoneStatus);
@@ -58,21 +59,21 @@ public class SmartphoneStatusWidget implements Observer
 			}
 		});
 
-		labelSmartphone = new Label(composite, SWT.NONE);
+		labelSmartphone = new Label(parent, SWT.NONE);
 		FormData fdLabelSmartphone = new FormData();
 		fdLabelSmartphone.top = new FormAttachment(canvasSmartphoneStatus, 5, SWT.TOP);
 		fdLabelSmartphone.left = new FormAttachment(canvasSmartphoneStatus, 5);
 		labelSmartphone.setLayoutData(fdLabelSmartphone);
 		labelSmartphone.setText(ResourceBundle.getBundle("messages").getString("MainWindow.labelSmartphone.text"));
 		
-		labelSmartphoneSeparator = new Label(composite, SWT.NONE);
+		labelSmartphoneSeparator = new Label(parent, SWT.NONE);
 		FormData fdlabelSmartphoneSeparator = new FormData();
 		fdlabelSmartphoneSeparator.top = new FormAttachment(canvasSmartphoneStatus, 5, SWT.TOP);
 		fdlabelSmartphoneSeparator.left = new FormAttachment(40);
 		labelSmartphoneSeparator.setLayoutData(fdlabelSmartphoneSeparator);
 		labelSmartphoneSeparator.setText(":");
 				
-		labelSmartphoneStatus = new Label(composite, SWT.NONE);
+		labelSmartphoneStatus = new Label(parent, SWT.NONE);
 		FormData fd_labelSmartphoneStatus = new FormData();
 		fd_labelSmartphoneStatus.top = new FormAttachment(canvasSmartphoneStatus, 5, SWT.TOP);
 		fd_labelSmartphoneStatus.left = new FormAttachment(labelSmartphoneSeparator, 5);
