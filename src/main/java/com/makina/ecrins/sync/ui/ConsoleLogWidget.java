@@ -25,12 +25,13 @@ import com.makina.ecrins.sync.logger.LogMessage;
  * 
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
-public class ConsoleLogWidget implements Observer//, Appender
+public class ConsoleLogWidget implements Observer
 {
 	private Display display;
 	private Composite parent;
 	private Control control;
 	
+	private ExpandItem expandItemLogs;
 	private Table table;
 	
 	public ConsoleLogWidget(Display display, Composite parent, Control control)
@@ -76,7 +77,7 @@ public class ConsoleLogWidget implements Observer//, Appender
 			}
 		});
 		
-		final ExpandItem expandItemLogs = new ExpandItem(expandBarLogs, SWT.NONE | SWT.H_SCROLL | SWT.V_SCROLL);
+		expandItemLogs = new ExpandItem(expandBarLogs, SWT.NONE | SWT.H_SCROLL | SWT.V_SCROLL);
 		expandItemLogs.setExpanded(false);
 		expandItemLogs.setText(ResourceBundle.getBundle("messages").getString("MainWindow.expandItemLogs.text"));
 		
@@ -110,6 +111,13 @@ public class ConsoleLogWidget implements Observer//, Appender
 							{
 								case Level.ERROR_INT:
 									tableItem.setForeground(display.getSystemColor(SWT.COLOR_RED));
+									
+									if (!expandItemLogs.getExpanded())
+									{
+										expandItemLogs.setExpanded(true);
+										display.getActiveShell().setSize(display.getActiveShell().getSize().x, display.getActiveShell().getSize().y + expandItemLogs.getHeight() + 10);
+									}
+									
 									break;
 								case Level.WARN_INT:
 									tableItem.setForeground(display.getSystemColor(SWT.COLOR_DARK_YELLOW));
