@@ -35,7 +35,7 @@ public class ADBCommand
 				adbCommandPath = extractAdbCommand().getAbsolutePath();
 				
 				LOG.debug("using adb command '" + adbCommandPath + "'");
-				LOG.debug(getVersion());
+				LOG.info(getVersion());
 			}
 			catch (IOException ioe)
 			{
@@ -165,7 +165,7 @@ public class ADBCommand
 	
 	private static InputStream getAdbCommandFromSystemResource() throws UnsupportedOSVersionException
 	{
-		LOG.debug(SystemUtils.OS_NAME + " (" + SystemUtils.OS_ARCH + ", version : " + SystemUtils.OS_VERSION + ")");
+		LOG.info(SystemUtils.OS_NAME + " (" + SystemUtils.OS_ARCH + ", version : " + SystemUtils.OS_VERSION + ")");
 		
 		if (SystemUtils.IS_OS_WINDOWS)
 		{

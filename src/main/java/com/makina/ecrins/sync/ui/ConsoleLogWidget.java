@@ -4,6 +4,7 @@ import java.util.Observable;
 import java.util.Observer;
 import java.util.ResourceBundle;
 
+import org.apache.log4j.Level;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ExpandEvent;
 import org.eclipse.swt.events.ExpandListener;
@@ -14,17 +15,23 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.ExpandBar;
 import org.eclipse.swt.widgets.ExpandItem;
+import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableItem;
+
+import com.makina.ecrins.sync.logger.LogMessage;
 
 /**
  * Console logger widget.
  * 
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
-public class ConsoleLogWidget implements Observer
+public class ConsoleLogWidget implements Observer//, Appender
 {
 	private Display display;
 	private Composite parent;
 	private Control control;
+	
+	private Table table;
 	
 	public ConsoleLogWidget(Display display, Composite parent, Control control)
 	{
@@ -54,7 +61,7 @@ public class ConsoleLogWidget implements Observer
 				if (ee.item instanceof ExpandItem)
 				{
 					ExpandItem item = (ExpandItem) ee.item;
-					display.getActiveShell().setSize(display.getActiveShell().getSize().x, display.getActiveShell().getSize().y + item.getHeight());
+					display.getActiveShell().setSize(display.getActiveShell().getSize().x, display.getActiveShell().getSize().y + item.getHeight() + 10);
 				}
 			}
 			
@@ -69,18 +76,50 @@ public class ConsoleLogWidget implements Observer
 			}
 		});
 		
-		final ExpandItem expandItemLogs = new ExpandItem(expandBarLogs, SWT.NONE);
+		final ExpandItem expandItemLogs = new ExpandItem(expandBarLogs, SWT.NONE | SWT.H_SCROLL | SWT.V_SCROLL);
 		expandItemLogs.setExpanded(false);
 		expandItemLogs.setText(ResourceBundle.getBundle("messages").getString("MainWindow.expandItemLogs.text"));
 		
-		org.eclipse.swt.widgets.List list = new org.eclipse.swt.widgets.List(expandBarLogs, SWT.BORDER);
-		expandItemLogs.setControl(list);
+		table = new Table(expandBarLogs,SWT.NONE);
+		expandItemLogs.setControl(table);
 		expandItemLogs.setHeight(expandItemLogs.getControl().computeSize(SWT.DEFAULT, SWT.DEFAULT).y);
 	}
 	
 	@Override
 	public void update(Observable o, Object arg)
 	{
-		// TODO Auto-generated method stub
+		if (arg instanceof LogMessage)
+		{
+			final LogMessage message = (LogMessage) arg;
+			
+			display.syncExec(new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					switch (message.getAction())
+					{
+						case RESET:
+							table.clearAll();
+							break;
+						default:
+							TableItem tableItem = new TableItem(table, SWT.None);
+							tableItem.setText(message.getMessage());
+							
+							switch (message.getLevel().toInt())
+							{
+								case Level.ERROR_INT:
+									tableItem.setForeground(display.getSystemColor(SWT.COLOR_RED));
+									break;
+								case Level.WARN_INT:
+									tableItem.setForeground(display.getSystemColor(SWT.COLOR_DARK_YELLOW));
+								default:
+									tableItem.setForeground(display.getSystemColor(SWT.COLOR_BLUE));
+									break;
+							}
+					}
+				}
+			});
+		}
 	}
 }

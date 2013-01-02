@@ -25,6 +25,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.json.JSONObject;
 
 import com.makina.ecrins.sync.adb.CheckDeviceRunnable;
+import com.makina.ecrins.sync.logger.ConsoleLogAppender;
 import com.makina.ecrins.sync.server.CheckServerRunnable;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 
@@ -49,6 +50,8 @@ public class MainWindow
 	{
 		final Display display = Display.getDefault();
 		createContents(display);
+		
+		((ConsoleLogAppender) Logger.getRootLogger().getAppender("UI")).addObserver(consoleLogWidget);
 		
 		final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
 		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
