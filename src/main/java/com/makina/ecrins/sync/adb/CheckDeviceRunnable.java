@@ -65,6 +65,12 @@ public class CheckDeviceRunnable implements Runnable
 				}
 			}
 		}
+		catch (InterruptedException ie)
+		{
+			LOG.error(ie.getMessage(), ie);
+			this.status = Status.STATUS_FAILED;
+			this.statusObservable.update(getStatus());
+		}
 		catch (IOException ioe)
 		{
 			LOG.error(ioe.getMessage(), ioe);

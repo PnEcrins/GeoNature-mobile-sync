@@ -3,10 +3,9 @@ package com.makina.ecrins.sync.settings;
 import java.io.InputStream;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
-
-import com.makina.ecrins.sync.util.FileUtils;
 
 /**
  * <code>Callable</code> implementation for loading application global settings as JSON file.
@@ -57,7 +56,7 @@ public class LoadSettingsCallable implements Callable<JSONObject>
 			}
 			else
 			{
-				jsonSettings = new JSONObject(FileUtils.readInputStreamAsString(is));
+				jsonSettings = new JSONObject(IOUtils.toString(is));
 				
 				LOG.debug("'settings.json' loaded");
 			}

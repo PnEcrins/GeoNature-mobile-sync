@@ -1,19 +1,15 @@
 package com.makina.ecrins.sync.adb;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.log4j.Logger;
-
-import com.makina.ecrins.sync.util.FileUtils;
 
 /**
  * Wrapper class used for invoking adb command.
@@ -36,6 +32,8 @@ public class ADBCommand
 				
 				LOG.debug("using adb command '" + adbCommandPath + "'");
 				LOG.info(getVersion());
+				
+				startServer();
 			}
 			catch (IOException ioe)
 			{
@@ -61,21 +59,20 @@ public class ADBCommand
 	 * Lists all devices currently connected.
 	 * 
 	 * @return a <code>List</code> of connected devices
+	 * @throws InterruptedException 
 	 * @throws IOException 
 	 */
-	public List<String> getDevices() throws IOException
+	public List<String> getDevices() throws InterruptedException, IOException
 	{
-		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "devices");
-		
 		List<String> devices = new ArrayList<String>();
 		
-		Process p = pb.start();
+		startServer();
 		
-		BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-		String line = "";
+		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "devices");
+		Process p = pb.start();
 		boolean firstLine = true;
 		
-		while ((line = br.readLine()) != null)
+		for (String line : IOUtils.readLines(p.getInputStream()))
 		{
 			LOG.debug(line);
 			
@@ -91,20 +88,8 @@ public class ADBCommand
 				}
 			}
 		}
-
+		
 		return devices;
-	}
-	
-	/**
-	 * Blocks until device is connected.
-	 * 
-	 * @throws InterruptedException
-	 * @throws IOException
-	 */
-	public void waitForDevice() throws InterruptedException, IOException
-	{
-		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "wait-for-device");
-		pb.start().waitFor();
 	}
 	
 	/**
@@ -118,49 +103,70 @@ public class ADBCommand
 		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "version");
 		Process p = pb.start();
 		
-		return FileUtils.readInputStreamAsString(p.getInputStream());
+		return IOUtils.toString(p.getInputStream()).trim();
+	}
+	
+	/**
+	 * Blocks until device is connected
+	 * 
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
+	public void waitForDevice() throws InterruptedException, IOException
+	{
+		startServer();
+		
+		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "wait-for-device");
+		pb.start().waitFor();
+	}
+	
+	/**
+	 * Ensures that there is a server running
+	 * @throws IOException 
+	 * @throws InterruptedException 
+	 */
+	public void startServer() throws IOException, InterruptedException
+	{
+		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "start-server");
+		pb.start().waitFor();
+	}
+	
+	/**
+	 * Kills the server if it is running
+	 * 
+	 * @throws IOException
+	 * @throws InterruptedException 
+	 */
+	public void killServer() throws IOException, InterruptedException
+	{
+		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "kill-server");
+		pb.start().waitFor();
 	}
 	
 	private synchronized static File extractAdbCommand() throws IOException, InterruptedException, UnsupportedOSVersionException
 	{
-		File tempFile = File.createTempFile("adb_", Long.toString(System.currentTimeMillis()));
-		tempFile.deleteOnExit();
+		File tempDir = new File(FileUtils.getTempDirectory(), "sync_" + Long.toString(System.currentTimeMillis()));
+		tempDir.mkdir();
+		FileUtils.forceDeleteOnExit(tempDir);
 		
-		final byte[] buf = new byte[1024];
-		InputStream is = null;
-		OutputStream os = null;
+		File adbCommandFile = new File(tempDir, "adb");
 		
-		try
+		if (SystemUtils.IS_OS_WINDOWS)
 		{
-			is = getAdbCommandFromSystemResource();
-			os = new FileOutputStream(tempFile);
-			int i = 0;
-			
-			while ((i = is.read(buf)) != -1)
-			{
-				os.write(buf, 0, i);
-			}
+			adbCommandFile = new File(tempDir, "adb.exe");
+			FileUtils.copyInputStreamToFile(ClassLoader.getSystemResourceAsStream("AdbWinApi.dll"), new File(tempDir, "AdbWinApi.dll"));
+			FileUtils.copyInputStreamToFile(ClassLoader.getSystemResourceAsStream("AdbWinUsbApi.dll"), new File(tempDir, "AdbWinUsbApi.dll"));
 		}
-		finally
-		{
-			if (is != null)
-			{
-				is.close();
-			}
-			
-			if (os != null)
-			{
-				os.close();
-			}
-		}
+		
+		FileUtils.copyInputStreamToFile(getAdbCommandFromSystemResource(), adbCommandFile);
 		
 		if (!SystemUtils.IS_OS_WINDOWS)
 		{
-			ProcessBuilder pb = new ProcessBuilder("chmod", "u+x", tempFile.getAbsolutePath());
+			ProcessBuilder pb = new ProcessBuilder("chmod", "u+x", adbCommandFile.getAbsolutePath());
 			pb.start().waitFor();
 		}
 		
-		return tempFile;
+		return adbCommandFile;
 	}
 	
 	private static InputStream getAdbCommandFromSystemResource() throws UnsupportedOSVersionException

@@ -20,6 +20,7 @@
 	<properties>
 		<adb.version>1.0.31</adb.version>
 		<src.java.version>1.6</src.java.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	
 	<repositories>
@@ -38,7 +39,7 @@
 				</os>
 			</activation>
 			<properties>
-				<adb.name>adb-win32-${os.arch}_${adb.version}.exe</adb.name>
+				<adb.path>adb/win32/</adb.path>
 				<assembly.name>win32</assembly.name>
 				<swt.group>org.eclipse.swt</swt.group>
 				<swt.artifact>win32.win32.${os.arch}</swt.artifact>
@@ -53,7 +54,7 @@
 				</os>
 			</activation>
 			<properties>
-				<adb.name>adb-linux-x86_${adb.version}</adb.name>
+				<adb.path>adb/linux/x86/</adb.path>
 				<assembly.name>linux-gtk</assembly.name>
 				<swt.group>org.eclipse.swt</swt.group>
 				<swt.artifact>gtk.linux.x86</swt.artifact>
@@ -68,7 +69,7 @@
 				</os>
 			</activation>
 			<properties>
-				<adb.name>adb-linux-x86_64_${adb.version}</adb.name>
+				<adb.path>adb/linux/x86_64/</adb.path>
 				<assembly.name>linux-gtk</assembly.name>
 				<swt.group>org.eclipse.swt</swt.group>
 				<swt.artifact>gtk.linux.x86_64</swt.artifact>
@@ -82,7 +83,7 @@
 				</os>
 			</activation>
 			<properties>
-				<adb.name>adb-macosx-cocoa_${adb.version}</adb.name>
+				<adb.path>adb/macosx/</adb.path>
 				<assembly.name>macosx-cocoa</assembly.name>
 				<swt.group>org.eclipse.swt</swt.group>
 				<swt.artifact>cocoa.macosx.${os.arch}</swt.artifact>
@@ -110,6 +111,11 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 			<version>3.1</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>2.4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
@@ -140,21 +146,28 @@
 				</excludes>
 			</resource>
 			<resource>
-				<directory>adb</directory>
+				<directory>${adb.path}</directory>
 				<includes>
-					<include>${adb.name}</include>
+					<include>*</include>
 				</includes>
 			</resource>
 		</resources>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.5.1</version>
 				<configuration>
 					<source>${src.java.version}</source>
 					<target>${src.java.version}</target>
 					<encoding>${project.build.sourceEncoding}</encoding>
 				</configuration>
-				<version>2.5.1</version>
+			</plugin>
+			<plugin>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>2.6</version>
+				<configuration>
+					<encoding>ISO-8859-1</encoding>
+				</configuration>
 			</plugin>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>

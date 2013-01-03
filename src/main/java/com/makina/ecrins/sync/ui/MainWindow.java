@@ -1,5 +1,6 @@
 package com.makina.ecrins.sync.ui;
 
+import java.io.IOException;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
@@ -24,6 +25,7 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.json.JSONObject;
 
+import com.makina.ecrins.sync.adb.ADBCommand;
 import com.makina.ecrins.sync.adb.CheckDeviceRunnable;
 import com.makina.ecrins.sync.logger.ConsoleLogAppender;
 import com.makina.ecrins.sync.server.CheckServerRunnable;
@@ -109,14 +111,29 @@ public class MainWindow
 		}
 		finally
 		{
-			UIResourceManager.dispose();
-			
-			if (!shell.isDisposed())
+			try
 			{
-				shell.dispose();
+				ADBCommand.getInstance().killServer();
 			}
-			
-			System.exit(0);
+			catch (IOException ioe)
+			{
+				LOG.error(ioe.getMessage(), ioe);
+			}
+			catch (InterruptedException ie)
+			{
+				LOG.error(ie.getMessage(), ie);
+			}
+			finally
+			{
+				UIResourceManager.dispose();
+				
+				if (!shell.isDisposed())
+				{
+					shell.dispose();
+				}
+				
+				System.exit(0);
+			}
 		}
 	}
 	
