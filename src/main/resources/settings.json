@@ -1,7 +1,7 @@
 {
 	"sync":
 	{
-		"url": "http://192.168.168.246/faune/",
+		"url": "http://192.168.168.201/faune/",
 		"token": 666,
 		"status_url": "status/"
 	},

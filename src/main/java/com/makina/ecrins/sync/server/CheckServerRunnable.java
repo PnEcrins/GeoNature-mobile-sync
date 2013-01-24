@@ -1,11 +1,14 @@
 package com.makina.ecrins.sync.server;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Observer;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
@@ -19,6 +22,7 @@ import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.makina.ecrins.sync.service.Status;
 import com.makina.ecrins.sync.service.StatusObservable;
@@ -84,16 +88,23 @@ public class CheckServerRunnable implements Runnable
 			
 			if (status.getStatusCode() == HttpStatus.SC_OK)
 			{
-				// TODO: use JSON response to check server status
-				// pulls content stream from response
-				/*
 				HttpEntity entity = httpResponse.getEntity();
 				InputStream is = entity.getContent();
-				String jsonStatus = FileUtils.readInputStreamAsString(is);
-				*/
-				if (!getStatus().equals(Status.STATUS_CONNECTED))
+				JSONObject jsonResponse = new JSONObject(IOUtils.toString(is));
+				
+				LOG.debug("status_code : " + jsonResponse.getInt("status_code"));
+				
+				if (jsonResponse.getInt("status_code") == 0)
 				{
-					this.status = Status.STATUS_CONNECTED;
+					if (!getStatus().equals(Status.STATUS_CONNECTED))
+					{
+						this.status = Status.STATUS_CONNECTED;
+						this.statusObservable.update(getStatus());
+					}
+				}
+				else
+				{
+					this.status = Status.STATUS_FAILED;
 					this.statusObservable.update(getStatus());
 				}
 			}
