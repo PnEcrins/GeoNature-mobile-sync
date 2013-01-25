@@ -25,17 +25,17 @@ public class ADBCommand
 	
 	private static final Logger LOG = Logger.getLogger(ADBCommand.class);
 	
-	private String adbCommandPath = null;
+	private File adbCommandFile = null;
 	
 	private ADBCommand()
 	{
-		if (adbCommandPath == null)
+		if (adbCommandFile == null)
 		{
 			try
 			{
-				adbCommandPath = extractAdbCommand().getAbsolutePath();
+				adbCommandFile = extractAdbCommand();
 				
-				LOG.debug("using adb command '" + adbCommandPath + "'");
+				LOG.debug("using adb command '" + adbCommandFile.getAbsolutePath() + "'");
 				LOG.info(getVersion());
 				
 				startServer();
@@ -73,14 +73,12 @@ public class ADBCommand
 		
 		startServer();
 		
-		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "devices");
+		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "devices");
 		Process p = pb.start();
 		boolean firstLine = true;
 		
 		for (String line : IOUtils.readLines(p.getInputStream()))
 		{
-			LOG.debug(line);
-			
 			if (firstLine)
 			{
 				firstLine = false;
@@ -98,6 +96,38 @@ public class ADBCommand
 	}
 	
 	/**
+	 * Copy file or a directory to the connected device.
+	 * 
+	 * @param localPath local path to use for the copy
+	 * @param remotePath remote path from the connected device
+	 * @throws IOException 
+	 * @throws InterruptedException 
+	 */
+	public void push(String localPath, String remotePath) throws InterruptedException, IOException
+	{
+		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "push", localPath, remotePath);
+		LOG.debug("push : " + pb.command().toString());
+		
+		pb.start().waitFor();
+	}
+	
+	/**
+	 * Copy file or a directory from device to a given local folder.
+	 * 
+	 * @param remotePath remote path from the connected device to copy
+	 * @param localPath local path to use for the copy
+	 * @throws IOException 
+	 * @throws InterruptedException 
+	 */
+	public void pull(String remotePath, String localPath) throws InterruptedException, IOException
+	{
+		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "pull", remotePath, localPath);
+		LOG.debug("pull : " + pb.command().toString());
+		
+		pb.start().waitFor();
+	}
+	
+	/**
 	 * Executes a remote shell command
 	 * 
 	 * @param command the command to execute
@@ -111,7 +141,7 @@ public class ADBCommand
 		
 		startServer();
 		
-		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "shell", command);
+		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "shell", command);
 		LOG.debug("executeCommand : " + pb.command().toString());
 		
 		Process p = pb.start();
@@ -132,7 +162,7 @@ public class ADBCommand
 	 */
 	public String getVersion() throws IOException
 	{
-		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "version");
+		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "version");
 		Process p = pb.start();
 		
 		return IOUtils.toString(p.getInputStream()).trim();
@@ -169,7 +199,7 @@ public class ADBCommand
 	{
 		startServer();
 		
-		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "wait-for-device");
+		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "wait-for-device");
 		pb.start().waitFor();
 	}
 	
@@ -181,7 +211,7 @@ public class ADBCommand
 	 */
 	public void startServer() throws IOException, InterruptedException
 	{
-		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "start-server");
+		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "start-server");
 		pb.start().waitFor();
 	}
 	
@@ -193,7 +223,7 @@ public class ADBCommand
 	 */
 	public void killServer() throws IOException, InterruptedException
 	{
-		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "kill-server");
+		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "kill-server");
 		pb.start().waitFor();
 	}
 	
@@ -213,10 +243,18 @@ public class ADBCommand
 	{
 		startServer();
 		
-		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "get-state");
+		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "get-state");
 		Process p = pb.start();
 		
 		return IOUtils.toString(p.getInputStream()).trim();
+	}
+	
+	public void dispose()
+	{
+		if (adbCommandFile.exists())
+		{
+			FileUtils.deleteQuietly(adbCommandFile.getParentFile());
+		}
 	}
 	
 	private synchronized static File extractAdbCommand() throws IOException, InterruptedException, UnsupportedOSVersionException
