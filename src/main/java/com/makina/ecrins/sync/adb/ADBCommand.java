@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.log4j.Logger;
 
@@ -18,6 +19,10 @@ import org.apache.log4j.Logger;
  */
 public class ADBCommand
 {
+	public static final String STATE_OFFLINE = "offline";
+	public static final String STATE_BOOTLOADER = "bootloader";
+	public static final String STATE_DEVICE = "device";
+	
 	private static final Logger LOG = Logger.getLogger(ADBCommand.class);
 	
 	private String adbCommandPath = null;
@@ -93,6 +98,33 @@ public class ADBCommand
 	}
 	
 	/**
+	 * Executes a remote shell command
+	 * 
+	 * @param command the command to execute
+	 * @return the output as <code>List</code>
+	 * @throws InterruptedException 
+	 * @throws IOException 
+	 */
+	public List<String> executeCommand(String command) throws IOException, InterruptedException
+	{
+		List<String> output = new ArrayList<String>();
+		
+		startServer();
+		
+		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "shell", command);
+		LOG.debug("executeCommand : " + pb.command().toString());
+		
+		Process p = pb.start();
+		
+		for (String line : IOUtils.readLines(p.getInputStream()))
+		{
+			output.add(line);
+		}
+		
+		return output;
+	}
+	
+	/**
 	 * Gets the version number
 	 * 
 	 * @return the version number
@@ -104,6 +136,27 @@ public class ADBCommand
 		Process p = pb.start();
 		
 		return IOUtils.toString(p.getInputStream()).trim();
+	}
+	
+	/**
+	 * Gets the current Android build version of the connected device.
+	 * 
+	 * @return the build version from <code>/system/build.prop</code>
+	 * @throws InterruptedException 
+	 * @throws IOException 
+	 */
+	public int getBuildVersion() throws IOException, InterruptedException
+	{
+		List<String> output = executeCommand("grep ro.build.version.sdk= /system/build.prop");
+		
+		if (output.size() == 1)
+		{
+			return Integer.valueOf(StringUtils.substringAfter(output.get(0), "="));
+		}
+		else
+		{
+			return -1;
+		}
 	}
 	
 	/**
@@ -122,6 +175,7 @@ public class ADBCommand
 	
 	/**
 	 * Ensures that there is a server running
+	 * 
 	 * @throws IOException 
 	 * @throws InterruptedException 
 	 */
@@ -141,6 +195,28 @@ public class ADBCommand
 	{
 		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "kill-server");
 		pb.start().waitFor();
+	}
+	
+	/**
+	 * Returns the current status of the connected device :
+	 * <ul>
+	 * <li>{@link ADBCommand#STATE_OFFLINE}</li>
+	 * <li>{@link ADBCommand#STATE_BOOTLOADER}</li>
+	 * <li>{@link ADBCommand#STATE_DEVICE}</li>
+	 * </ul>
+	 * 
+	 * @return the current status of the connected device
+	 * @throws InterruptedException 
+	 * @throws IOException 
+	 */
+	public String getState() throws IOException, InterruptedException
+	{
+		startServer();
+		
+		ProcessBuilder pb = new ProcessBuilder(adbCommandPath, "get-state");
+		Process p = pb.start();
+		
+		return IOUtils.toString(p.getInputStream()).trim();
 	}
 	
 	private synchronized static File extractAdbCommand() throws IOException, InterruptedException, UnsupportedOSVersionException
