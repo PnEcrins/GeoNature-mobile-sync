@@ -9,9 +9,10 @@ public enum Status
 {
 	STATUS_NONE(0, "none"),
 	STATUS_PENDING(1, "pending"),
-	STATUS_CONNECTED(2, "connected"),
-	STATUS_FINISH(3, "finish"),
-	STATUS_FAILED(4, "failed");
+	STATUS_RUNNING(2, "running"),
+	STATUS_CONNECTED(3, "connected"),
+	STATUS_FINISH(4, "finish"),
+	STATUS_FAILED(5, "failed");
 
 	private final int status;
 	private final String label;

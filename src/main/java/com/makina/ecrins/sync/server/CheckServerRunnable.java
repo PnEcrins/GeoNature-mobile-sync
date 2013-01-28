@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Observable;
 import java.util.Observer;
 
 import org.apache.commons.io.IOUtils;
@@ -25,7 +26,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.makina.ecrins.sync.service.Status;
-import com.makina.ecrins.sync.service.StatusObservable;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 
 /**
@@ -33,28 +33,39 @@ import com.makina.ecrins.sync.settings.LoadSettingsCallable;
  * 
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
-public class CheckServerRunnable implements Runnable
+public class CheckServerRunnable extends Observable implements Runnable
 {
 	private static final Logger LOG = Logger.getLogger(CheckServerRunnable.class);
 	
-	private StatusObservable statusObservable;
 	private Status status;
 	
 	public CheckServerRunnable()
 	{
 		this.status = Status.STATUS_NONE;
-		this.statusObservable = new StatusObservable();
 	}
 	
-	public void addObserver(final Observer observer)
+	@Override
+	public synchronized void addObserver(Observer o)
 	{
-		this.statusObservable.addObserver(observer);
-		this.statusObservable.update(getStatus());
+		super.addObserver(o);
+		
+		setChanged();
+		notifyObservers(getStatus());
 	}
-	
+
 	public Status getStatus()
 	{
 		return status;
+	}
+
+	protected void setStatus(Status status)
+	{
+		if (!this.status.equals(status))
+		{
+			this.status = status;
+			setChanged();
+			notifyObservers(getStatus());
+		}
 	}
 	
 	@Override
@@ -62,8 +73,7 @@ public class CheckServerRunnable implements Runnable
 	{
 		if (getStatus().equals(Status.STATUS_NONE))
 		{
-			this.status = Status.STATUS_PENDING;
-			this.statusObservable.update(getStatus());
+			setStatus(Status.STATUS_PENDING);
 		}
 		
 		try
@@ -98,46 +108,39 @@ public class CheckServerRunnable implements Runnable
 				{
 					if (!getStatus().equals(Status.STATUS_CONNECTED))
 					{
-						this.status = Status.STATUS_CONNECTED;
-						this.statusObservable.update(getStatus());
+						setStatus(Status.STATUS_CONNECTED);
 					}
 				}
 				else
 				{
-					this.status = Status.STATUS_FAILED;
-					this.statusObservable.update(getStatus());
+					setStatus(Status.STATUS_FAILED);
 				}
 			}
 			else
 			{
 				LOG.warn("unable to check server status from URL : " + urlStatus + ", HTTP status : " + status.getStatusCode());
-				this.status = Status.STATUS_FAILED;
-				this.statusObservable.update(getStatus());
+				setStatus(Status.STATUS_FAILED);
 			}
 		}
 		catch (JSONException je)
 		{
 			LOG.error(je.getMessage(), je);
-			this.status = Status.STATUS_FAILED;
-			this.statusObservable.update(getStatus());
+			setStatus(Status.STATUS_FAILED);
 		}
 		catch (UnsupportedEncodingException uee)
 		{
 			LOG.error(uee.getMessage(), uee);
-			this.status = Status.STATUS_FAILED;
-			this.statusObservable.update(getStatus());
+			setStatus(Status.STATUS_FAILED);
 		}
 		catch (ClientProtocolException cpe)
 		{
 			LOG.error(cpe.getMessage(), cpe);
-			this.status = Status.STATUS_FAILED;
-			this.statusObservable.update(getStatus());
+			setStatus(Status.STATUS_FAILED);
 		}
 		catch (IOException ioe)
 		{
 			LOG.error(ioe.getMessage(), ioe);
-			this.status = Status.STATUS_FAILED;
-			this.statusObservable.update(getStatus());
+			setStatus(Status.STATUS_FAILED);
 		}
 	}
 }

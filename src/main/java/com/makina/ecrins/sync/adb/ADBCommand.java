@@ -249,6 +249,9 @@ public class ADBCommand
 		return IOUtils.toString(p.getInputStream()).trim();
 	}
 	
+	/**
+	 * Clean all resources used by this {@link ADBCommand} instance.
+	 */
 	public void dispose()
 	{
 		if (adbCommandFile.exists())

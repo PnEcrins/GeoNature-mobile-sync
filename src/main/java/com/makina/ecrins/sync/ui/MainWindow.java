@@ -1,6 +1,8 @@
 package com.makina.ecrins.sync.ui;
 
 import java.io.IOException;
+import java.util.Observable;
+import java.util.Observer;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
@@ -29,27 +31,41 @@ import com.makina.ecrins.sync.adb.ADBCommand;
 import com.makina.ecrins.sync.adb.CheckDeviceRunnable;
 import com.makina.ecrins.sync.logger.ConsoleLogAppender;
 import com.makina.ecrins.sync.server.CheckServerRunnable;
+import com.makina.ecrins.sync.service.Status;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
+import com.makina.ecrins.sync.tasks.ImportInputsFromDeviceTaskRunnable;
+import com.makina.ecrins.sync.tasks.TaskManager;
 
 /**
  * Main application window.
  * 
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
-public class MainWindow
+public class MainWindow implements Observer
 {
 	private static final Logger LOG = Logger.getLogger(MainWindow.class);
+	
+	private Status serverStatus;
+	private Status deviceStatus;
+	
+	private TaskManager taskManager;
 	
 	protected Shell shell;
 	protected SmartphoneStatusWidget smartphoneStatusWidget;
 	protected ServerStatusWidget serverStatusWidget;
+	protected DataUpdateWidget dataUpdateWidget;
 	protected ConsoleLogWidget consoleLogWidget;
-	
+
 	/**
 	 * open the main window and launch tasks
 	 */
 	public void open()
 	{
+		LOG.info("starting " + ResourceBundle.getBundle("messages").getString("MainWindow.shell.text") + " (version : " + ResourceBundle.getBundle("messages").getString("version") + ")");
+		
+		serverStatus = Status.STATUS_NONE;
+		deviceStatus = Status.STATUS_NONE;
+		
 		final Display display = Display.getDefault();
 		createContents(display);
 		
@@ -57,6 +73,12 @@ public class MainWindow
 		
 		final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
 		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+		
+		taskManager = new TaskManager();
+		
+		ImportInputsFromDeviceTaskRunnable importInputsFromDeviceTaskRunnable = new ImportInputsFromDeviceTaskRunnable();
+		importInputsFromDeviceTaskRunnable.addObserver(dataUpdateWidget);
+		taskManager.addTask(importInputsFromDeviceTaskRunnable);
 		
 		try
 		{
@@ -79,10 +101,12 @@ public class MainWindow
 						{
 							CheckDeviceRunnable checkDeviceRunnable = new CheckDeviceRunnable();
 							checkDeviceRunnable.addObserver(smartphoneStatusWidget);
+							checkDeviceRunnable.addObserver(MainWindow.this);
 							scheduler.scheduleAtFixedRate(checkDeviceRunnable, 2, 2, TimeUnit.SECONDS);
 							
 							CheckServerRunnable checkServerRunnable = new CheckServerRunnable();
 							checkServerRunnable.addObserver(serverStatusWidget);
+							checkServerRunnable.addObserver(MainWindow.this);
 							scheduler.scheduleAtFixedRate(checkServerRunnable, 5, 5, TimeUnit.SECONDS);
 						}
 					}
@@ -125,6 +149,8 @@ public class MainWindow
 			}
 			finally
 			{
+				taskManager.shutdownNow();
+				ADBCommand.getInstance().dispose();
 				UIResourceManager.dispose();
 				
 				if (!shell.isDisposed())
@@ -204,7 +230,33 @@ public class MainWindow
 		fdGroupUpdate.height = 195;
 		groupUpdate.setLayoutData(fdGroupUpdate);
 		
+		dataUpdateWidget = new DataUpdateWidget(display, groupUpdate);
+		
 		consoleLogWidget = new ConsoleLogWidget(display, composite, groupUpdate);
+	}
+	
+	private void startTaskManager()
+	{
+		if (this.deviceStatus.equals(Status.STATUS_CONNECTED) && this.serverStatus.equals((Status.STATUS_CONNECTED)))
+		{
+			taskManager.start();
+		}
+	}
+	
+	@Override
+	public void update(Observable o, Object arg)
+	{
+		if (o instanceof CheckDeviceRunnable)
+		{
+			this.deviceStatus = ((CheckDeviceRunnable) o).getStatus();
+			startTaskManager();
+		}
+		
+		if (o instanceof CheckServerRunnable)
+		{
+			this.serverStatus = ((CheckServerRunnable) o).getStatus();
+			startTaskManager();
+		}
 	}
 	
 	public static void main(String[] args)
