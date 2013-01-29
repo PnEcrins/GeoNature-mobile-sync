@@ -57,6 +57,8 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 			{
 				setTaskStatus(new TaskStatus(100, "MainWindow.status.finish", Status.STATUS_FAILED));
 			}
+			
+			FileUtils.deleteQuietly(this.inputsTempDir);
 		}
 		catch (InterruptedException ie)
 		{
@@ -84,7 +86,12 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		ADBCommand.getInstance().pull(com.makina.ecrins.sync.adb.FileUtils.getExternalStorageDirectory() + "Android/data/" + "com.makina.ecrins.poc" + "/inputs/", this.inputsTempDir.getAbsolutePath());
 	}
 	
-	private boolean uploadInputs() throws JSONException, IOException
+	private void deleteInputFromDevice(String input) throws IOException, InterruptedException
+	{
+		ADBCommand.getInstance().executeCommand("rm " + com.makina.ecrins.sync.adb.FileUtils.getExternalStorageDirectory() + "Android/data/" + "com.makina.ecrins.poc" + "/inputs/" + input);
+	}
+	
+	private boolean uploadInputs() throws JSONException, IOException, InterruptedException
 	{
 		final DefaultHttpClient httpClient = new DefaultHttpClient();
 		final HttpParams httpParameters = httpClient.getParams();
@@ -145,6 +152,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 				if (readInputStreamAsJson(inputFile.getName(), inputStream, entity.getContentLength(), currentInput, inputFiles.size()))
 				{
 					setTaskStatus(new TaskStatus("MainWindow.status.finish", Status.STATUS_PENDING));
+					deleteInputFromDevice(inputFile.getName());
 				}
 				else
 				{

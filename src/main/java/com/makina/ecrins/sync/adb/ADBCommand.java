@@ -256,6 +256,8 @@ public class ADBCommand
 	{
 		if (adbCommandFile.exists())
 		{
+			LOG.debug("dispose");
+			
 			FileUtils.deleteQuietly(adbCommandFile.getParentFile());
 		}
 	}
