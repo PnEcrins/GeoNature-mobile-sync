@@ -139,7 +139,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	
 	private void copyFileToDevice(File localFile, String remoteName) throws InterruptedException, IOException
 	{
-		ADBCommand.getInstance().push(localFile.getAbsolutePath(), com.makina.ecrins.sync.adb.FileUtils.getExternalStorageDirectory() + "Android/data/" + "com.makina.ecrins.poc" + remoteName);
+		ADBCommand.getInstance().push(localFile.getAbsolutePath(), com.makina.ecrins.sync.adb.FileUtils.getExternalStorageDirectory() + "Android/data/" + "com.makina.ecrins.poc/" + remoteName);
 	}
 	
 	private boolean copyInputStream(String inputName, InputStream in, OutputStream out, long contentLength, int currentExport, int numberOfExports)
