@@ -49,7 +49,7 @@ public class MainWindow implements Observer
 	private Status serverStatus;
 	private Status deviceStatus;
 	
-	private TaskManager taskManager;
+	protected TaskManager taskManager;
 	
 	protected Shell shell;
 	protected SmartphoneStatusWidget smartphoneStatusWidget;
@@ -64,8 +64,6 @@ public class MainWindow implements Observer
 	 */
 	public void open()
 	{
-		LOG.info("starting " + ResourceBundle.getBundle("messages").getString("MainWindow.shell.text") + " (version : " + ResourceBundle.getBundle("messages").getString("version") + ")");
-		
 		serverStatus = Status.STATUS_NONE;
 		deviceStatus = Status.STATUS_NONE;
 		
@@ -74,30 +72,41 @@ public class MainWindow implements Observer
 		
 		((ConsoleLogAppender) Logger.getRootLogger().getAppender("UI")).addObserver(consoleLogWidget);
 		
+		LOG.info("starting " + ResourceBundle.getBundle("messages").getString("MainWindow.shell.text") + " (version : " + ResourceBundle.getBundle("messages").getString("version") + ")");
+		
 		final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
 		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
-		
-		taskManager = new TaskManager();
-		
-		ImportInputsFromDeviceTaskRunnable importInputsFromDeviceTaskRunnable = new ImportInputsFromDeviceTaskRunnable();
-		importInputsFromDeviceTaskRunnable.addObserver(dataUpdateFromDeviceComposite);
-		taskManager.addTask(importInputsFromDeviceTaskRunnable);
-		
-		UpdateApplicationDataFromServerTaskRunnable updateApplicationDataFromServerTaskRunnable = new UpdateApplicationDataFromServerTaskRunnable();
-		updateApplicationDataFromServerTaskRunnable.addObserver(dataUpdateFromServerComposite);
-		taskManager.addTask(updateApplicationDataFromServerTaskRunnable);
 		
 		try
 		{
 			shell.open();
 			shell.layout();
 			
-			(new Thread(new Runnable()
+			threadExecutor.execute(new Runnable()
 			{
 				@Override
 				public void run()
 				{
-					CompletionService<JSONObject> completionService = new ExecutorCompletionService<JSONObject>(threadExecutor);
+					ADBCommand.getInstance();
+					
+					taskManager = new TaskManager();
+					
+					ImportInputsFromDeviceTaskRunnable importInputsFromDeviceTaskRunnable = new ImportInputsFromDeviceTaskRunnable();
+					importInputsFromDeviceTaskRunnable.addObserver(dataUpdateFromDeviceComposite);
+					taskManager.addTask(importInputsFromDeviceTaskRunnable);
+					
+					UpdateApplicationDataFromServerTaskRunnable updateApplicationDataFromServerTaskRunnable = new UpdateApplicationDataFromServerTaskRunnable();
+					updateApplicationDataFromServerTaskRunnable.addObserver(dataUpdateFromServerComposite);
+					taskManager.addTask(updateApplicationDataFromServerTaskRunnable);
+				}
+			});
+			
+			threadExecutor.execute(new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					CompletionService<JSONObject> completionService = new ExecutorCompletionService<JSONObject>(Executors.newSingleThreadExecutor());
 					Future<JSONObject> future = completionService.submit(LoadSettingsCallable.getInstance());
 					
 					try
@@ -130,7 +139,7 @@ public class MainWindow implements Observer
 						future.cancel(true);
 					}
 				}
-			})).start();
+			});
 			
 			while (!shell.isDisposed())
 			{

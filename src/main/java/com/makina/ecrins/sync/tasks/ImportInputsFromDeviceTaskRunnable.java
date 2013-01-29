@@ -132,6 +132,8 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		
 		for (File inputFile : inputFiles)
 		{
+			LOG.info("synchronizing '" + inputFile.getName() + "' ...");
+			
 			setTaskStatus(new TaskStatus((int) (((double) currentInput / (double) inputFiles.size()) * 100), inputFile.getName(), Status.STATUS_PENDING));
 			
 			// reads input as JSON file
@@ -153,6 +155,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 				{
 					setTaskStatus(new TaskStatus("MainWindow.status.finish", Status.STATUS_PENDING));
 					deleteInputFromDevice(inputFile.getName());
+					LOG.info("'" + inputFile.getName() + "' synchronized");
 				}
 				else
 				{
@@ -169,6 +172,19 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 			}
 			
 			currentInput++;
+		}
+		
+		if (inputFiles.size() > 1)
+		{
+			LOG.info(inputFiles.size() + " inputs synchronized");
+		}
+		else if (inputFiles.size() == 1)
+		{
+			LOG.info(inputFiles.size() + " input synchronized");
+		}
+		else
+		{
+			LOG.info("no input to synchronize");
 		}
 		
 		return true;

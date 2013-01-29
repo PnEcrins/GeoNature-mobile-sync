@@ -56,7 +56,7 @@ public class LoadSettingsCallable implements Callable<JSONObject>
 			
 			if (is == null)
 			{
-				LOG.warn("failed to load 'settings.json'");
+				LOG.error("failed to load 'settings.json'");
 			}
 			else
 			{

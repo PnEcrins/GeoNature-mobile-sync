@@ -115,7 +115,16 @@ public class ConsoleLogWidget implements Observer
 									if (!expandItemLogs.getExpanded())
 									{
 										expandItemLogs.setExpanded(true);
-										display.getActiveShell().setSize(display.getActiveShell().getSize().x, display.getActiveShell().getSize().y + expandItemLogs.getHeight() + 10);
+										
+										display.asyncExec(new Runnable()
+										{
+											
+											@Override
+											public void run()
+											{
+												display.getActiveShell().setSize(display.getActiveShell().getSize().x, display.getActiveShell().getSize().y + expandItemLogs.getHeight() + 10);
+											}
+										});
 									}
 									
 									break;
