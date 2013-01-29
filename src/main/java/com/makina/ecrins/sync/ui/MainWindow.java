@@ -35,6 +35,7 @@ import com.makina.ecrins.sync.service.Status;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 import com.makina.ecrins.sync.tasks.ImportInputsFromDeviceTaskRunnable;
 import com.makina.ecrins.sync.tasks.TaskManager;
+import com.makina.ecrins.sync.tasks.UpdateApplicationDataFromServerTaskRunnable;
 
 /**
  * Main application window.
@@ -53,7 +54,9 @@ public class MainWindow implements Observer
 	protected Shell shell;
 	protected SmartphoneStatusWidget smartphoneStatusWidget;
 	protected ServerStatusWidget serverStatusWidget;
-	protected DataUpdateWidget dataUpdateWidget;
+	protected DataUpdateComposite dataUpdateFromDeviceComposite;
+	protected DataUpdateComposite dataUpdateFromServerComposite;
+	
 	protected ConsoleLogWidget consoleLogWidget;
 
 	/**
@@ -77,8 +80,12 @@ public class MainWindow implements Observer
 		taskManager = new TaskManager();
 		
 		ImportInputsFromDeviceTaskRunnable importInputsFromDeviceTaskRunnable = new ImportInputsFromDeviceTaskRunnable();
-		importInputsFromDeviceTaskRunnable.addObserver(dataUpdateWidget);
+		importInputsFromDeviceTaskRunnable.addObserver(dataUpdateFromDeviceComposite);
 		taskManager.addTask(importInputsFromDeviceTaskRunnable);
+		
+		UpdateApplicationDataFromServerTaskRunnable updateApplicationDataFromServerTaskRunnable = new UpdateApplicationDataFromServerTaskRunnable();
+		updateApplicationDataFromServerTaskRunnable.addObserver(dataUpdateFromServerComposite);
+		taskManager.addTask(updateApplicationDataFromServerTaskRunnable);
 		
 		try
 		{
@@ -227,10 +234,12 @@ public class MainWindow implements Observer
 		fdGroupUpdate.top = new FormAttachment(groupStatuses);
 		fdGroupUpdate.left = new FormAttachment(0, 5);
 		fdGroupUpdate.right = new FormAttachment(100, -5);
-		fdGroupUpdate.height = 195;
+		fdGroupUpdate.height = 200;
 		groupUpdate.setLayoutData(fdGroupUpdate);
 		
-		dataUpdateWidget = new DataUpdateWidget(display, groupUpdate);
+		dataUpdateFromDeviceComposite = new DataUpdateComposite(groupUpdate, SWT.NONE, DataUpdateComposite.Layout.DEVICE_SERVER);
+		dataUpdateFromServerComposite = new DataUpdateComposite(groupUpdate, SWT.NONE, DataUpdateComposite.Layout.SERVER_DEVICE);
+		((FormData) dataUpdateFromServerComposite.getLayoutData()).top = new FormAttachment(dataUpdateFromDeviceComposite);
 		
 		consoleLogWidget = new ConsoleLogWidget(display, composite, groupUpdate);
 	}

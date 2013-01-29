@@ -4,6 +4,17 @@
 		"url": "http://192.168.168.185/faune/",
 		"token": 666,
 		"status_url": "status/",
-		"import_url": "import/"
+		"import_url": "import/",
+		"exports":
+		[
+			{
+				"url": "export/sqlite/",
+				"file": "databases/data.db"
+			},
+			{
+				"url": "export/unity_polygons/",
+				"file": "unities.wkt"
+			}
+		]
 	}
 }
