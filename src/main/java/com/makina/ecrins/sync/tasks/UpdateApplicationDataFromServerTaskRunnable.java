@@ -5,8 +5,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ResourceBundle;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpEntity;
@@ -43,17 +45,17 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	@Override
 	public void run()
 	{
-		setTaskStatus(new TaskStatus("MainWindow.status.pending", Status.STATUS_PENDING));
+		setTaskStatus(new TaskStatus(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_PENDING));
 		
 		try
 		{
 			if (downloadDataFromServer())
 			{
-				setTaskStatus(new TaskStatus(100, "MainWindow.status.finish", Status.STATUS_FINISH));
+				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FINISH));
 			}
 			else
 			{
-				setTaskStatus(new TaskStatus(100, "MainWindow.status.finish", Status.STATUS_FAILED));
+				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 			}
 			
 			FileUtils.deleteQuietly(this.tempDir);
@@ -61,17 +63,17 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		catch (IOException ioe)
 		{
 			LOG.error(ioe.getMessage(), ioe);
-			setTaskStatus(new TaskStatus(0, "MainWindow.status.failed", Status.STATUS_FAILED));
+			setTaskStatus(new TaskStatus(0, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 		}
 		catch (JSONException je)
 		{
 			LOG.error(je.getMessage(), je);
-			setTaskStatus(new TaskStatus(0, "MainWindow.status.failed", Status.STATUS_FAILED));
+			setTaskStatus(new TaskStatus(0, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 		}
 		catch (InterruptedException ie)
 		{
 			LOG.error(ie.getMessage(), ie);
-			setTaskStatus(new TaskStatus(0, "MainWindow.status.failed", Status.STATUS_FAILED));
+			setTaskStatus(new TaskStatus(0, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 		}
 	}
 	
@@ -95,7 +97,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		{
 			JSONObject exportSettings = exportsSettings.getJSONObject(i);
 			
-			setTaskStatus(new TaskStatus((int) (((double) i / (double) exportsSettings.length()) * 100), exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE), Status.STATUS_PENDING));
+			setTaskStatus(new TaskStatus((int) (((double) i / (double) exportsSettings.length()) * 100), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE)), Status.STATUS_PENDING));
 			
 			HttpPost httpPost = new HttpPost(LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_SERVER_URL) + exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_URL));
 			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
@@ -117,18 +119,18 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 				{
 					copyFileToDevice(localFile, exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE));
 					
-					setTaskStatus(new TaskStatus("MainWindow.status.finish", Status.STATUS_PENDING));
+					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.finish.text"), exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE)), Status.STATUS_PENDING));
 				}
 				else
 				{
-					setTaskStatus(new TaskStatus(exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE), Status.STATUS_FAILED));
+					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE)), Status.STATUS_FAILED));
 					return false;
 				}
 			}
 			else
 			{
 				LOG.error("unable to download file from URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode());
-				setTaskStatus(new TaskStatus(exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE), Status.STATUS_FAILED));
+				setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE)), Status.STATUS_FAILED));
 				
 				return false;
 			}
@@ -158,7 +160,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 				
 				int currentProgress =  (int) (((double) totalBytesRead / (double) contentLength) * 100);
 				
-				setTaskStatus(new TaskStatus((int) (((double) currentExport / (double) numberOfExports) * 100) + (currentProgress / numberOfExports), inputName, Status.STATUS_PENDING));
+				setTaskStatus(new TaskStatus((int) (((double) currentExport / (double) numberOfExports) * 100) + (currentProgress / numberOfExports), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), inputName), Status.STATUS_PENDING));
 			}
 			
 			out.flush();

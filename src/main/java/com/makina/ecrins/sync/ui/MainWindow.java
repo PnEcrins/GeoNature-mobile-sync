@@ -74,7 +74,7 @@ public class MainWindow implements Observer
 		
 		LOG.info("starting " + ResourceBundle.getBundle("messages").getString("MainWindow.shell.text") + " (version : " + ResourceBundle.getBundle("messages").getString("version") + ")");
 		
-		final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
+		final ExecutorService threadExecutor = Executors.newFixedThreadPool(2);
 		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 		
 		try
@@ -151,6 +151,10 @@ public class MainWindow implements Observer
 		}
 		finally
 		{
+			threadExecutor.shutdownNow();
+			scheduler.shutdownNow();
+			taskManager.shutdownNow();
+			
 			try
 			{
 				ADBCommand.getInstance().killServer();
@@ -165,7 +169,6 @@ public class MainWindow implements Observer
 			}
 			finally
 			{
-				taskManager.shutdownNow();
 				ADBCommand.getInstance().dispose();
 				UIResourceManager.dispose();
 				

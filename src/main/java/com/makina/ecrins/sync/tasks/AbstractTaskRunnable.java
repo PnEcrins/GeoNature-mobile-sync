@@ -2,6 +2,7 @@ package com.makina.ecrins.sync.tasks;
 
 import java.util.Observable;
 import java.util.Observer;
+import java.util.ResourceBundle;
 
 import com.makina.ecrins.sync.service.Status;
 
@@ -16,7 +17,7 @@ public abstract class AbstractTaskRunnable extends Observable implements Runnabl
 	
 	public AbstractTaskRunnable()
 	{
-		this.taskStatus = new TaskStatus("MainWindow.status.none", Status.STATUS_NONE);
+		this.taskStatus = new TaskStatus(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_NONE);
 	}
 	
 	@Override

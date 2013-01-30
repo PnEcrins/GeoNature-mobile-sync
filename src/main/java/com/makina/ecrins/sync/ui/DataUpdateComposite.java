@@ -26,9 +26,10 @@ public class DataUpdateComposite extends Composite implements Observer
 {
 	protected final Layout layout;
 	
-	private ProgressBar progressBarDataUpdate;
-	private Canvas canvasLedDataUpdate;
-	private Label labelDataUpdateStatus;
+	protected ProgressBar progressBarDataUpdate;
+	protected Canvas canvasLedDataUpdate;
+	protected Label labelDataUpdate;
+	protected Label labelDataUpdateStatus;
 	
 	/**
 	 * Create the composite.
@@ -132,13 +133,13 @@ public class DataUpdateComposite extends Composite implements Observer
 			}
 		});
 		
-		Label labelDataUpdate = new Label(this, SWT.NONE);
+		labelDataUpdate = new Label(this, SWT.NONE);
 		labelDataUpdate.setForeground(UIResourceManager.getColor(0, 0, 0));
 		FormData fdLabelDataUpdate = new FormData();
 		fdLabelDataUpdate.top = new FormAttachment(canvasFromDeviceDataUpdate, 5);
 		fdLabelDataUpdate.left = new FormAttachment(canvasLedDataUpdate, 5);
 		labelDataUpdate.setLayoutData(fdLabelDataUpdate);
-		labelDataUpdate.setText(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.text"));
+		labelDataUpdate.setText(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"));
 		
 		Label labelDataSeparator = new Label(this, SWT.NONE);
 		labelDataSeparator.setForeground(UIResourceManager.getColor(0, 0, 0));
@@ -178,6 +179,8 @@ public class DataUpdateComposite extends Composite implements Observer
 					});
 					
 					canvasLedDataUpdate.redraw();
+					
+					labelDataUpdate.setText(taskStatus.getMessage());
 					
 					progressBarDataUpdate.setSelection(taskStatus.getProgress());
 					
