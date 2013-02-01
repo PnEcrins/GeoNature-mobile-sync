@@ -29,17 +29,9 @@ public class ADBTests
 	{
 		LOG.debug("init");
 		
-		ADBCommand.getInstance();
-	}
-	
-	@AfterClass
-	public static void release()
-	{
-		LOG.debug("release");
-		
 		try
 		{
-			ADBCommand.getInstance().killServer();
+			ADBCommand.getInstance().startServer();
 		}
 		catch (IOException ioe)
 		{
@@ -50,6 +42,12 @@ public class ADBTests
 			LOG.error(ie.getMessage(), ie);
 			Assert.fail(ie.getMessage());
 		}
+	}
+	
+	@AfterClass
+	public static void release()
+	{
+		LOG.debug("release");
 		
 		ADBCommand.getInstance().dispose();
 	}
