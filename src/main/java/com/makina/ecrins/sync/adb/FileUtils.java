@@ -49,7 +49,7 @@ public class FileUtils
 					// ignore default mount path and others
 					if (!element.equals("/mnt/sdcard") && !element.equals("/mnt/secure/asec"))
 					{
-						externalStorage = element;
+						externalStorage = element + "/";
 					}
 				}
 			}

@@ -21,6 +21,9 @@ public class LoadSettingsCallable implements Callable<JSONObject>
 	public static final String KEY_TOKEN = "token";
 	public static final String KEY_STATUS_URL = "status_url";
 	public static final String KEY_IMPORT_URL = "import_url";
+	public static final String KEY_APP_UPDATE = "app_update";
+	public static final String KEY_APP_UPDATE_VERSION_URL = "version_url";
+	public static final String KEY_APP_UPDATE_DOWNLOAD_URL = "download_url";
 	public static final String KEY_EXPORTS = "exports";
 	public static final String KEY_EXPORTS_URL = "url";
 	public static final String KEY_EXPORTS_FILE = "file";

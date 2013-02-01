@@ -45,7 +45,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	@Override
 	public void run()
 	{
-		setTaskStatus(new TaskStatus(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_PENDING));
+		setTaskStatus(new TaskStatus(-1, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_PENDING));
 		
 		try
 		{
@@ -59,8 +59,6 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 			{
 				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 			}
-			
-			FileUtils.deleteQuietly(this.inputsTempDir);
 		}
 		catch (InterruptedException ie)
 		{
@@ -76,6 +74,10 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		{
 			LOG.error(je.getMessage(), je);
 			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
+		}
+		finally
+		{
+			FileUtils.deleteQuietly(this.inputsTempDir);
 		}
 	}
 	

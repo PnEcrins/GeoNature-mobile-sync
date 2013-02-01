@@ -136,6 +136,7 @@ public class DataUpdateComposite extends Composite implements Observer
 		labelDataUpdate = new Label(this, SWT.NONE);
 		labelDataUpdate.setForeground(UIResourceManager.getColor(0, 0, 0));
 		FormData fdLabelDataUpdate = new FormData();
+		fdLabelDataUpdate.right = new FormAttachment(progressBarDataUpdate, 0, SWT.RIGHT);
 		fdLabelDataUpdate.top = new FormAttachment(canvasFromDeviceDataUpdate, 5);
 		fdLabelDataUpdate.left = new FormAttachment(canvasLedDataUpdate, 5);
 		labelDataUpdate.setLayoutData(fdLabelDataUpdate);
@@ -145,7 +146,7 @@ public class DataUpdateComposite extends Composite implements Observer
 		labelDataSeparator.setForeground(UIResourceManager.getColor(0, 0, 0));
 		FormData fdlabelDataSeparator = new FormData();
 		fdlabelDataSeparator.top = new FormAttachment(canvasLedDataUpdate, 0, SWT.TOP);
-		fdlabelDataSeparator.left = new FormAttachment(80);
+		fdlabelDataSeparator.right = new FormAttachment(canvasToDeviceDataUpdate, 5);
 		labelDataSeparator.setLayoutData(fdlabelDataSeparator);
 		labelDataSeparator.setText(":");
 		
@@ -182,7 +183,17 @@ public class DataUpdateComposite extends Composite implements Observer
 					
 					labelDataUpdate.setText(taskStatus.getMessage());
 					
-					progressBarDataUpdate.setSelection(taskStatus.getProgress());
+					// don't update the progress bar if getProgress() is not defined (i.e. 0)
+					if (taskStatus.getProgress() > 0)
+					{
+						progressBarDataUpdate.setSelection(taskStatus.getProgress());
+					}
+					
+					// reset the progress bar
+					if (taskStatus.getProgress() < progressBarDataUpdate.getSelection())
+					{
+						progressBarDataUpdate.setSelection(0);
+					}
 					
 					labelDataUpdateStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + taskStatus.getStatus().getLabel()));
 					labelDataUpdateStatus.getParent().layout();

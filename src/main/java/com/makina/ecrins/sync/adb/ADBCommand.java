@@ -38,7 +38,7 @@ public class ADBCommand
 				LOG.debug("using adb command '" + adbCommandFile.getAbsolutePath() + "'");
 				LOG.info(getVersion());
 				
-				startServer();
+				killServer();
 			}
 			catch (IOException ioe)
 			{
@@ -57,6 +57,19 @@ public class ADBCommand
 
 	public static ADBCommand getInstance()
 	{
+		try
+		{
+			ADBCommandHolder.instance.startServer();
+		}
+		catch (IOException ioe)
+		{
+			LOG.error(ioe.getMessage(), ioe);
+		}
+		catch (InterruptedException ie)
+		{
+			LOG.error(ie.getMessage(), ie);
+		}
+		
 		return ADBCommandHolder.instance;
 	}
 	
@@ -70,8 +83,6 @@ public class ADBCommand
 	public List<String> getDevices() throws InterruptedException, IOException
 	{
 		List<String> devices = new ArrayList<String>();
-		
-		startServer();
 		
 		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "devices");
 		Process p = pb.start();
@@ -139,8 +150,6 @@ public class ADBCommand
 	{
 		List<String> output = new ArrayList<String>();
 		
-		startServer();
-		
 		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "shell", command);
 		LOG.debug("executeCommand : " + pb.command().toString());
 		
@@ -190,6 +199,34 @@ public class ADBCommand
 	}
 	
 	/**
+	 * Pushes a given package file to the device and install it
+	 * 
+	 * @param apkPath path to the apk file to install
+	 * @param keepData flag to indicate if we wants to reinstall the app, keeping its data
+	 * @return <code>true</code> if the given package file was successfully installed
+	 * @throws IOException 
+	 * @throws InterruptedException 
+	 */
+	public boolean install(String apkPath, boolean keepData) throws InterruptedException, IOException
+	{
+		List<String> output = new ArrayList<String>();
+		
+		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "install", (keepData)?"-r":"", apkPath);
+		LOG.debug("install : " + pb.command().toString());
+		
+		Process p = pb.start();
+		
+		for (String line : IOUtils.readLines(p.getInputStream()))
+		{
+			LOG.debug(line);
+			output.add(line);
+		}
+		
+		// checks the last line of the output command
+		return !output.isEmpty() && output.get(output.size() - 1).startsWith("Success");
+	}
+	
+	/**
 	 * Blocks until device is connected
 	 * 
 	 * @throws InterruptedException
@@ -197,8 +234,6 @@ public class ADBCommand
 	 */
 	public void waitForDevice() throws InterruptedException, IOException
 	{
-		startServer();
-		
 		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "wait-for-device");
 		pb.start().waitFor();
 	}
@@ -212,7 +247,14 @@ public class ADBCommand
 	public void startServer() throws IOException, InterruptedException
 	{
 		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "start-server");
-		pb.start().waitFor();
+		
+		Process p = pb.start();
+		p.waitFor();
+		
+		for (String line : IOUtils.readLines(p.getInputStream()))
+		{
+			LOG.info(line);
+		}
 	}
 	
 	/**
@@ -223,6 +265,8 @@ public class ADBCommand
 	 */
 	public void killServer() throws IOException, InterruptedException
 	{
+		LOG.info("kill adb server ...");
+		
 		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "kill-server");
 		pb.start().waitFor();
 	}
@@ -241,8 +285,6 @@ public class ADBCommand
 	 */
 	public String getState() throws IOException, InterruptedException
 	{
-		startServer();
-		
 		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "get-state");
 		Process p = pb.start();
 		
@@ -254,9 +296,22 @@ public class ADBCommand
 	 */
 	public void dispose()
 	{
+		try
+		{
+			killServer();
+		}
+		catch (IOException ioe)
+		{
+			LOG.error(ioe.getMessage(), ioe);
+		}
+		catch (InterruptedException ie)
+		{
+			LOG.error(ie.getMessage(), ie);
+		}
+		
 		if (adbCommandFile.exists())
 		{
-			LOG.debug("dispose");
+			LOG.info("cleaning up resources ...");
 			
 			FileUtils.deleteQuietly(adbCommandFile.getParentFile());
 		}

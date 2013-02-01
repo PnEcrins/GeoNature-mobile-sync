@@ -57,23 +57,25 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 			{
 				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 			}
-			
-			FileUtils.deleteQuietly(this.tempDir);
 		}
 		catch (IOException ioe)
 		{
 			LOG.error(ioe.getMessage(), ioe);
-			setTaskStatus(new TaskStatus(0, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
+			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 		}
 		catch (JSONException je)
 		{
 			LOG.error(je.getMessage(), je);
-			setTaskStatus(new TaskStatus(0, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
+			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 		}
 		catch (InterruptedException ie)
 		{
 			LOG.error(ie.getMessage(), ie);
-			setTaskStatus(new TaskStatus(0, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
+			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
+		}
+		finally
+		{
+			FileUtils.deleteQuietly(this.tempDir);
 		}
 	}
 	

@@ -36,6 +36,7 @@ import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 import com.makina.ecrins.sync.tasks.ImportInputsFromDeviceTaskRunnable;
 import com.makina.ecrins.sync.tasks.TaskManager;
 import com.makina.ecrins.sync.tasks.UpdateApplicationDataFromServerTaskRunnable;
+import com.makina.ecrins.sync.tasks.UpdateApplicationFromServerTaskRunnable;
 
 /**
  * Main application window.
@@ -91,13 +92,17 @@ public class MainWindow implements Observer
 					
 					taskManager = new TaskManager();
 					
-					ImportInputsFromDeviceTaskRunnable importInputsFromDeviceTaskRunnable = new ImportInputsFromDeviceTaskRunnable();
-					importInputsFromDeviceTaskRunnable.addObserver(dataUpdateFromDeviceComposite);
-					taskManager.addTask(importInputsFromDeviceTaskRunnable);
+					UpdateApplicationFromServerTaskRunnable updateApplicationFromServerTaskRunnable = new UpdateApplicationFromServerTaskRunnable();
+					updateApplicationFromServerTaskRunnable.addObserver(dataUpdateFromServerComposite);
+					taskManager.addTask(updateApplicationFromServerTaskRunnable);
 					
 					UpdateApplicationDataFromServerTaskRunnable updateApplicationDataFromServerTaskRunnable = new UpdateApplicationDataFromServerTaskRunnable();
 					updateApplicationDataFromServerTaskRunnable.addObserver(dataUpdateFromServerComposite);
 					taskManager.addTask(updateApplicationDataFromServerTaskRunnable);
+					
+					ImportInputsFromDeviceTaskRunnable importInputsFromDeviceTaskRunnable = new ImportInputsFromDeviceTaskRunnable();
+					importInputsFromDeviceTaskRunnable.addObserver(dataUpdateFromDeviceComposite);
+					taskManager.addTask(importInputsFromDeviceTaskRunnable);
 				}
 			});
 			
@@ -155,30 +160,15 @@ public class MainWindow implements Observer
 			scheduler.shutdownNow();
 			taskManager.shutdownNow();
 			
-			try
+			ADBCommand.getInstance().dispose();
+			UIResourceManager.dispose();
+			
+			if (!shell.isDisposed())
 			{
-				ADBCommand.getInstance().killServer();
+				shell.dispose();
 			}
-			catch (IOException ioe)
-			{
-				LOG.error(ioe.getMessage(), ioe);
-			}
-			catch (InterruptedException ie)
-			{
-				LOG.error(ie.getMessage(), ie);
-			}
-			finally
-			{
-				ADBCommand.getInstance().dispose();
-				UIResourceManager.dispose();
-				
-				if (!shell.isDisposed())
-				{
-					shell.dispose();
-				}
-				
-				System.exit(0);
-			}
+			
+			System.exit(0);
 		}
 	}
 	
@@ -188,7 +178,7 @@ public class MainWindow implements Observer
 	protected void createContents(Display display)
 	{
 		shell = new Shell(display, SWT.CLOSE | SWT.TITLE | SWT.MIN);
-		shell.setSize(450, 415);
+		shell.setSize(470, 415);
 		shell.setText(ResourceBundle.getBundle("messages").getString("MainWindow.shell.text"));
 		FormLayout flShell = new FormLayout();
 		flShell.marginLeft = 1;
@@ -249,9 +239,9 @@ public class MainWindow implements Observer
 		fdGroupUpdate.height = 200;
 		groupUpdate.setLayoutData(fdGroupUpdate);
 		
-		dataUpdateFromDeviceComposite = new DataUpdateComposite(groupUpdate, SWT.NONE, DataUpdateComposite.Layout.DEVICE_SERVER);
 		dataUpdateFromServerComposite = new DataUpdateComposite(groupUpdate, SWT.NONE, DataUpdateComposite.Layout.SERVER_DEVICE);
-		((FormData) dataUpdateFromServerComposite.getLayoutData()).top = new FormAttachment(dataUpdateFromDeviceComposite);
+		dataUpdateFromDeviceComposite = new DataUpdateComposite(groupUpdate, SWT.NONE, DataUpdateComposite.Layout.DEVICE_SERVER);
+		((FormData) dataUpdateFromDeviceComposite.getLayoutData()).top = new FormAttachment(dataUpdateFromServerComposite);
 		
 		consoleLogWidget = new ConsoleLogWidget(display, composite, groupUpdate);
 	}
@@ -276,6 +266,29 @@ public class MainWindow implements Observer
 		if (o instanceof CheckServerRunnable)
 		{
 			this.serverStatus = ((CheckServerRunnable) o).getStatus();
+			
+			// this is the last chance to restart adb server
+			if (this.serverStatus.equals((Status.STATUS_CONNECTED)))
+			{
+				try
+				{
+					if (ADBCommand.getInstance().getDevices().isEmpty())
+					{
+						ADBCommand.getInstance().killServer();
+					}
+				}
+				catch (InterruptedException ie)
+				{
+					LOG.error(ie.getMessage(), ie);
+					LOG.warn("you need to restart the application");
+				}
+				catch (IOException ioe)
+				{
+					LOG.error(ioe.getMessage(), ioe);
+					LOG.warn("you need to restart the application");
+				}
+			}
+			
 			startTaskManager();
 		}
 	}

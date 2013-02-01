@@ -93,47 +93,50 @@ public class ConsoleLogWidget implements Observer
 		{
 			final LogMessage message = (LogMessage) arg;
 			
-			display.syncExec(new Runnable()
+			display.asyncExec(new Runnable()
 			{
 				@Override
 				public void run()
 				{
-					switch (message.getAction())
+					if (!display.isDisposed())
 					{
-						case RESET:
-							table.clearAll();
-							break;
-						default:
-							TableItem tableItem = new TableItem(table, SWT.None);
-							tableItem.setText(message.getMessage());
-							
-							switch (message.getLevel().toInt())
-							{
-								case Level.ERROR_INT:
-									tableItem.setForeground(display.getSystemColor(SWT.COLOR_RED));
-									
-									if (!expandItemLogs.getExpanded())
-									{
-										expandItemLogs.setExpanded(true);
+						switch (message.getAction())
+						{
+							case RESET:
+								table.clearAll();
+								break;
+							default:
+								TableItem tableItem = new TableItem(table, SWT.None);
+								tableItem.setText(message.getMessage());
+								
+								switch (message.getLevel().toInt())
+								{
+									case Level.ERROR_INT:
+										tableItem.setForeground(display.getSystemColor(SWT.COLOR_RED));
 										
-										display.asyncExec(new Runnable()
+										if (!expandItemLogs.getExpanded())
 										{
+											expandItemLogs.setExpanded(true);
 											
-											@Override
-											public void run()
+											display.asyncExec(new Runnable()
 											{
-												display.getActiveShell().setSize(display.getActiveShell().getSize().x, display.getActiveShell().getSize().y + expandItemLogs.getHeight() + 10);
-											}
-										});
-									}
-									
-									break;
-								case Level.WARN_INT:
-									tableItem.setForeground(display.getSystemColor(SWT.COLOR_DARK_YELLOW));
-								default:
-									tableItem.setForeground(display.getSystemColor(SWT.COLOR_BLUE));
-									break;
-							}
+												
+												@Override
+												public void run()
+												{
+													display.getActiveShell().setSize(display.getActiveShell().getSize().x, display.getActiveShell().getSize().y + expandItemLogs.getHeight() + 10);
+												}
+											});
+										}
+										
+										break;
+									case Level.WARN_INT:
+										tableItem.setForeground(display.getSystemColor(SWT.COLOR_DARK_YELLOW));
+									default:
+										tableItem.setForeground(display.getSystemColor(SWT.COLOR_BLUE));
+										break;
+								}
+						}
 					}
 				}
 			});
