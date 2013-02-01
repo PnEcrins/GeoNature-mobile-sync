@@ -75,7 +75,7 @@ public class MainWindow implements Observer
 		
 		LOG.info("starting " + ResourceBundle.getBundle("messages").getString("MainWindow.shell.text") + " (version : " + ResourceBundle.getBundle("messages").getString("version") + ")");
 		
-		final ExecutorService threadExecutor = Executors.newFixedThreadPool(2);
+		final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
 		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 		
 		try
@@ -178,7 +178,7 @@ public class MainWindow implements Observer
 	protected void createContents(Display display)
 	{
 		shell = new Shell(display, SWT.CLOSE | SWT.TITLE | SWT.MIN);
-		shell.setSize(470, 415);
+		shell.setSize(480, 415);
 		shell.setText(ResourceBundle.getBundle("messages").getString("MainWindow.shell.text"));
 		FormLayout flShell = new FormLayout();
 		flShell.marginLeft = 1;
@@ -234,8 +234,8 @@ public class MainWindow implements Observer
 		groupUpdate.setLayout(new FormLayout());
 		FormData fdGroupUpdate = new FormData();
 		fdGroupUpdate.top = new FormAttachment(groupStatuses);
-		fdGroupUpdate.left = new FormAttachment(0, 5);
-		fdGroupUpdate.right = new FormAttachment(100, -5);
+		fdGroupUpdate.left = new FormAttachment(0);
+		fdGroupUpdate.right = new FormAttachment(100);
 		fdGroupUpdate.height = 200;
 		groupUpdate.setLayoutData(fdGroupUpdate);
 		

@@ -247,9 +247,7 @@ public class ADBCommand
 	public void startServer() throws IOException, InterruptedException
 	{
 		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "start-server");
-		
 		Process p = pb.start();
-		p.waitFor();
 		
 		for (String line : IOUtils.readLines(p.getInputStream()))
 		{
@@ -268,7 +266,7 @@ public class ADBCommand
 		LOG.info("kill adb server ...");
 		
 		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "kill-server");
-		pb.start().waitFor();
+		pb.start();
 	}
 	
 	/**

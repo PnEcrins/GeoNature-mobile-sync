@@ -31,7 +31,7 @@ public class ADBTests
 		
 		try
 		{
-			ADBCommand.getInstance().startServer();
+			ADBCommand.getInstance().waitForDevice();
 		}
 		catch (IOException ioe)
 		{

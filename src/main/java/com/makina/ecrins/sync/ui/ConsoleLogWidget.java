@@ -72,7 +72,7 @@ public class ConsoleLogWidget implements Observer
 				if (ee.item instanceof ExpandItem)
 				{
 					ExpandItem item = (ExpandItem) ee.item;
-					display.getActiveShell().setSize(display.getActiveShell().getSize().x, display.getActiveShell().getSize().y - item.getHeight());
+					display.getActiveShell().setSize(display.getActiveShell().getSize().x, display.getActiveShell().getSize().y - item.getHeight() - 10);
 				}
 			}
 		});

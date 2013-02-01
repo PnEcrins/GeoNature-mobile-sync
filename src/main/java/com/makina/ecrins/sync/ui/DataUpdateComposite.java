@@ -65,7 +65,7 @@ public class DataUpdateComposite extends Composite implements Observer
 		Canvas canvasFromDeviceDataUpdate = new Canvas(this, SWT.NONE);
 		FormData fdCanvasFromDeviceDataUpdate = new FormData();
 		fdCanvasFromDeviceDataUpdate.top = new FormAttachment(0, 10);
-		fdCanvasFromDeviceDataUpdate.left = new FormAttachment(0, 10);
+		fdCanvasFromDeviceDataUpdate.left = new FormAttachment(0);
 		fdCanvasFromDeviceDataUpdate.height = 64;
 		fdCanvasFromDeviceDataUpdate.width = 64;
 		canvasFromDeviceDataUpdate.setLayoutData(fdCanvasFromDeviceDataUpdate);
@@ -91,7 +91,7 @@ public class DataUpdateComposite extends Composite implements Observer
 		fdCanvasToDeviceDataUpdate.top = new FormAttachment(0, 10);
 		fdCanvasToDeviceDataUpdate.height = 64;
 		fdCanvasToDeviceDataUpdate.width = 64;
-		fdCanvasToDeviceDataUpdate.right = new FormAttachment(100, -10);
+		fdCanvasToDeviceDataUpdate.right = new FormAttachment(100, -15);
 		canvasToDeviceDataUpdate.setLayoutData(fdCanvasToDeviceDataUpdate);
 		canvasToDeviceDataUpdate.addPaintListener(new PaintListener()
 		{
