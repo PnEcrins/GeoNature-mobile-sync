@@ -1,6 +1,7 @@
 package com.makina.ecrins.sync.adb;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 
@@ -67,6 +68,11 @@ public class ADBCommandTest
 			LOG.debug("input_1234_copy.json checksum : " + FileUtils.checksumCRC32(inputJsonFromDevice));
 			
 			Assert.assertEquals(FileUtils.checksumCRC32(inputJson), FileUtils.checksumCRC32(inputJsonFromDevice));
+		}
+		catch (FileNotFoundException fnfe)
+		{
+			LOG.error(fnfe.getMessage(), fnfe);
+			Assert.fail(fnfe.getMessage());
 		}
 		catch (IOException ioe)
 		{

@@ -6,11 +6,20 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecuteResultHandler;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.ExecuteWatchdog;
+import org.apache.commons.exec.Executor;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+
+import com.makina.ecrins.sync.logger.LoggingOutputStream;
 
 /**
  * Wrapper class used for invoking adb command.
@@ -246,13 +255,21 @@ public class ADBCommand
 	 */
 	public void startServer() throws IOException, InterruptedException
 	{
-		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "start-server");
-		Process p = pb.start();
+		CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
+		cmdLine.addArgument("start-server");
 		
-		for (String line : IOUtils.readLines(p.getInputStream()))
-		{
-			LOG.info(line);
-		}
+		DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
+		
+		PumpStreamHandler streamHandler = new PumpStreamHandler(new LoggingOutputStream(LOG, Level.INFO), new LoggingOutputStream(LOG, Level.WARN));
+		
+		ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
+		Executor executor = new DefaultExecutor();
+		executor.setExitValue(1);
+		executor.setWatchdog(watchdog);
+		executor.setStreamHandler(streamHandler);
+		executor.execute(cmdLine, resultHandler);
+		
+		resultHandler.waitFor();
 	}
 	
 	/**
@@ -265,8 +282,21 @@ public class ADBCommand
 	{
 		LOG.info("kill adb server ...");
 		
-		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "kill-server");
-		pb.start();
+		CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
+		cmdLine.addArgument("kill-server");
+		
+		DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
+		
+		PumpStreamHandler streamHandler = new PumpStreamHandler(new LoggingOutputStream(LOG, Level.INFO), new LoggingOutputStream(LOG, Level.WARN));
+		
+		ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
+		Executor executor = new DefaultExecutor();
+		executor.setExitValue(1);
+		executor.setWatchdog(watchdog);
+		executor.setStreamHandler(streamHandler);
+		executor.execute(cmdLine, resultHandler);
+		
+		resultHandler.waitFor();
 	}
 	
 	/**
