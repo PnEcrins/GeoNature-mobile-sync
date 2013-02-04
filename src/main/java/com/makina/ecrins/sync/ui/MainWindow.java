@@ -248,10 +248,8 @@ public class MainWindow implements Observer
 		fdConsoleLogComposite.top = new FormAttachment(groupUpdate);
 		fdConsoleLogComposite.left = new FormAttachment(0, 5);
 		fdConsoleLogComposite.right = new FormAttachment(100, -5);
-		fdConsoleLogComposite.bottom = new FormAttachment(buttonQuit);;
+		fdConsoleLogComposite.bottom = new FormAttachment(buttonQuit);
 		consoleLogComposite.setLayoutData(fdConsoleLogComposite);
-		//((FormData) dataUpdateFromDeviceComposite.getLayoutData()).top = new FormAttachment(groupUpdate);
-		//((FormData) dataUpdateFromDeviceComposite.getLayoutData()).bottom = new FormAttachment(buttonQuit);
 	}
 	
 	private void startTaskManager()
