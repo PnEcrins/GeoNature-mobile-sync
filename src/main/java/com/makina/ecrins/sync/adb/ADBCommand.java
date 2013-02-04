@@ -47,7 +47,10 @@ public class ADBCommand
 				LOG.debug("using adb command '" + adbCommandFile.getAbsolutePath() + "'");
 				LOG.info(getVersion());
 				
-				killServer();
+				if (!SystemUtils.IS_OS_WINDOWS)
+				{
+					killServer();
+				}
 			}
 			catch (IOException ioe)
 			{
@@ -197,7 +200,7 @@ public class ADBCommand
 	{
 		List<String> output = executeCommand("grep ro.build.version.sdk= /system/build.prop");
 		
-		if (output.size() == 1)
+		if (!output.isEmpty())
 		{
 			return Integer.valueOf(StringUtils.substringAfter(output.get(0), "="));
 		}
@@ -269,7 +272,10 @@ public class ADBCommand
 		executor.setStreamHandler(streamHandler);
 		executor.execute(cmdLine, resultHandler);
 		
-		resultHandler.waitFor();
+		if (!SystemUtils.IS_OS_WINDOWS)
+		{
+			resultHandler.waitFor();
+		}
 	}
 	
 	/**
