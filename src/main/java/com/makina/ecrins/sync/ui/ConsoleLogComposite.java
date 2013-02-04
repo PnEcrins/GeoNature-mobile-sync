@@ -10,9 +10,8 @@ import org.eclipse.swt.events.ExpandEvent;
 import org.eclipse.swt.events.ExpandListener;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
+import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.ExpandBar;
 import org.eclipse.swt.widgets.ExpandItem;
 import org.eclipse.swt.widgets.Table;
@@ -25,35 +24,43 @@ import com.makina.ecrins.sync.logger.LogMessage;
  * 
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
-public class ConsoleLogWidget implements Observer
+public class ConsoleLogComposite extends Composite implements Observer
 {
-	private Display display;
-	private Composite parent;
-	private Control control;
-	
 	private ExpandItem expandItemLogs;
 	private Table table;
 	
-	public ConsoleLogWidget(Display display, Composite parent, Control control)
+	/**
+	 * Create the composite.
+	 * @param parent
+	 * @param style
+	 */
+	public ConsoleLogComposite(Composite parent, int style)
 	{
-		this.display = display;
-		this.parent = parent;
-		this.control = control;
+		super(parent, SWT.NONE);
 		
-		createContents();
+		initialize();
 	}
 	
-	private void createContents()
+	@Override
+	protected void checkSubclass()
 	{
-		final ExpandBar expandBarLogs = new ExpandBar(parent, SWT.NONE);
+		// Disable the check that prevents subclassing of SWT components
+	}
+	
+	private void initialize()
+	{
+		setLayout(new FormLayout());
+		
+		final ExpandBar expandBarLogs = new ExpandBar(this, SWT.NONE);
 		expandBarLogs.setVisible(true);
 		FormData fdExpandBarLogs = new FormData();
-		fdExpandBarLogs.bottom = new FormAttachment(90);
-		fdExpandBarLogs.left = new FormAttachment(0, 5);
-		fdExpandBarLogs.right = new FormAttachment(100, -5);
-		fdExpandBarLogs.top = new FormAttachment(control, 5);
+		fdExpandBarLogs.bottom = new FormAttachment(100);
+		fdExpandBarLogs.left = new FormAttachment(0);
+		fdExpandBarLogs.right = new FormAttachment(100);
+		fdExpandBarLogs.top = new FormAttachment(0);
 		expandBarLogs.setLayoutData(fdExpandBarLogs);
 		
+		expandBarLogs.setBackground(getDisplay().getSystemColor(SWT.COLOR_WIDGET_BACKGROUND));
 		expandBarLogs.addExpandListener(new ExpandListener()
 		{
 			@Override
@@ -62,7 +69,7 @@ public class ConsoleLogWidget implements Observer
 				if (ee.item instanceof ExpandItem)
 				{
 					ExpandItem item = (ExpandItem) ee.item;
-					display.getActiveShell().setSize(display.getActiveShell().getSize().x, display.getActiveShell().getSize().y + item.getHeight() + 10);
+					getDisplay().getActiveShell().setSize(getDisplay().getActiveShell().getSize().x, getDisplay().getActiveShell().getSize().y + item.getHeight() + 10);
 				}
 			}
 			
@@ -72,7 +79,7 @@ public class ConsoleLogWidget implements Observer
 				if (ee.item instanceof ExpandItem)
 				{
 					ExpandItem item = (ExpandItem) ee.item;
-					display.getActiveShell().setSize(display.getActiveShell().getSize().x, display.getActiveShell().getSize().y - item.getHeight() - 10);
+					getDisplay().getActiveShell().setSize(getDisplay().getActiveShell().getSize().x, getDisplay().getActiveShell().getSize().y - item.getHeight() - 10);
 				}
 			}
 		});
@@ -93,12 +100,12 @@ public class ConsoleLogWidget implements Observer
 		{
 			final LogMessage message = (LogMessage) arg;
 			
-			display.asyncExec(new Runnable()
+			getDisplay().asyncExec(new Runnable()
 			{
 				@Override
 				public void run()
 				{
-					if (!display.isDisposed())
+					if (!getDisplay().isDisposed())
 					{
 						switch (message.getAction())
 						{
@@ -112,28 +119,27 @@ public class ConsoleLogWidget implements Observer
 								switch (message.getLevel().toInt())
 								{
 									case Level.ERROR_INT:
-										tableItem.setForeground(display.getSystemColor(SWT.COLOR_RED));
+										tableItem.setForeground(getDisplay().getSystemColor(SWT.COLOR_RED));
 										
 										if (!expandItemLogs.getExpanded())
 										{
 											expandItemLogs.setExpanded(true);
 											
-											display.asyncExec(new Runnable()
+											getDisplay().asyncExec(new Runnable()
 											{
-												
 												@Override
 												public void run()
 												{
-													display.getActiveShell().setSize(display.getActiveShell().getSize().x, display.getActiveShell().getSize().y + expandItemLogs.getHeight() + 10);
+													getDisplay().getActiveShell().setSize(getDisplay().getActiveShell().getSize().x, getDisplay().getActiveShell().getSize().y + expandItemLogs.getHeight() + 10);
 												}
 											});
 										}
 										
 										break;
 									case Level.WARN_INT:
-										tableItem.setForeground(display.getSystemColor(SWT.COLOR_DARK_YELLOW));
+										tableItem.setForeground(getDisplay().getSystemColor(SWT.COLOR_DARK_YELLOW));
 									default:
-										tableItem.setForeground(display.getSystemColor(SWT.COLOR_BLUE));
+										tableItem.setForeground(getDisplay().getSystemColor(SWT.COLOR_BLUE));
 										break;
 								}
 						}

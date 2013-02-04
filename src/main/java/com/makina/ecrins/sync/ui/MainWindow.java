@@ -58,7 +58,7 @@ public class MainWindow implements Observer
 	protected DataUpdateComposite dataUpdateFromDeviceComposite;
 	protected DataUpdateComposite dataUpdateFromServerComposite;
 	
-	protected ConsoleLogWidget consoleLogWidget;
+	protected ConsoleLogComposite consoleLogComposite;
 
 	/**
 	 * open the main window and launch tasks
@@ -71,7 +71,7 @@ public class MainWindow implements Observer
 		final Display display = Display.getDefault();
 		createContents(display);
 		
-		((ConsoleLogAppender) Logger.getRootLogger().getAppender("UI")).addObserver(consoleLogWidget);
+		((ConsoleLogAppender) Logger.getRootLogger().getAppender("UI")).addObserver(consoleLogComposite);
 		
 		LOG.info("starting " + ResourceBundle.getBundle("messages").getString("MainWindow.shell.text") + " (version : " + ResourceBundle.getBundle("messages").getString("version") + ")");
 		
@@ -178,7 +178,7 @@ public class MainWindow implements Observer
 	protected void createContents(Display display)
 	{
 		shell = new Shell(display, SWT.CLOSE | SWT.TITLE | SWT.MIN);
-		shell.setSize(480, 415);
+		shell.setSize(480, 405);
 		shell.setText(ResourceBundle.getBundle("messages").getString("MainWindow.shell.text"));
 		FormLayout flShell = new FormLayout();
 		flShell.marginLeft = 1;
@@ -234,8 +234,8 @@ public class MainWindow implements Observer
 		groupUpdate.setLayout(new FormLayout());
 		FormData fdGroupUpdate = new FormData();
 		fdGroupUpdate.top = new FormAttachment(groupStatuses);
-		fdGroupUpdate.left = new FormAttachment(0);
-		fdGroupUpdate.right = new FormAttachment(100);
+		fdGroupUpdate.left = new FormAttachment(0, 5);
+		fdGroupUpdate.right = new FormAttachment(100, -5);
 		fdGroupUpdate.height = 200;
 		groupUpdate.setLayoutData(fdGroupUpdate);
 		
@@ -243,7 +243,15 @@ public class MainWindow implements Observer
 		dataUpdateFromDeviceComposite = new DataUpdateComposite(groupUpdate, SWT.NONE, DataUpdateComposite.Layout.DEVICE_SERVER);
 		((FormData) dataUpdateFromDeviceComposite.getLayoutData()).top = new FormAttachment(dataUpdateFromServerComposite);
 		
-		consoleLogWidget = new ConsoleLogWidget(display, composite, groupUpdate);
+		consoleLogComposite = new ConsoleLogComposite(composite, SWT.NONE);
+		FormData fdConsoleLogComposite = new FormData();
+		fdConsoleLogComposite.top = new FormAttachment(groupUpdate);
+		fdConsoleLogComposite.left = new FormAttachment(0, 5);
+		fdConsoleLogComposite.right = new FormAttachment(100, -5);
+		fdConsoleLogComposite.bottom = new FormAttachment(buttonQuit);;
+		consoleLogComposite.setLayoutData(fdConsoleLogComposite);
+		//((FormData) dataUpdateFromDeviceComposite.getLayoutData()).top = new FormAttachment(groupUpdate);
+		//((FormData) dataUpdateFromDeviceComposite.getLayoutData()).bottom = new FormAttachment(buttonQuit);
 	}
 	
 	private void startTaskManager()

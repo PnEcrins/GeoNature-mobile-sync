@@ -6,7 +6,7 @@
 	<groupId>com.makina.ecrins</groupId>
 	<artifactId>sync</artifactId>
 	<packaging>jar</packaging>
-	<version>0.0.9</version>
+	<version>0.1.0</version>
 	<name>geobi-ecrins-sync</name>
 	
 	<developers>

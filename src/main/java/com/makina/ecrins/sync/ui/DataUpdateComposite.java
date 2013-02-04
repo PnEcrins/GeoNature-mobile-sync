@@ -58,7 +58,7 @@ public class DataUpdateComposite extends Composite implements Observer
 		FormData fdComposite = new FormData();
 		fdComposite.left = new FormAttachment(0);
 		fdComposite.right = new FormAttachment(100);
-		fdComposite.top = new FormAttachment(0);
+		//fdComposite.top = new FormAttachment(0);
 		fdComposite.height = 100;
 		setLayoutData(fdComposite);
 		
