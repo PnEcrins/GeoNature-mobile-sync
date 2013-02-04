@@ -9,6 +9,8 @@
 	<version>0.1.1</version>
 	<name>geobi-ecrins-sync</name>
 	
+	<url>https://gitorious.makina-corpus.net/geobi-ecrins/geobi-ecrins-sync</url>
+	
 	<developers>
 		<developer>
 			<id>sgr</id>
