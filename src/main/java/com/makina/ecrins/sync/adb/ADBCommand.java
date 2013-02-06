@@ -337,15 +337,15 @@ public class ADBCommand
 		}
 		catch (ExecuteException ee)
 		{
-			throw new ADBCommandException(ee.getLocalizedMessage(), ee);
+			throw new ADBCommandException(ee.getLocalizedMessage());
 		}
 		catch (IOException ioe)
 		{
-			throw new ADBCommandException(ioe.getLocalizedMessage(), ioe);
+			throw new ADBCommandException(ioe.getLocalizedMessage());
 		}
 		catch (InterruptedException ie)
 		{
-			throw new ADBCommandException(ie.getLocalizedMessage(), ie);
+			throw new ADBCommandException(ie.getLocalizedMessage());
 		}
 	}
 	
@@ -380,7 +380,7 @@ public class ADBCommand
 		}
 		catch (ADBCommandException ace)
 		{
-			LOG.error(ace.getMessage(), ace);
+			LOG.warn(ace.getMessage());
 		}
 		finally
 		{

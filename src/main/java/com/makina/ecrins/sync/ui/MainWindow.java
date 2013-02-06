@@ -1,6 +1,5 @@
 package com.makina.ecrins.sync.ui;
 
-import java.io.IOException;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.ResourceBundle;
@@ -28,7 +27,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.json.JSONObject;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
-import com.makina.ecrins.sync.adb.ADBCommandException;
 import com.makina.ecrins.sync.adb.CheckDeviceRunnable;
 import com.makina.ecrins.sync.logger.ConsoleLogAppender;
 import com.makina.ecrins.sync.server.CheckServerRunnable;
@@ -275,33 +273,6 @@ public class MainWindow implements Observer
 		if (o instanceof CheckServerRunnable)
 		{
 			this.serverStatus = ((CheckServerRunnable) o).getStatus();
-			
-			// this is the last chance to restart adb server
-			if (this.serverStatus.equals((Status.STATUS_CONNECTED)))
-			{
-				try
-				{
-					if (ADBCommand.getInstance().getDevices().isEmpty())
-					{
-						ADBCommand.getInstance().killServer();
-					}
-				}
-				catch (InterruptedException ie)
-				{
-					LOG.error(ie.getMessage(), ie);
-					LOG.warn("you need to restart the application");
-				}
-				catch (IOException ioe)
-				{
-					LOG.error(ioe.getMessage(), ioe);
-					LOG.warn("you need to restart the application");
-				}
-				catch (ADBCommandException ace)
-				{
-					LOG.error(ace.getMessage(), ace);
-				}
-			}
-			
 			startTaskManager();
 		}
 	}

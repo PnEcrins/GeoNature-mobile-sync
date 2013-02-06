@@ -6,7 +6,7 @@
 	<groupId>com.makina.ecrins</groupId>
 	<artifactId>sync</artifactId>
 	<packaging>jar</packaging>
-	<version>0.1.3</version>
+	<version>0.1.4</version>
 	<name>geobi-ecrins-sync</name>
 	
 	<url>https://gitorious.makina-corpus.net/geobi-ecrins/geobi-ecrins-sync</url>
