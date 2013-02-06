@@ -9,6 +9,7 @@ import java.util.List;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecuteResultHandler;
 import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.Executor;
 import org.apache.commons.exec.PumpStreamHandler;
@@ -35,6 +36,7 @@ public class ADBCommand
 	private static final Logger LOG = Logger.getLogger(ADBCommand.class);
 	
 	private File adbCommandFile = null;
+	private boolean isDisposed = false;
 	
 	private ADBCommand()
 	{
@@ -64,6 +66,10 @@ public class ADBCommand
 			{
 				LOG.error(uosve.getMessage(), uosve);
 			}
+			catch (ADBCommandException ace)
+			{
+				LOG.error(ace.getMessage(), ace);
+			}
 		}
 	}
 
@@ -73,13 +79,9 @@ public class ADBCommand
 		{
 			ADBCommandHolder.instance.startServer();
 		}
-		catch (IOException ioe)
+		catch (ADBCommandException ace)
 		{
-			LOG.error(ioe.getMessage(), ioe);
-		}
-		catch (InterruptedException ie)
-		{
-			LOG.error(ie.getMessage(), ie);
+			LOG.error(ace.getMessage(), ace);
 		}
 		
 		return ADBCommandHolder.instance;
@@ -221,7 +223,7 @@ public class ADBCommand
 	 */
 	public boolean install(String apkPath, boolean keepData) throws InterruptedException, IOException
 	{
-		List<String> output = new ArrayList<String>();
+		boolean result = false;
 		
 		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "install", (keepData)?"-r":"", apkPath);
 		LOG.debug("install : " + pb.command().toString());
@@ -231,15 +233,18 @@ public class ADBCommand
 		for (String line : IOUtils.readLines(p.getInputStream()))
 		{
 			LOG.debug(line);
-			output.add(line);
+			
+			if (!result)
+			{
+				result = line.startsWith("Success");
+			}
 		}
 		
-		// checks the last line of the output command
-		return !output.isEmpty() && output.get(output.size() - 1).startsWith("Success");
+		return result;
 	}
 	
 	/**
-	 * Blocks until device is connected
+	 * Blocks until device is connected.
 	 * 
 	 * @throws InterruptedException
 	 * @throws IOException
@@ -251,13 +256,17 @@ public class ADBCommand
 	}
 	
 	/**
-	 * Ensures that there is a server running
+	 * Ensures that there is a server running.
 	 * 
-	 * @throws IOException 
-	 * @throws InterruptedException 
+	 * @throws ADBCommandException
 	 */
-	public void startServer() throws IOException, InterruptedException
+	public void startServer() throws ADBCommandException
 	{
+		if (isDisposed())
+		{
+			throw new ADBCommandException("ADBCommand is disposed");
+		}
+		
 		CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
 		cmdLine.addArgument("start-server");
 		
@@ -270,22 +279,42 @@ public class ADBCommand
 		executor.setExitValue(1);
 		executor.setWatchdog(watchdog);
 		executor.setStreamHandler(streamHandler);
-		executor.execute(cmdLine, resultHandler);
 		
-		if (!SystemUtils.IS_OS_WINDOWS)
+		try
 		{
-			resultHandler.waitFor();
+			executor.execute(cmdLine, resultHandler);
+			
+			if (!SystemUtils.IS_OS_WINDOWS)
+			{
+				resultHandler.waitFor();
+			}
+		}
+		catch (ExecuteException ee)
+		{
+			throw new ADBCommandException(ee.getLocalizedMessage(), ee);
+		}
+		catch (IOException ioe)
+		{
+			throw new ADBCommandException(ioe.getLocalizedMessage(), ioe);
+		}
+		catch (InterruptedException ie)
+		{
+			throw new ADBCommandException(ie.getLocalizedMessage(), ie);
 		}
 	}
 	
 	/**
-	 * Kills the server if it is running
+	 * Kills the server if it is running.
 	 * 
-	 * @throws IOException
-	 * @throws InterruptedException 
+	 * @throws ADBCommandException
 	 */
-	public void killServer() throws IOException, InterruptedException
+	public void killServer() throws ADBCommandException
 	{
+		if (isDisposed())
+		{
+			throw new ADBCommandException("ADBCommand is disposed");
+		}
+		
 		LOG.info("kill adb server ...");
 		
 		CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
@@ -300,9 +329,24 @@ public class ADBCommand
 		executor.setExitValue(1);
 		executor.setWatchdog(watchdog);
 		executor.setStreamHandler(streamHandler);
-		executor.execute(cmdLine, resultHandler);
 		
-		resultHandler.waitFor();
+		try
+		{
+			executor.execute(cmdLine, resultHandler);
+			resultHandler.waitFor();
+		}
+		catch (ExecuteException ee)
+		{
+			throw new ADBCommandException(ee.getLocalizedMessage(), ee);
+		}
+		catch (IOException ioe)
+		{
+			throw new ADBCommandException(ioe.getLocalizedMessage(), ioe);
+		}
+		catch (InterruptedException ie)
+		{
+			throw new ADBCommandException(ie.getLocalizedMessage(), ie);
+		}
 	}
 	
 	/**
@@ -334,13 +378,13 @@ public class ADBCommand
 		{
 			killServer();
 		}
-		catch (IOException ioe)
+		catch (ADBCommandException ace)
 		{
-			LOG.error(ioe.getMessage(), ioe);
+			LOG.error(ace.getMessage(), ace);
 		}
-		catch (InterruptedException ie)
+		finally
 		{
-			LOG.error(ie.getMessage(), ie);
+			isDisposed = true;
 		}
 		
 		if (adbCommandFile.exists())
@@ -351,6 +395,11 @@ public class ADBCommand
 		}
 	}
 	
+	public boolean isDisposed()
+	{
+		return isDisposed;
+	}
+
 	private synchronized static File extractAdbCommand() throws IOException, InterruptedException, UnsupportedOSVersionException
 	{
 		File tempDir = new File(FileUtils.getTempDirectory(), "sync_" + Long.toString(System.currentTimeMillis()));

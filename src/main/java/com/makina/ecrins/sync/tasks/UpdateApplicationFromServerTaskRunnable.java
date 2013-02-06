@@ -90,6 +90,8 @@ public class UpdateApplicationFromServerTaskRunnable extends AbstractTaskRunnabl
 									
 									if (fetchAppVersionFromDevice())
 									{
+										LOG.info(apkName + " successfully installed");
+										
 										setTaskStatus(new TaskStatus(95, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_PENDING));
 										
 										if (checkInstalledAppVersion())
@@ -103,6 +105,8 @@ public class UpdateApplicationFromServerTaskRunnable extends AbstractTaskRunnabl
 									}
 									else
 									{
+										LOG.error("failed to install " + apkName);
+										
 										setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_FAILED));
 									}
 								}
@@ -166,6 +170,9 @@ public class UpdateApplicationFromServerTaskRunnable extends AbstractTaskRunnabl
 					}
 				}
 			}
+			
+			// wait a while ...
+			Thread.sleep(1000);
 		}
 		catch (IOException ioe)
 		{

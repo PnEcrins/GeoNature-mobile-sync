@@ -28,6 +28,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.json.JSONObject;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
+import com.makina.ecrins.sync.adb.ADBCommandException;
 import com.makina.ecrins.sync.adb.CheckDeviceRunnable;
 import com.makina.ecrins.sync.logger.ConsoleLogAppender;
 import com.makina.ecrins.sync.server.CheckServerRunnable;
@@ -187,6 +188,8 @@ public class MainWindow implements Observer
 		flShell.marginBottom = 1;
 		shell.setLayout(flShell);
 		
+		shell.setImage(UIResourceManager.getImage("icon_32.png"));
+		
 		Composite composite = new Composite(shell, SWT.BORDER);
 		composite.setLayout(new FormLayout());
 		FormData fdComposite = new FormData();
@@ -292,6 +295,10 @@ public class MainWindow implements Observer
 				{
 					LOG.error(ioe.getMessage(), ioe);
 					LOG.warn("you need to restart the application");
+				}
+				catch (ADBCommandException ace)
+				{
+					LOG.error(ace.getMessage(), ace);
 				}
 			}
 			
