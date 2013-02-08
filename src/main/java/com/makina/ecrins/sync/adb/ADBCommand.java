@@ -411,8 +411,8 @@ public class ADBCommand
 		if (SystemUtils.IS_OS_WINDOWS)
 		{
 			adbCommandFile = new File(tempDir, "adb.exe");
-			FileUtils.copyInputStreamToFile(ClassLoader.getSystemResourceAsStream("AdbWinApi.dll"), new File(tempDir, "AdbWinApi.dll"));
-			FileUtils.copyInputStreamToFile(ClassLoader.getSystemResourceAsStream("AdbWinUsbApi.dll"), new File(tempDir, "AdbWinUsbApi.dll"));
+			FileUtils.copyInputStreamToFile(Thread.currentThread().getContextClassLoader().getResourceAsStream("AdbWinApi.dll"), new File(tempDir, "AdbWinApi.dll"));
+			FileUtils.copyInputStreamToFile(Thread.currentThread().getContextClassLoader().getResourceAsStream("AdbWinUsbApi.dll"), new File(tempDir, "AdbWinUsbApi.dll"));
 		}
 		
 		FileUtils.copyInputStreamToFile(getAdbCommandFromSystemResource(), adbCommandFile);
@@ -434,7 +434,7 @@ public class ADBCommand
 		{
 			if (SystemUtils.OS_ARCH.equalsIgnoreCase("x86"))
 			{
-				return ClassLoader.getSystemResourceAsStream("adb-win32-" + SystemUtils.OS_ARCH + "_1.0.31.exe");
+				return Thread.currentThread().getContextClassLoader().getResourceAsStream("adb-win32-" + SystemUtils.OS_ARCH + "_1.0.31.exe");
 			}
 			else
 			{
@@ -445,16 +445,16 @@ public class ADBCommand
 		{
 			if (SystemUtils.OS_ARCH.equalsIgnoreCase("i386"))
 			{
-				return ClassLoader.getSystemResourceAsStream("adb-linux-x86_1.0.31");
+				return Thread.currentThread().getContextClassLoader().getResourceAsStream("adb-linux-x86_1.0.31");
 			}
 			else
 			{
-				return ClassLoader.getSystemResourceAsStream("adb-linux-x86_64_1.0.31");
+				return Thread.currentThread().getContextClassLoader().getResourceAsStream("adb-linux-x86_64_1.0.31");
 			}
 		}
 		else if (SystemUtils.IS_OS_MAC_OSX)
 		{
-			return ClassLoader.getSystemResourceAsStream("adb-macosx-cocoa_1.0.31");
+			return Thread.currentThread().getContextClassLoader().getResourceAsStream("adb-macosx-cocoa_1.0.31");
 		}
 		else
 		{

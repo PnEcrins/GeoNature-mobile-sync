@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
@@ -76,6 +77,7 @@ public class MainWindow implements Observer
 		
 		final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
 		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+		taskManager = new TaskManager();
 		
 		try
 		{
@@ -88,8 +90,6 @@ public class MainWindow implements Observer
 				public void run()
 				{
 					ADBCommand.getInstance();
-					
-					taskManager = new TaskManager();
 					
 					UpdateApplicationFromServerTaskRunnable updateApplicationFromServerTaskRunnable = new UpdateApplicationFromServerTaskRunnable();
 					updateApplicationFromServerTaskRunnable.addObserver(dataUpdateFromServerComposite);
@@ -136,7 +136,7 @@ public class MainWindow implements Observer
 					}
 					catch (ExecutionException ee)
 					{
-						LOG.error(ee.getMessage(), ee);
+						LOG.error(ee.getLocalizedMessage(), ee);
 					}
 					finally
 					{
@@ -186,7 +186,7 @@ public class MainWindow implements Observer
 		flShell.marginBottom = 1;
 		shell.setLayout(flShell);
 		
-		shell.setImage(UIResourceManager.getImage("icon_32.png"));
+		shell.setImages(new Image[]{UIResourceManager.getImage("icon_32.png"), UIResourceManager.getImage("icon_48.png")});
 		
 		Composite composite = new Composite(shell, SWT.BORDER);
 		composite.setLayout(new FormLayout());

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="$encoding"?>
+<jnlp
+	spec="$jnlpspec"
+	codebase="$informationHomepage"
+	href="$outputFile">
+	
+	<information>
+	
+	#if ($project.name)
+	<title>$project.name</title>
+	#end
+	
+	#if ($project.organization.name)
+	<vendor>$project.organization.name</vendor>
+	#end
+	
+	#if ($project.organization.url)
+	<homepage href="$project.organization.url"/>
+	#end
+	
+	#if ($project.description)
+	<description>$project.description</description>
+	#end
+		
+		<icon href="sync_128.png" width="128" height="128"/>
+		<icon kind="shortcut" href="sync_32.png" width="32" height="32"/>
+		<icon kind="shortcut" href="sync_48.png" width="48" height="48"/>
+		
+		<offline-allowed/>
+		
+		<shortcut online="false">
+			<desktop/>
+			<menu submenu="PNE Sync"/>
+		</shortcut>
+
+	</information>
+
+	#if ($allPermissions)
+	<security>
+		<all-permissions/>
+	</security>
+	#end
+
+	<resources>
+		<j2se version="$j2seVersion"/>
+		$dependencies
+	</resources>
+	<!--
+	<resources os="Windows" arch="x86">
+		<jar href="${project.artifactId}-${project.version}-win32-x86.jar" main="true"/>
+	</resources>
+	
+	<resources os="Mac\ OS\ X">
+		<jar href="${project.artifactId}-${project.version}-macosx-cocoa.jar" main="true"/>
+	</resources>
+	
+	<resources os="Linux" arch="x86 i386">
+		<jar href="${project.artifactId}-${project.version}-linux-gtk-i386.jar" main="true"/>
+	</resources>
+	
+	<resources os="Linux" arch="amd64 x86_64">
+		<jar href="${project.artifactId}-${project.version}-linux-gtk-x86_64.jar" main="true"/>
+	</resources>
+	-->
+	<application-desc main-class="$mainClass"/>
+	
+</jnlp>
+

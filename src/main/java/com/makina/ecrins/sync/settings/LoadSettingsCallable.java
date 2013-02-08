@@ -50,12 +50,32 @@ public class LoadSettingsCallable implements Callable<JSONObject>
 	public JSONObject call() throws Exception
 	{
 		LOG.debug("loading 'settings.json' ...");
+		/*
+		try
+		{
+			jsonSettings = new JSONObject(FileUtils.readFileToString(new File(FileUtils.getUserDirectory(), "settings.json")));
+			
+			if (jsonSettings.length() > 0)
+			{
+				LOG.debug("'settings.json' loaded");
+			}
+			else
+			{
+				LOG.error("failed to load 'settings.json'");
+			}
+		}
+		catch (IOException ioe)
+		{
+			LOG.error(ioe.getLocalizedMessage());
+		}
+		*/
 		
 		InputStream is = null;
 		
 		try
 		{
-			is = ClassLoader.getSystemResourceAsStream("settings.json");
+			is = Thread.currentThread().getContextClassLoader().getResourceAsStream("settings.json");
+			//is = ClassLoader.getSystemResourceAsStream("settings.json");
 			
 			if (is == null)
 			{
