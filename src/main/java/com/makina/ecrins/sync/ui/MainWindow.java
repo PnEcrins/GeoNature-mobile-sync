@@ -137,6 +137,7 @@ public class MainWindow implements Observer
 					catch (ExecutionException ee)
 					{
 						LOG.error(ee.getLocalizedMessage(), ee);
+						LOG.error("failed to load 'settings.json'");
 					}
 					finally
 					{

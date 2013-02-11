@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Sync"
-#define MyAppVersion "0.1.5"
+#define MyAppVersion "0.1.6"
 #define MyAppPublisher "Makina Corpus"
 #define MyAppExeName "sync.exe"
 
@@ -32,7 +32,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "sync.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "../target/sync-0.1.5-win32-x86.jar"; DestDir: "{app}"; Flags: ignoreversion
+Source: "../target/sync-0.1.6-win32-x86.jar"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 

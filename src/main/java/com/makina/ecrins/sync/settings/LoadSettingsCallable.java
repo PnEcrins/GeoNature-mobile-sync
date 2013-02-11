@@ -1,8 +1,11 @@
 package com.makina.ecrins.sync.settings;
 
+import java.io.File;
 import java.io.InputStream;
+import java.net.URLDecoder;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
@@ -50,50 +53,50 @@ public class LoadSettingsCallable implements Callable<JSONObject>
 	public JSONObject call() throws Exception
 	{
 		LOG.debug("loading 'settings.json' ...");
-		/*
-		try
-		{
-			jsonSettings = new JSONObject(FileUtils.readFileToString(new File(FileUtils.getUserDirectory(), "settings.json")));
-			
-			if (jsonSettings.length() > 0)
-			{
-				LOG.debug("'settings.json' loaded");
-			}
-			else
-			{
-				LOG.error("failed to load 'settings.json'");
-			}
-		}
-		catch (IOException ioe)
-		{
-			LOG.error(ioe.getLocalizedMessage());
-		}
-		*/
 		
-		InputStream is = null;
+		File rootDirectory = new File(URLDecoder.decode(getClass().getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8")).getParentFile();
 		
-		try
+		LOG.info("installation directory : " + rootDirectory.getAbsolutePath());
+		
+		File settingsFile = new File(rootDirectory, "settings.json");
+		
+		if (!settingsFile.exists())
 		{
-			is = Thread.currentThread().getContextClassLoader().getResourceAsStream("settings.json");
-			//is = ClassLoader.getSystemResourceAsStream("settings.json");
+			InputStream is = null;
 			
-			if (is == null)
+			try
 			{
-				LOG.error("failed to load 'settings.json'");
-			}
-			else
-			{
-				jsonSettings = new JSONObject(IOUtils.toString(is));
+				is = Thread.currentThread().getContextClassLoader().getResourceAsStream("settings.json");
 				
-				LOG.debug("'settings.json' loaded");
+				if (is == null)
+				{
+					LOG.error("failed to load default 'settings.json'");
+				}
+				else
+				{
+					IOUtils.copy(is, FileUtils.openOutputStream(settingsFile));
+					
+					LOG.debug("default 'settings.json' copied");
+				}
+			}
+			finally
+			{
+				if (is != null)
+				{
+					is.close();
+				}
 			}
 		}
-		finally
+		
+		jsonSettings = new JSONObject(FileUtils.readFileToString(settingsFile));
+
+		if (jsonSettings.length() > 0)
 		{
-			if (is != null)
-			{
-				is.close();
-			}
+			LOG.info("'settings.json' loaded");
+		}
+		else
+		{
+			LOG.error("failed to load 'settings.json'");
 		}
 		
 		return jsonSettings;
