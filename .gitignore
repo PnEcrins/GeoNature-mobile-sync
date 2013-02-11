@@ -4,3 +4,6 @@
 .settings
 bin
 target
+setup/Output
+setup/*.log
+setup/*.exe
