@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Sync"
-#define MyAppVersion "0.1.6"
+#define MyAppVersion "0.1.7"
 #define MyAppPublisher "Makina Corpus"
 #define MyAppExeName "sync.exe"
 
@@ -17,30 +17,121 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={pf}\PNE Sync
 DefaultGroupName={#MyAppName}
-OutputBaseFilename=setup_sync
+OutputBaseFilename=setup_sync-{#MyAppVersion}
 LicenseFile=LICENSE.txt
 SetupIconFile=../art/sync.ico
 Compression=lzma
 SolidCompression=yes
+VersionInfoVersion={#MyAppVersion}
+VersionInfoTextVersion={#MyAppVersion}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 
+#include ReadReg(HKEY_LOCAL_MACHINE,'Software\Sherlock Software\InnoTools\Downloader','ScriptPath','');
+
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
+Source: "unzip.exe"; DestDir: "{tmp}"; Flags: ignoreversion
 Source: "sync.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "../target/sync-0.1.6-win32-x86.jar"; DestDir: "{app}"; Flags: ignoreversion
+Source: "../target/sync-{#MyAppVersion}-win32-x86.jar"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "../src/main/resources/settings.json"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
+
+[Dirs]
+Name: "{app}\usb_driver"
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
+[Code]
+ 
+function LoadValueFromXML(const AFileName, APath: string): string;
+var
+  XMLNode: Variant;
+  XMLDocument: Variant;
+begin
+  Result := '';
+  XMLDocument := CreateOleObject('Msxml2.DOMDocument.6.0');
+  try
+    XMLDocument.async := False;
+    XMLDocument.load(AFileName);
+    if (XMLDocument.parseError.errorCode <> 0) then
+      MsgBox('The XML file could not be parsed. ' + XMLDocument.parseError.reason, mbError, MB_OK)
+    else
+    begin
+      XMLDocument.setProperty('SelectionLanguage', 'XPath');
+      XMLDocument.setProperty('SelectionNamespaces', 'xmlns:sdk="http://schemas.android.com/sdk/android/addon/5"');
+      XMLNode := XMLDocument.selectSingleNode(APath);
+      Result := XMLNode.text;
+    end;
+  except
+    MsgBox('An error occured!', mbError, MB_OK);
+  end;
+end;
+
+function GetUsbDriverFile(): string;
+begin
+  Result := LoadValueFromXML(expandconstant('{tmp}\addon.xml'), '//sdk:sdk-addon/sdk:extra[sdk:path="usb_driver"]/sdk:archives/sdk:archive[@os="windows"]/sdk:url');
+end;
+
+Procedure DownloadUSBDriver();
+var
+  UsbDriverFile: string;
+begin
+  UsbDriverFile := GetUsbDriverFile();
+
+  if (length(UsbDriverFile) > 0) then begin
+    Log('downloading file ' + 'http://dl-ssl.google.com/android/repository/' + UsbDriverFile + ' ...');
+    ITD_AddFile('http://dl-ssl.google.com/android/repository/' + UsbDriverFile, expandconstant('{tmp}\') + UsbDriverFile);
+    ITD_DownloadAfter(wpReady);
+  end;
+end;
+
+Procedure ExtractUSBDriver();
+var
+  UsbDriverFile: string;
+  ResultCode: Integer;
+begin
+  UsbDriverFile := GetUsbDriverFile();
+  
+  if (length(UsbDriverFile) > 0) then begin
+    FileCopy(expandconstant('{tmp}\') + GetUsbDriverFile(), expandconstant('{app}\') + GetUsbDriverFile(), false);
+    Log('extracting file ' + expandconstant('{app}\') + UsbDriverFile + ' ...');
+    if FileExists(expandconstant('{app}\') + UsbDriverFile) then begin
+      Log('extracting file ' + UsbDriverFile + ' ...');
+      Exec(expandconstant('{tmp}\unzip.exe'), '-oq ' + UsbDriverFile, expandconstant('{app}'), SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      DeleteFile(expandconstant('{app}\') + UsbDriverFile);
+    end
+    else
+      Log('failed to extract ' + UsbDriverFile);
+  end;  
+end;
+
+procedure InitializeWizard();
+begin
+  ITD_Init;
+  // downloads addon.xml file from Google
+  ITD_DownloadFile('http://dl-ssl.google.com/android/repository/addon.xml', expandconstant('{tmp}\addon.xml'));
+
+  DownloadUSBDriver();
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep=ssPostInstall then begin
+    ExtractUSBDriver();
+  end;
+end;
+
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
+[UninstallDelete]
+Type: filesandordirs; Name: "{app}\usb_driver"

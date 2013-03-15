@@ -384,6 +384,15 @@ public class ADBCommand
 		}
 		finally
 		{
+			try
+			{
+				killAdbProcess();
+			}
+			catch (ADBCommandException ace)
+			{
+				LOG.error(ace.getMessage(), ace);
+			}
+			
 			isDisposed = true;
 		}
 		
@@ -399,7 +408,50 @@ public class ADBCommand
 	{
 		return isDisposed;
 	}
-
+	
+	private void killAdbProcess() throws ADBCommandException
+	{
+		LOG.info("kill adb process ...");
+		
+		if (SystemUtils.IS_OS_WINDOWS)
+		{
+			CommandLine cmdLine = new CommandLine("taskkill");
+			cmdLine.addArgument("/F");
+			cmdLine.addArgument("/IM");
+			cmdLine.addArgument(adbCommandFile.getName());
+			
+			LOG.debug("killAdbProcess " + cmdLine.toString());
+			
+			DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
+			
+			PumpStreamHandler streamHandler = new PumpStreamHandler(new LoggingOutputStream(LOG, Level.INFO), new LoggingOutputStream(LOG, Level.WARN));
+			
+			ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
+			Executor executor = new DefaultExecutor();
+			executor.setExitValue(1);
+			executor.setWatchdog(watchdog);
+			executor.setStreamHandler(streamHandler);
+			
+			try
+			{
+				executor.execute(cmdLine, resultHandler);
+				resultHandler.waitFor();
+			}
+			catch (ExecuteException ee)
+			{
+				throw new ADBCommandException(ee.getLocalizedMessage());
+			}
+			catch (IOException ioe)
+			{
+				throw new ADBCommandException(ioe.getLocalizedMessage());
+			}
+			catch (InterruptedException ie)
+			{
+				throw new ADBCommandException(ie.getLocalizedMessage());
+			}
+		}
+	}
+	
 	private synchronized static File extractAdbCommand() throws IOException, InterruptedException, UnsupportedOSVersionException
 	{
 		File tempDir = new File(FileUtils.getTempDirectory(), "sync_" + Long.toString(System.currentTimeMillis()));

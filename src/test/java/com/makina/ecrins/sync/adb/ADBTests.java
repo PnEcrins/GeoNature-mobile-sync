@@ -9,8 +9,10 @@ import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
+import com.makina.ecrins.sync.tasks.ApkUtilsTest;
+
 /**
- * Tests suite for {@link ADBCommandTest} and {@link FileUtilsTest}.
+ * Tests suite for {@link ADBCommandTest} and {@link ApkUtilsTest}.
  * 
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
@@ -18,7 +20,7 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses(
 {
 	ADBCommandTest.class,
-	FileUtilsTest.class
+	ApkUtilsTest.class
 })
 public class ADBTests
 {

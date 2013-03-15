@@ -36,7 +36,7 @@ import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 import com.makina.ecrins.sync.tasks.ImportInputsFromDeviceTaskRunnable;
 import com.makina.ecrins.sync.tasks.TaskManager;
 import com.makina.ecrins.sync.tasks.UpdateApplicationDataFromServerTaskRunnable;
-import com.makina.ecrins.sync.tasks.UpdateApplicationFromServerTaskRunnable;
+import com.makina.ecrins.sync.tasks.UpdateApplicationsFromServerTaskRunnable;
 
 /**
  * Main application window.
@@ -50,11 +50,10 @@ public class MainWindow implements Observer
 	private Status serverStatus;
 	private Status deviceStatus;
 	
-	protected TaskManager taskManager;
-	
 	protected Shell shell;
 	protected SmartphoneStatusWidget smartphoneStatusWidget;
 	protected ServerStatusWidget serverStatusWidget;
+	protected DataUpdateComposite appUpdateFromServerComposite;
 	protected DataUpdateComposite dataUpdateFromDeviceComposite;
 	protected DataUpdateComposite dataUpdateFromServerComposite;
 	
@@ -77,7 +76,8 @@ public class MainWindow implements Observer
 		
 		final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
 		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
-		taskManager = new TaskManager();
+		
+		TaskManager.getInstance();
 		
 		try
 		{
@@ -91,17 +91,17 @@ public class MainWindow implements Observer
 				{
 					ADBCommand.getInstance();
 					
-					UpdateApplicationFromServerTaskRunnable updateApplicationFromServerTaskRunnable = new UpdateApplicationFromServerTaskRunnable();
-					updateApplicationFromServerTaskRunnable.addObserver(dataUpdateFromServerComposite);
-					taskManager.addTask(updateApplicationFromServerTaskRunnable);
-					
-					UpdateApplicationDataFromServerTaskRunnable updateApplicationDataFromServerTaskRunnable = new UpdateApplicationDataFromServerTaskRunnable();
-					updateApplicationDataFromServerTaskRunnable.addObserver(dataUpdateFromServerComposite);
-					taskManager.addTask(updateApplicationDataFromServerTaskRunnable);
+					UpdateApplicationsFromServerTaskRunnable updateApplicationsFromServerTaskRunnable = new UpdateApplicationsFromServerTaskRunnable();
+					updateApplicationsFromServerTaskRunnable.addObserver(appUpdateFromServerComposite);
+					TaskManager.getInstance().addTask(updateApplicationsFromServerTaskRunnable);
 					
 					ImportInputsFromDeviceTaskRunnable importInputsFromDeviceTaskRunnable = new ImportInputsFromDeviceTaskRunnable();
 					importInputsFromDeviceTaskRunnable.addObserver(dataUpdateFromDeviceComposite);
-					taskManager.addTask(importInputsFromDeviceTaskRunnable);
+					TaskManager.getInstance().addTask(importInputsFromDeviceTaskRunnable);
+					
+					UpdateApplicationDataFromServerTaskRunnable updateApplicationDataFromServerTaskRunnable = new UpdateApplicationDataFromServerTaskRunnable();
+					updateApplicationDataFromServerTaskRunnable.addObserver(dataUpdateFromServerComposite);
+					TaskManager.getInstance().addTask(updateApplicationDataFromServerTaskRunnable);
 				}
 			});
 			
@@ -158,7 +158,7 @@ public class MainWindow implements Observer
 		{
 			threadExecutor.shutdownNow();
 			scheduler.shutdownNow();
-			taskManager.shutdownNow();
+			TaskManager.getInstance().shutdownNow();
 			
 			ADBCommand.getInstance().dispose();
 			UIResourceManager.dispose();
@@ -178,7 +178,7 @@ public class MainWindow implements Observer
 	protected void createContents(Display display)
 	{
 		shell = new Shell(display, SWT.CLOSE | SWT.TITLE | SWT.MIN);
-		shell.setSize(480, 405);
+		shell.setSize(480, 505);
 		shell.setText(ResourceBundle.getBundle("messages").getString("MainWindow.shell.text"));
 		FormLayout flShell = new FormLayout();
 		flShell.marginLeft = 1;
@@ -238,12 +238,14 @@ public class MainWindow implements Observer
 		fdGroupUpdate.top = new FormAttachment(groupStatuses);
 		fdGroupUpdate.left = new FormAttachment(0, 5);
 		fdGroupUpdate.right = new FormAttachment(100, -5);
-		fdGroupUpdate.height = 200;
+		fdGroupUpdate.height = 300;
 		groupUpdate.setLayoutData(fdGroupUpdate);
 		
-		dataUpdateFromServerComposite = new DataUpdateComposite(groupUpdate, SWT.NONE, DataUpdateComposite.Layout.SERVER_DEVICE);
+		appUpdateFromServerComposite = new DataUpdateComposite(groupUpdate, SWT.NONE, DataUpdateComposite.Layout.SERVER_DEVICE);
 		dataUpdateFromDeviceComposite = new DataUpdateComposite(groupUpdate, SWT.NONE, DataUpdateComposite.Layout.DEVICE_SERVER);
-		((FormData) dataUpdateFromDeviceComposite.getLayoutData()).top = new FormAttachment(dataUpdateFromServerComposite);
+		((FormData) dataUpdateFromDeviceComposite.getLayoutData()).top = new FormAttachment(appUpdateFromServerComposite);
+		dataUpdateFromServerComposite = new DataUpdateComposite(groupUpdate, SWT.NONE, DataUpdateComposite.Layout.SERVER_DEVICE);
+		((FormData) dataUpdateFromServerComposite.getLayoutData()).top = new FormAttachment(dataUpdateFromDeviceComposite);
 		
 		consoleLogComposite = new ConsoleLogComposite(composite, SWT.NONE);
 		FormData fdConsoleLogComposite = new FormData();
@@ -258,7 +260,7 @@ public class MainWindow implements Observer
 	{
 		if (this.deviceStatus.equals(Status.STATUS_CONNECTED) && this.serverStatus.equals((Status.STATUS_CONNECTED)))
 		{
-			taskManager.start();
+			TaskManager.getInstance().start();
 		}
 	}
 	

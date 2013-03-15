@@ -15,6 +15,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ProgressBar;
 
+import com.makina.ecrins.sync.service.Status;
 import com.makina.ecrins.sync.tasks.TaskStatus;
 
 /**
@@ -31,6 +32,8 @@ public class DataUpdateComposite extends Composite implements Observer
 	protected Label labelDataUpdate;
 	protected Label labelDataUpdateStatus;
 	
+	private TaskStatus taskStatus;
+	
 	/**
 	 * Create the composite.
 	 * @param parent
@@ -41,6 +44,7 @@ public class DataUpdateComposite extends Composite implements Observer
 		super(parent, SWT.NONE);
 		
 		this.layout = layout;
+		this.taskStatus = new TaskStatus(Status.STATUS_NONE.name(), Status.STATUS_NONE);
 		
 		initialize();
 	}
@@ -117,6 +121,7 @@ public class DataUpdateComposite extends Composite implements Observer
 		progressBarDataUpdate.setLayoutData(fdProgressBarDataUpate);
 		progressBarDataUpdate.setMinimum(0);
 		progressBarDataUpdate.setMaximum(100);
+		progressBarDataUpdate.setSelection(0);
 		
 		canvasLedDataUpdate = new Canvas(this, SWT.NONE);
 		FormData fdCanvasLedDataUpdate = new FormData();
@@ -129,7 +134,7 @@ public class DataUpdateComposite extends Composite implements Observer
 		{
 			public void paintControl(PaintEvent pe)
 			{
-				pe.gc.drawImage(UIResourceManager.getImage("led_none.png"), 0, 0);
+				pe.gc.drawImage(UIResourceManager.getImage("led_" + taskStatus.getStatus().getLabel() + ".png"), 0, 0);
 			}
 		});
 		
@@ -164,41 +169,35 @@ public class DataUpdateComposite extends Composite implements Observer
 	{
 		if (arg instanceof TaskStatus)
 		{
-			final TaskStatus taskStatus = (TaskStatus) arg;
+			this.taskStatus = (TaskStatus) arg;
 			
-			getDisplay().syncExec(new Runnable()
+			if (!isDisposed())
 			{
-				@Override
-				public void run()
+				getDisplay().syncExec(new Runnable()
 				{
-					canvasLedDataUpdate.addPaintListener(new PaintListener()
+					@Override
+					public void run()
 					{
-						public void paintControl(PaintEvent pe)
+						canvasLedDataUpdate.redraw();
+						labelDataUpdate.setText(taskStatus.getMessage());
+						
+						// don't update the progress bar if getProgress() is not defined (i.e. 0)
+						if (taskStatus.getProgress() > 0)
 						{
-							pe.gc.drawImage(UIResourceManager.getImage("led_" + taskStatus.getStatus().getLabel() + ".png"), 0, 0);
+							progressBarDataUpdate.setSelection(taskStatus.getProgress());
 						}
-					});
-					
-					canvasLedDataUpdate.redraw();
-					
-					labelDataUpdate.setText(taskStatus.getMessage());
-					
-					// don't update the progress bar if getProgress() is not defined (i.e. 0)
-					if (taskStatus.getProgress() > 0)
-					{
-						progressBarDataUpdate.setSelection(taskStatus.getProgress());
+						
+						// reset the progress bar
+						if (taskStatus.getProgress() < 0)
+						{
+							progressBarDataUpdate.setSelection(0);
+						}
+						
+						labelDataUpdateStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + taskStatus.getStatus().getLabel()));
+						labelDataUpdateStatus.getParent().layout();
 					}
-					
-					// reset the progress bar
-					if (taskStatus.getProgress() < progressBarDataUpdate.getSelection())
-					{
-						progressBarDataUpdate.setSelection(0);
-					}
-					
-					labelDataUpdateStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + taskStatus.getStatus().getLabel()));
-					labelDataUpdateStatus.getParent().layout();
-				}
-			});
+				});
+			}
 		}
 	}
 	

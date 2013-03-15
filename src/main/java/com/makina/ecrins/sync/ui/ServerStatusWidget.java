@@ -87,50 +87,53 @@ public class ServerStatusWidget implements Observer
 		{
 			final Status status = (Status) arg;
 			
-			display.syncExec(new Runnable()
+			if (!display.isDisposed())
 			{
-				@Override
-				public void run()
+				display.syncExec(new Runnable()
 				{
-					canvasServerStatus.addPaintListener(new PaintListener()
+					@Override
+					public void run()
 					{
-						public void paintControl(PaintEvent pe)
+						canvasServerStatus.addPaintListener(new PaintListener()
 						{
-							pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_" + status.getLabel() + ".png"), 0, 0);
+							public void paintControl(PaintEvent pe)
+							{
+								pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_" + status.getLabel() + ".png"), 0, 0);
+							}
+						});
+						
+						canvasServerStatus.redraw();
+						
+						labelServerStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + status.getLabel()));
+						labelServerStatus.getParent().layout();
+						
+						switch (status)
+						{
+							case STATUS_PENDING:
+								labelServer.setForeground(UIResourceManager.getColor(218, 165, 32));
+								labelServerSeparator.setForeground(UIResourceManager.getColor(218, 165, 32));
+								labelServerStatus.setForeground(UIResourceManager.getColor(218, 165, 32));
+								break;
+							case STATUS_FAILED:
+								labelServer.setForeground(UIResourceManager.getColor(255, 0, 0));
+								labelServerSeparator.setForeground(UIResourceManager.getColor(255, 0, 0));
+								labelServerStatus.setForeground(UIResourceManager.getColor(255, 0, 0));
+								break;
+							case STATUS_CONNECTED:
+							case STATUS_FINISH:
+								labelServer.setForeground(UIResourceManager.getColor(0, 128, 0));
+								labelServerSeparator.setForeground(UIResourceManager.getColor(0, 128, 0));
+								labelServerStatus.setForeground(UIResourceManager.getColor(0, 128, 0));
+								break;
+							default:
+								labelServer.setForeground(UIResourceManager.getColor(0, 0, 0));
+								labelServerSeparator.setForeground(UIResourceManager.getColor(0, 0, 0));
+								labelServerStatus.setForeground(UIResourceManager.getColor(0, 0, 0));
+								break;
 						}
-					});
-					
-					canvasServerStatus.redraw();
-					
-					labelServerStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + status.getLabel()));
-					labelServerStatus.getParent().layout();
-					
-					switch (status)
-					{
-						case STATUS_PENDING:
-							labelServer.setForeground(UIResourceManager.getColor(218, 165, 32));
-							labelServerSeparator.setForeground(UIResourceManager.getColor(218, 165, 32));
-							labelServerStatus.setForeground(UIResourceManager.getColor(218, 165, 32));
-							break;
-						case STATUS_FAILED:
-							labelServer.setForeground(UIResourceManager.getColor(255, 0, 0));
-							labelServerSeparator.setForeground(UIResourceManager.getColor(255, 0, 0));
-							labelServerStatus.setForeground(UIResourceManager.getColor(255, 0, 0));
-							break;
-						case STATUS_CONNECTED:
-						case STATUS_FINISH:
-							labelServer.setForeground(UIResourceManager.getColor(0, 128, 0));
-							labelServerSeparator.setForeground(UIResourceManager.getColor(0, 128, 0));
-							labelServerStatus.setForeground(UIResourceManager.getColor(0, 128, 0));
-							break;
-						default:
-							labelServer.setForeground(UIResourceManager.getColor(0, 0, 0));
-							labelServerSeparator.setForeground(UIResourceManager.getColor(0, 0, 0));
-							labelServerStatus.setForeground(UIResourceManager.getColor(0, 0, 0));
-							break;
 					}
-				}
-			});
+				});
+			}
 		}
 	}
 }

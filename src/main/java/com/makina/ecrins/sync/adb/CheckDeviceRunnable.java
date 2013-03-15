@@ -60,16 +60,20 @@ public class CheckDeviceRunnable extends Observable implements Runnable
 			
 			if (ADBCommand.getInstance().getDevices().isEmpty())
 			{
-				if (!getStatus().equals(Status.STATUS_PENDING))
-				{
-					setStatus(Status.STATUS_PENDING);
-				}
+				setStatus(Status.STATUS_PENDING);
 			}
 			else
 			{
-				if (!getStatus().equals(Status.STATUS_CONNECTED))
+				String deviceState = ADBCommand.getInstance().getState();
+				LOG.debug("device state : " + deviceState);
+				
+				if (deviceState.equals(ADBCommand.STATE_DEVICE))
 				{
 					setStatus(Status.STATUS_CONNECTED);
+				}
+				else
+				{
+					setStatus(Status.STATUS_PENDING);
 				}
 			}
 		}

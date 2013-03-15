@@ -10,6 +10,8 @@ import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.makina.ecrins.sync.tasks.ApkUtils;
+
 /**
  * Test class for {@link ADBCommand}
  * 
@@ -60,8 +62,8 @@ public class ADBCommandTest
 			Assert.assertTrue(inputJson.exists());
 			
 			File inputJsonFromDevice = new File(tempDir, "input_1234_copy.json");
-			ADBCommand.getInstance().push(inputJson.getAbsolutePath(), com.makina.ecrins.sync.adb.FileUtils.getExternalStorageDirectory() + "Android/data/sync/input_1234.json");
-			ADBCommand.getInstance().pull(com.makina.ecrins.sync.adb.FileUtils.getExternalStorageDirectory() + "Android/data/sync/input_1234.json", inputJsonFromDevice.getAbsolutePath());
+			ADBCommand.getInstance().push(inputJson.getAbsolutePath(), ApkUtils.getExternalStorageDirectory() + "Android/data/sync/input_1234.json");
+			ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory() + "Android/data/sync/input_1234.json", inputJsonFromDevice.getAbsolutePath());
 			
 			LOG.debug("input JSON from device : " + inputJsonFromDevice.getAbsolutePath());
 			LOG.debug("input_1234.json checksum : " + FileUtils.checksumCRC32(inputJson));
@@ -73,6 +75,30 @@ public class ADBCommandTest
 		{
 			LOG.error(fnfe.getMessage(), fnfe);
 			Assert.fail(fnfe.getMessage());
+		}
+		catch (IOException ioe)
+		{
+			LOG.error(ioe.getMessage(), ioe);
+			Assert.fail(ioe.getMessage());
+		}
+		catch (InterruptedException ie)
+		{
+			LOG.error(ie.getMessage(), ie);
+			Assert.fail(ie.getMessage());
+		}
+	}
+	
+	@Test
+	public void executeTest()
+	{
+		try
+		{
+			List<String> results = ADBCommand.getInstance().executeCommand("[ -d /mnt/sdcard/Android/data/com.makina.ecrins ] && echo '1' || echo '0'");
+			
+			for (String line : results)
+			{
+				LOG.debug(line);
+			}
 		}
 		catch (IOException ioe)
 		{

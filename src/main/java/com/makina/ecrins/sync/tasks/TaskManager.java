@@ -1,5 +1,7 @@
 package com.makina.ecrins.sync.tasks;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -9,6 +11,8 @@ import java.util.Observer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.commons.io.FileDeleteStrategy;
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import com.makina.ecrins.sync.service.Status;
@@ -37,13 +41,34 @@ public class TaskManager implements Observer
 	private final List<AbstractTaskRunnable> tasks;
 	
 	private Status status;
+	private File tempDir = null;
 	
-	public TaskManager()
+	private TaskManager()
 	{
+		LOG.debug("new instance of TaskManager");
+		
 		this.status = Status.STATUS_NONE;
+		this.tempDir = new File(FileUtils.getTempDirectory(), "sync_data_" + Long.toString(System.currentTimeMillis()));
+		this.tempDir.mkdir();
+		
+		try
+		{
+			FileUtils.forceDeleteOnExit(this.tempDir);
+		}
+		catch (IOException ioe)
+		{
+			LOG.warn("unable to delete '" + this.tempDir.getAbsolutePath() + "'", ioe);
+		}
+		
+		LOG.debug("using temporary directory '" + this.tempDir.getAbsolutePath() + "'");
 		
 		executor = Executors.newSingleThreadExecutor();
 		this.tasks = Collections.synchronizedList(new ArrayList<AbstractTaskRunnable>());
+	}
+	
+	public static TaskManager getInstance()
+	{
+		return TaskManagerHolder.instance;
 	}
 	
 	public Status getStatus()
@@ -84,6 +109,11 @@ public class TaskManager implements Observer
 	public void shutdownNow()
 	{
 		this.executor.shutdownNow();
+		
+		if (this.tempDir != null)
+		{
+			FileDeleteStrategy.FORCE.deleteQuietly(this.tempDir);
+		}
 	}
 	
 	@Override
@@ -115,5 +145,15 @@ public class TaskManager implements Observer
 					this.status = ((AbstractTaskRunnable) o).getTaskStatus().getStatus();
 			}
 		}
+	}
+	
+	protected File getTemporaryDirectory()
+	{
+		return this.tempDir;
+	}
+	
+	private static class TaskManagerHolder
+	{
+		private final static TaskManager instance = new TaskManager();
 	}
 }

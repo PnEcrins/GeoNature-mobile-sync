@@ -12,6 +12,7 @@ import java.util.ResourceBundle;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -28,6 +29,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
+import com.makina.ecrins.sync.adb.ADBCommandException;
 import com.makina.ecrins.sync.service.Status;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 
@@ -41,6 +43,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	private static final Logger LOG = Logger.getLogger(ImportInputsFromDeviceTaskRunnable.class);
 	
 	private File inputsTempDir;
+	private ApkInfo apkInfo;
 	
 	@Override
 	public void run()
@@ -75,27 +78,44 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 			LOG.error(je.getMessage(), je);
 			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 		}
+		catch (ADBCommandException ace)
+		{
+			LOG.error(ace.getMessage(), ace);
+			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
+		}
 		finally
 		{
 			FileUtils.deleteQuietly(this.inputsTempDir);
 		}
 	}
 	
-	private void fetchInputsFromDevice() throws InterruptedException, IOException
+	private boolean fetchInputsFromDevice() throws InterruptedException, IOException
 	{
-		this.inputsTempDir = new File(FileUtils.getTempDirectory(), "sync_inputs" + Long.toString(System.currentTimeMillis()));
+		this.inputsTempDir = new File(TaskManager.getInstance().getTemporaryDirectory(), "inputs");
 		this.inputsTempDir.mkdir();
 		FileUtils.forceDeleteOnExit(inputsTempDir);
 		
-		ADBCommand.getInstance().pull(com.makina.ecrins.sync.adb.FileUtils.getExternalStorageDirectory() + "Android/data/" + "com.makina.ecrins.poc" + "/inputs/", this.inputsTempDir.getAbsolutePath());
+		List<ApkInfo> apks = ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json"));
+		
+		if (apks.isEmpty())
+		{
+			return false;
+		}
+		else
+		{
+			apkInfo = apks.get(0);
+			ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + apks.get(0).getSharedUserId() + "/inputs/", this.inputsTempDir.getAbsolutePath());
+			
+			return this.inputsTempDir.list().length > 0;
+		}
 	}
 	
-	private void deleteInputFromDevice(String input) throws IOException, InterruptedException
+	private void deleteInputFromDevice(File inputJson) throws IOException, InterruptedException, ADBCommandException
 	{
-		ADBCommand.getInstance().executeCommand("rm " + com.makina.ecrins.sync.adb.FileUtils.getExternalStorageDirectory() + "Android/data/" + "com.makina.ecrins.poc" + "/inputs/" + input);
+		ADBCommand.getInstance().executeCommand("rm " + ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + "com.makina.ecrins" + "/inputs/" + inputJson.getParent() + "/" + inputJson.getName());
 	}
 	
-	private boolean uploadInputs() throws JSONException, IOException, InterruptedException
+	private boolean uploadInputs() throws JSONException, IOException, InterruptedException, ADBCommandException
 	{
 		final DefaultHttpClient httpClient = new DefaultHttpClient();
 		final HttpParams httpParameters = httpClient.getParams();
@@ -111,6 +131,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		
 		int currentInput = 0;
 		
+		// finds all inputs as json file
 		Collection<File> inputFiles = FileUtils.listFiles(this.inputsTempDir, new IOFileFilter()
 		{
 			@Override
@@ -132,7 +153,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 				return file.getName().startsWith("input_") && file.getName().endsWith(".json");
 			}
 		},
-		null);
+		TrueFileFilter.INSTANCE);
 		
 		for (File inputFile : inputFiles)
 		{
@@ -158,7 +179,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 				if (readInputStreamAsJson(inputFile.getName(), inputStream, entity.getContentLength(), currentInput, inputFiles.size()))
 				{
 					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.finish.text"), inputFile.getName()), Status.STATUS_PENDING));
-					deleteInputFromDevice(inputFile.getName());
+					deleteInputFromDevice(inputFile);
 					LOG.info("'" + inputFile.getName() + "' synchronized");
 				}
 				else

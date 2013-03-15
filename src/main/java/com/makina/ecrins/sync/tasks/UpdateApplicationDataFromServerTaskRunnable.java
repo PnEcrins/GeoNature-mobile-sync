@@ -40,7 +40,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 {
 	private static final Logger LOG = Logger.getLogger(UpdateApplicationDataFromServerTaskRunnable.class);
 	
-	private File tempDir;
+	private ApkInfo apkInfo;
 	
 	@Override
 	public void run()
@@ -49,9 +49,16 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		
 		try
 		{
-			if (downloadDataFromServer())
+			if (getApkInfo())
 			{
-				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FINISH));
+				if (downloadDataFromServer())
+				{
+					setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FINISH));
+				}
+				else
+				{
+					setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
+				}
 			}
 			else
 			{
@@ -73,18 +80,26 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 			LOG.error(ie.getMessage(), ie);
 			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 		}
-		finally
+	}
+	
+	private boolean getApkInfo()
+	{
+		List<ApkInfo> apks = ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json"));
+		
+		if (apks.isEmpty())
 		{
-			FileUtils.deleteQuietly(this.tempDir);
+			return false;
+		}
+		else
+		{
+			apkInfo = apks.get(0);
+			
+			return true;
 		}
 	}
 	
 	private boolean downloadDataFromServer() throws IOException, JSONException, InterruptedException
 	{
-		this.tempDir = new File(FileUtils.getTempDirectory(), "sync_data" + Long.toString(System.currentTimeMillis()));
-		this.tempDir.mkdir();
-		FileUtils.forceDeleteOnExit(tempDir);
-		
 		final DefaultHttpClient httpClient = new DefaultHttpClient();
 		final HttpParams httpParameters = httpClient.getParams();
 		HttpConnectionParams.setConnectionTimeout(httpParameters, 5000);
@@ -114,7 +129,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 				HttpEntity entity = httpResponse.getEntity();
 				InputStream inputStream = entity.getContent();
 				
-				File localFile = new File(this.tempDir, exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE));
+				File localFile = new File(TaskManager.getInstance().getTemporaryDirectory(), exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE));
 				FileUtils.touch(localFile);
 				
 				if (copyInputStream(exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE), inputStream, new FileOutputStream(localFile), entity.getContentLength(), i, exportsSettings.length()))
@@ -143,7 +158,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	
 	private void copyFileToDevice(File localFile, String remoteName) throws InterruptedException, IOException
 	{
-		ADBCommand.getInstance().push(localFile.getAbsolutePath(), com.makina.ecrins.sync.adb.FileUtils.getExternalStorageDirectory() + "Android/data/" + "com.makina.ecrins.poc/" + remoteName);
+		ADBCommand.getInstance().push(localFile.getAbsolutePath(), ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + apkInfo.getSharedUserId() + remoteName);
 	}
 	
 	private boolean copyInputStream(String inputName, InputStream in, OutputStream out, long contentLength, int currentExport, int numberOfExports)

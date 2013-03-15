@@ -88,50 +88,53 @@ public class SmartphoneStatusWidget implements Observer
 		{
 			final Status status = (Status) arg;
 			
-			display.syncExec(new Runnable()
+			if (!display.isDisposed())
 			{
-				@Override
-				public void run()
+				display.syncExec(new Runnable()
 				{
-					canvasSmartphoneStatus.addPaintListener(new PaintListener()
+					@Override
+					public void run()
 					{
-						public void paintControl(PaintEvent pe)
+						canvasSmartphoneStatus.addPaintListener(new PaintListener()
 						{
-							pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_" + status.getLabel() + ".png"), 0, 0);
+							public void paintControl(PaintEvent pe)
+							{
+								pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_" + status.getLabel() + ".png"), 0, 0);
+							}
+						});
+						
+						canvasSmartphoneStatus.redraw();
+						
+						labelSmartphoneStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + status.getLabel()));
+						labelSmartphoneStatus.getParent().layout();
+						
+						switch (status)
+						{
+							case STATUS_PENDING:
+								labelSmartphone.setForeground(UIResourceManager.getColor(218, 165, 32));
+								labelSmartphoneSeparator.setForeground(UIResourceManager.getColor(218, 165, 32));
+								labelSmartphoneStatus.setForeground(UIResourceManager.getColor(218, 165, 32));
+								break;
+							case STATUS_FAILED:
+								labelSmartphone.setForeground(UIResourceManager.getColor(255, 0, 0));
+								labelSmartphoneSeparator.setForeground(UIResourceManager.getColor(255, 0, 0));
+								labelSmartphoneStatus.setForeground(UIResourceManager.getColor(255, 0, 0));
+								break;
+							case STATUS_CONNECTED:
+							case STATUS_FINISH:
+								labelSmartphone.setForeground(UIResourceManager.getColor(0, 128, 0));
+								labelSmartphoneSeparator.setForeground(UIResourceManager.getColor(0, 128, 0));
+								labelSmartphoneStatus.setForeground(UIResourceManager.getColor(0, 128, 0));
+								break;
+							default:
+								labelSmartphone.setForeground(UIResourceManager.getColor(0, 0, 0));
+								labelSmartphoneSeparator.setForeground(UIResourceManager.getColor(0, 0, 0));
+								labelSmartphoneStatus.setForeground(UIResourceManager.getColor(0, 0, 0));
+								break;
 						}
-					});
-					
-					canvasSmartphoneStatus.redraw();
-					
-					labelSmartphoneStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + status.getLabel()));
-					labelSmartphoneStatus.getParent().layout();
-					
-					switch (status)
-					{
-						case STATUS_PENDING:
-							labelSmartphone.setForeground(UIResourceManager.getColor(218, 165, 32));
-							labelSmartphoneSeparator.setForeground(UIResourceManager.getColor(218, 165, 32));
-							labelSmartphoneStatus.setForeground(UIResourceManager.getColor(218, 165, 32));
-							break;
-						case STATUS_FAILED:
-							labelSmartphone.setForeground(UIResourceManager.getColor(255, 0, 0));
-							labelSmartphoneSeparator.setForeground(UIResourceManager.getColor(255, 0, 0));
-							labelSmartphoneStatus.setForeground(UIResourceManager.getColor(255, 0, 0));
-							break;
-						case STATUS_CONNECTED:
-						case STATUS_FINISH:
-							labelSmartphone.setForeground(UIResourceManager.getColor(0, 128, 0));
-							labelSmartphoneSeparator.setForeground(UIResourceManager.getColor(0, 128, 0));
-							labelSmartphoneStatus.setForeground(UIResourceManager.getColor(0, 128, 0));
-							break;
-						default:
-							labelSmartphone.setForeground(UIResourceManager.getColor(0, 0, 0));
-							labelSmartphoneSeparator.setForeground(UIResourceManager.getColor(0, 0, 0));
-							labelSmartphoneStatus.setForeground(UIResourceManager.getColor(0, 0, 0));
-							break;
 					}
-				}
-			});
+				});
+			}
 		}
 	}
 }
