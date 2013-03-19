@@ -42,6 +42,7 @@ public class TaskManager implements Observer
 	
 	private Status status;
 	private File tempDir = null;
+	private File userDir = null;
 	
 	private TaskManager()
 	{
@@ -50,6 +51,9 @@ public class TaskManager implements Observer
 		this.status = Status.STATUS_NONE;
 		this.tempDir = new File(FileUtils.getTempDirectory(), "sync_data_" + Long.toString(System.currentTimeMillis()));
 		this.tempDir.mkdir();
+		
+		this.userDir = new File(FileUtils.getUserDirectory(), ".sync");
+		this.userDir.mkdir();
 		
 		try
 		{
@@ -61,6 +65,7 @@ public class TaskManager implements Observer
 		}
 		
 		LOG.debug("using temporary directory '" + this.tempDir.getAbsolutePath() + "'");
+		LOG.debug("using user directory '" + this.userDir.getAbsolutePath() + "'");
 		
 		executor = Executors.newSingleThreadExecutor();
 		this.tasks = Collections.synchronizedList(new ArrayList<AbstractTaskRunnable>());
@@ -152,6 +157,11 @@ public class TaskManager implements Observer
 		return this.tempDir;
 	}
 	
+	protected File getUserDir()
+	{
+		return this.userDir;
+	}
+
 	private static class TaskManagerHolder
 	{
 		private final static TaskManager instance = new TaskManager();

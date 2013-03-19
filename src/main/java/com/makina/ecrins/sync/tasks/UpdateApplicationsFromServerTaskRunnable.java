@@ -159,7 +159,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 		final DefaultHttpClient httpClient = new DefaultHttpClient();
 		final HttpParams httpParameters = httpClient.getParams();
 		HttpConnectionParams.setConnectionTimeout(httpParameters, 5000);
-		HttpConnectionParams.setSoTimeout(httpParameters, 5000);
+		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
 		
 		try
 		{
@@ -367,7 +367,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 		final DefaultHttpClient httpClient = new DefaultHttpClient();
 		final HttpParams httpParameters = httpClient.getParams();
 		HttpConnectionParams.setConnectionTimeout(httpParameters, 5000);
-		HttpConnectionParams.setSoTimeout(httpParameters, 5000);
+		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
 		
 		try
 		{

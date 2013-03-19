@@ -4,15 +4,18 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.DateFormat;
 import java.text.MessageFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.ResourceBundle;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.IOFileFilter;
-import org.apache.commons.io.filefilter.TrueFileFilter;
+import org.apache.commons.io.filefilter.PrefixFileFilter;
+import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -41,6 +44,8 @@ import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 {
 	private static final Logger LOG = Logger.getLogger(ImportInputsFromDeviceTaskRunnable.class);
+	
+	private static DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 	
 	private File inputsTempDir;
 	private ApkInfo apkInfo;
@@ -112,7 +117,45 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	
 	private void deleteInputFromDevice(File inputJson) throws IOException, InterruptedException, ADBCommandException
 	{
-		ADBCommand.getInstance().executeCommand("rm " + ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + "com.makina.ecrins" + "/inputs/" + inputJson.getParent() + "/" + inputJson.getName());
+		ADBCommand.getInstance().executeCommand("rm " + ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + "com.makina.ecrins" + "/inputs/" + inputJson.getParentFile().getName() + "/" + inputJson.getName());
+	}
+	
+	private void copyInputToUserDir(File inputJson, boolean isSynchronized)
+	{
+		if (inputJson.exists())
+		{
+			try
+			{
+				Input input = InputUtils.getInputFromJson(inputJson);
+				File inputFile = FileUtils.getFile(TaskManager.getInstance().getUserDir(), inputJson.getParentFile().getParentFile().getName(), inputJson.getParentFile().getName(), dateFormat.format(input.getDate()), ((isSynchronized)?"ok_":"ko_") + inputJson.getName());
+				FileUtils.copyFile(inputJson, inputFile);
+				
+				if (isSynchronized)
+				{
+					LOG.info("'" + inputJson.getName() + "' synchronized");
+				}
+				else
+				{
+					LOG.warn("'" + inputJson.getName() + "' not synchronized");
+				}
+			}
+			catch (JSONException je)
+			{
+				LOG.warn(je.getLocalizedMessage());
+			}
+			catch (ParseException pe)
+			{
+				LOG.warn(pe.getLocalizedMessage());
+			}
+			catch (IOException ioe)
+			{
+				LOG.warn(ioe.getLocalizedMessage());
+			}
+		}
+		else
+		{
+			LOG.warn("'" + inputJson.getAbsolutePath() + "' not found !");
+		}
 	}
 	
 	private boolean uploadInputs() throws JSONException, IOException, InterruptedException, ADBCommandException
@@ -120,7 +163,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		final DefaultHttpClient httpClient = new DefaultHttpClient();
 		final HttpParams httpParameters = httpClient.getParams();
 		HttpConnectionParams.setConnectionTimeout(httpParameters, 5000);
-		HttpConnectionParams.setSoTimeout(httpParameters, 5000);
+		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
 		
 		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
 		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_TOKEN)));
@@ -132,28 +175,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		int currentInput = 0;
 		
 		// finds all inputs as json file
-		Collection<File> inputFiles = FileUtils.listFiles(this.inputsTempDir, new IOFileFilter()
-		{
-			@Override
-			public boolean accept(File dir, String name)
-			{
-				if (dir.getAbsolutePath().equals(inputsTempDir.getAbsolutePath()))
-				{
-					return name.startsWith("input_") && name.endsWith(".json");
-				}
-				else
-				{
-					return false;
-				}
-			}
-			
-			@Override
-			public boolean accept(File file)
-			{
-				return file.getName().startsWith("input_") && file.getName().endsWith(".json");
-			}
-		},
-		TrueFileFilter.INSTANCE);
+		Collection<File> inputFiles = FileUtils.listFiles(this.inputsTempDir, new RegexFileFilter("^input_\\d+.json$"), new PrefixFileFilter(apkInfo.getSharedUserId()));
 		
 		for (File inputFile : inputFiles)
 		{
@@ -176,17 +198,20 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 				HttpEntity entity = httpResponse.getEntity();
 				InputStream inputStream = entity.getContent();
 				
-				if (readInputStreamAsJson(inputFile.getName(), inputStream, entity.getContentLength(), currentInput, inputFiles.size()))
+				boolean isSynchronized = readInputStreamAsJson(inputFile.getName(), inputStream, entity.getContentLength(), currentInput, inputFiles.size());
+				
+				if (isSynchronized)
 				{
 					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.finish.text"), inputFile.getName()), Status.STATUS_PENDING));
 					deleteInputFromDevice(inputFile);
-					LOG.info("'" + inputFile.getName() + "' synchronized");
 				}
 				else
 				{
 					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.STATUS_FAILED));
 					return false;
 				}
+				
+				copyInputToUserDir(inputFile, isSynchronized);
 			}
 			else
 			{
@@ -258,6 +283,12 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 			// Try to build the server response as JSON and check the status code
 			JSONObject jsonResponse = new JSONObject(out.toString());
 			int status = jsonResponse.getInt("status_code");
+			String messageStatus = jsonResponse.getString("status_message");
+			
+			if (status != 0)
+			{
+				LOG.error("failed to synchronize input '" + inputName + "' [message : " + messageStatus + "]");
+			}
 			
 			return status == 0;
 		}

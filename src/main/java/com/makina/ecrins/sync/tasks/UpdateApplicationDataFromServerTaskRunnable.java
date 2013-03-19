@@ -103,7 +103,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		final DefaultHttpClient httpClient = new DefaultHttpClient();
 		final HttpParams httpParameters = httpClient.getParams();
 		HttpConnectionParams.setConnectionTimeout(httpParameters, 5000);
-		HttpConnectionParams.setSoTimeout(httpParameters, 5000);
+		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
 		
 		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
 		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_TOKEN)));
@@ -158,7 +158,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	
 	private void copyFileToDevice(File localFile, String remoteName) throws InterruptedException, IOException
 	{
-		ADBCommand.getInstance().push(localFile.getAbsolutePath(), ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + apkInfo.getSharedUserId() + remoteName);
+		ADBCommand.getInstance().push(localFile.getAbsolutePath(), ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + apkInfo.getSharedUserId() + "/" + remoteName);
 	}
 	
 	private boolean copyInputStream(String inputName, InputStream in, OutputStream out, long contentLength, int currentExport, int numberOfExports)
