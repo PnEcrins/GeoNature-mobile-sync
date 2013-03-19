@@ -160,6 +160,8 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	
 	private boolean uploadInputs() throws JSONException, IOException, InterruptedException, ADBCommandException
 	{
+		boolean result = true;
+		
 		final DefaultHttpClient httpClient = new DefaultHttpClient();
 		final HttpParams httpParameters = httpClient.getParams();
 		HttpConnectionParams.setConnectionTimeout(httpParameters, 5000);
@@ -203,22 +205,21 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 				if (isSynchronized)
 				{
 					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.finish.text"), inputFile.getName()), Status.STATUS_PENDING));
-					deleteInputFromDevice(inputFile);
 				}
 				else
 				{
 					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.STATUS_FAILED));
-					return false;
+					result = false;
 				}
 				
+				deleteInputFromDevice(inputFile);
 				copyInputToUserDir(inputFile, isSynchronized);
 			}
 			else
 			{
 				LOG.error("unable to upload input from URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode());
 				setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.STATUS_FAILED));
-				
-				return false;
+				result = false;
 			}
 			
 			currentInput++;
@@ -237,7 +238,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 			LOG.info("no input to synchronize");
 		}
 		
-		return true;
+		return result;
 	}
 	
 	private boolean readInputStreamAsJson(String inputName, InputStream in, long contentLength, int currentInput, int numberOfInputs)
