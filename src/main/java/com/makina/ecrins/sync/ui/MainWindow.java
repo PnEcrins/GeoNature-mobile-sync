@@ -25,7 +25,6 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
-import org.json.JSONObject;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
 import com.makina.ecrins.sync.adb.CheckDeviceRunnable;
@@ -33,6 +32,7 @@ import com.makina.ecrins.sync.logger.ConsoleLogAppender;
 import com.makina.ecrins.sync.server.CheckServerRunnable;
 import com.makina.ecrins.sync.service.Status;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
+import com.makina.ecrins.sync.settings.SyncSettings;
 import com.makina.ecrins.sync.tasks.ImportInputsFromDeviceTaskRunnable;
 import com.makina.ecrins.sync.tasks.TaskManager;
 import com.makina.ecrins.sync.tasks.UpdateApplicationDataFromServerTaskRunnable;
@@ -70,7 +70,7 @@ public class MainWindow implements Observer
 		final Display display = Display.getDefault();
 		createContents(display);
 		
-		((ConsoleLogAppender) Logger.getRootLogger().getAppender("UI")).addObserver(consoleLogComposite);
+		configureLogger();
 		
 		LOG.info("starting " + ResourceBundle.getBundle("messages").getString("MainWindow.shell.text") + " (version : " + ResourceBundle.getBundle("messages").getString("version") + ")");
 		
@@ -110,14 +110,14 @@ public class MainWindow implements Observer
 				@Override
 				public void run()
 				{
-					CompletionService<JSONObject> completionService = new ExecutorCompletionService<JSONObject>(Executors.newSingleThreadExecutor());
-					Future<JSONObject> future = completionService.submit(LoadSettingsCallable.getInstance());
+					CompletionService<SyncSettings> completionService = new ExecutorCompletionService<SyncSettings>(Executors.newSingleThreadExecutor());
+					Future<SyncSettings> future = completionService.submit(LoadSettingsCallable.getInstance());
 					
 					try
 					{
-						JSONObject jsonSettings = completionService.take().get();
+						SyncSettings syncSettings = completionService.take().get();
 						
-						if (jsonSettings.length() > 0)
+						if (syncSettings != null)
 						{
 							CheckDeviceRunnable checkDeviceRunnable = new CheckDeviceRunnable();
 							checkDeviceRunnable.addObserver(smartphoneStatusWidget);
@@ -262,6 +262,11 @@ public class MainWindow implements Observer
 		{
 			TaskManager.getInstance().start();
 		}
+	}
+	
+	private void configureLogger()
+	{
+		((ConsoleLogAppender) Logger.getRootLogger().getAppender("UI")).addObserver(consoleLogComposite);
 	}
 	
 	@Override

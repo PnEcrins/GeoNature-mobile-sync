@@ -23,12 +23,10 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.log4j.Logger;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
 import com.makina.ecrins.sync.service.Status;
+import com.makina.ecrins.sync.settings.ExportSettings;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 
 /**
@@ -70,11 +68,6 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 			LOG.error(ioe.getMessage(), ioe);
 			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 		}
-		catch (JSONException je)
-		{
-			LOG.error(je.getMessage(), je);
-			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
-		}
 		catch (InterruptedException ie)
 		{
 			LOG.error(ie.getMessage(), ie);
@@ -98,25 +91,27 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		}
 	}
 	
-	private boolean downloadDataFromServer() throws IOException, JSONException, InterruptedException
+	private boolean downloadDataFromServer() throws IOException, InterruptedException
 	{
 		final DefaultHttpClient httpClient = new DefaultHttpClient();
 		final HttpParams httpParameters = httpClient.getParams();
-		HttpConnectionParams.setConnectionTimeout(httpParameters, 5000);
+		HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
 		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
 		
 		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
-		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_TOKEN)));
+		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSyncSettings().getServerToken()));
 		
-		JSONArray exportsSettings = LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getJSONArray(LoadSettingsCallable.KEY_EXPORTS);
+		List<ExportSettings> exportsSettings = LoadSettingsCallable.getInstance().getSyncSettings().getExportsSettings();
+		int i = 0;
 		
-		for (int i = 0; i < exportsSettings.length(); i++)
+		for (ExportSettings exportSettings : exportsSettings)
 		{
-			JSONObject exportSettings = exportsSettings.getJSONObject(i);
+			setTaskStatus(new TaskStatus((int) (((double) i / (double) exportsSettings.size()) * 100), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_PENDING));
 			
-			setTaskStatus(new TaskStatus((int) (((double) i / (double) exportsSettings.length()) * 100), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE)), Status.STATUS_PENDING));
+			HttpPost httpPost = new HttpPost(
+					LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
+					exportSettings.getExportUrl());
 			
-			HttpPost httpPost = new HttpPost(LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_SERVER_URL) + exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_URL));
 			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 			HttpResponse httpResponse = httpClient.execute(httpPost);
 			
@@ -129,28 +124,30 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 				HttpEntity entity = httpResponse.getEntity();
 				InputStream inputStream = entity.getContent();
 				
-				File localFile = new File(TaskManager.getInstance().getTemporaryDirectory(), exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE));
+				File localFile = new File(TaskManager.getInstance().getTemporaryDirectory(), exportSettings.getExportFile());
 				FileUtils.touch(localFile);
 				
-				if (copyInputStream(exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE), inputStream, new FileOutputStream(localFile), entity.getContentLength(), i, exportsSettings.length()))
+				if (copyInputStream(exportSettings.getExportFile(), inputStream, new FileOutputStream(localFile), entity.getContentLength(), i, exportsSettings.size()))
 				{
-					copyFileToDevice(localFile, exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE));
+					copyFileToDevice(localFile, exportSettings.getExportFile());
 					
-					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.finish.text"), exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE)), Status.STATUS_PENDING));
+					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.finish.text"), exportSettings.getExportFile()), Status.STATUS_PENDING));
 				}
 				else
 				{
-					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE)), Status.STATUS_FAILED));
+					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
 					return false;
 				}
 			}
 			else
 			{
 				LOG.error("unable to download file from URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode());
-				setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getString(LoadSettingsCallable.KEY_EXPORTS_FILE)), Status.STATUS_FAILED));
+				setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
 				
 				return false;
 			}
+			
+			i++;
 		}
 		
 		return true;

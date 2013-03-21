@@ -130,10 +130,22 @@ public class ADBCommand
 	 */
 	public void push(String localPath, String remotePath) throws InterruptedException, IOException
 	{
-		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "push", localPath, remotePath);
-		LOG.debug("push : " + pb.command().toString());
+		CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
+		cmdLine.addArgument("push");
+		cmdLine.addArgument(localPath);
+		cmdLine.addArgument(remotePath);
 		
-		pb.start().waitFor();
+		LOG.debug("push : " + cmdLine.toString());
+		
+		DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
+		
+		ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
+		Executor executor = new DefaultExecutor();
+		executor.setExitValue(1);
+		executor.setWatchdog(watchdog);
+		
+		executor.execute(cmdLine, resultHandler);
+		resultHandler.waitFor();
 	}
 	
 	/**
@@ -146,10 +158,22 @@ public class ADBCommand
 	 */
 	public void pull(String remotePath, String localPath) throws InterruptedException, IOException
 	{
-		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "pull", remotePath, localPath);
-		LOG.debug("pull : " + pb.command().toString());
+		CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
+		cmdLine.addArgument("pull");
+		cmdLine.addArgument(remotePath);
+		cmdLine.addArgument(localPath);
 		
-		pb.start().waitFor();
+		LOG.debug("pull : " + cmdLine.toString());
+		
+		DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
+		
+		ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
+		Executor executor = new DefaultExecutor();
+		executor.setExitValue(1);
+		executor.setWatchdog(watchdog);
+		
+		executor.execute(cmdLine, resultHandler);
+		resultHandler.waitFor();
 	}
 	
 	/**
@@ -420,7 +444,7 @@ public class ADBCommand
 			cmdLine.addArgument("/IM");
 			cmdLine.addArgument(adbCommandFile.getName());
 			
-			LOG.debug("killAdbProcess " + cmdLine.toString());
+			LOG.debug(cmdLine.toString());
 			
 			DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
 			

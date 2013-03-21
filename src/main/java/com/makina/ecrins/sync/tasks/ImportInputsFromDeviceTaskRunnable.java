@@ -78,11 +78,6 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 			LOG.error(ioe.getMessage(), ioe);
 			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 		}
-		catch (JSONException je)
-		{
-			LOG.error(je.getMessage(), je);
-			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
-		}
 		catch (ADBCommandException ace)
 		{
 			LOG.error(ace.getMessage(), ace);
@@ -98,7 +93,6 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	{
 		this.inputsTempDir = new File(TaskManager.getInstance().getTemporaryDirectory(), "inputs");
 		this.inputsTempDir.mkdir();
-		FileUtils.forceDeleteOnExit(inputsTempDir);
 		
 		List<ApkInfo> apks = ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json"));
 		
@@ -111,7 +105,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 			apkInfo = apks.get(0);
 			ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + apks.get(0).getSharedUserId() + "/inputs/", this.inputsTempDir.getAbsolutePath());
 			
-			return this.inputsTempDir.list().length > 0;
+			return FileUtils.listFiles(this.inputsTempDir, new RegexFileFilter("^input_\\d+.json$"), new PrefixFileFilter(apkInfo.getSharedUserId())).size() > 0;
 		}
 	}
 	
@@ -158,20 +152,24 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		}
 	}
 	
-	private boolean uploadInputs() throws JSONException, IOException, InterruptedException, ADBCommandException
+	private boolean uploadInputs() throws IOException, InterruptedException, ADBCommandException
 	{
 		boolean result = true;
 		
+		LOG.debug("uploadInputs : start");
+		
 		final DefaultHttpClient httpClient = new DefaultHttpClient();
 		final HttpParams httpParameters = httpClient.getParams();
-		HttpConnectionParams.setConnectionTimeout(httpParameters, 5000);
+		HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
 		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
 		
 		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
-		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_TOKEN)));
+		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSyncSettings().getServerToken()));
 		nameValuePairs.add(new BasicNameValuePair("data", "{}"));
 		
-		String urlImport = LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_SERVER_URL) + LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_IMPORT_URL);
+		String urlImport = 	LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
+							LoadSettingsCallable.getInstance().getSyncSettings().getImportUrl();
+		
 		HttpPost httpPost = new HttpPost(urlImport);
 		
 		int currentInput = 0;
@@ -237,6 +235,8 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		{
 			LOG.info("no input to synchronize");
 		}
+		
+		LOG.debug("uploadInputs : finish");
 		
 		return result;
 	}

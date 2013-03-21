@@ -156,19 +156,20 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 	
 	private boolean fetchLastAppsVersionsFromServer(final int factor)
 	{
-		final DefaultHttpClient httpClient = new DefaultHttpClient();
-		final HttpParams httpParameters = httpClient.getParams();
-		HttpConnectionParams.setConnectionTimeout(httpParameters, 5000);
-		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
-		
 		try
 		{
-			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
-			nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_TOKEN)));
+			final DefaultHttpClient httpClient = new DefaultHttpClient();
+			final HttpParams httpParameters = httpClient.getParams();
+			HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+			//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
 			
-			String urlVersion = LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_SERVER_URL) +
-								LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getJSONObject(LoadSettingsCallable.KEY_APP_UPDATE).get(LoadSettingsCallable.KEY_APP_UPDATE_VERSION_URL);
-			HttpPost httpPost = new HttpPost(urlVersion);
+			
+			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
+			nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSyncSettings().getServerToken()));
+			
+			HttpPost httpPost = new HttpPost(
+					LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
+					LoadSettingsCallable.getInstance().getSyncSettings().getAppUpdateVersionUrl());
 			
 			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 			HttpResponse httpResponse = httpClient.execute(httpPost);
@@ -211,13 +212,6 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 				progress = 100;
 				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
 			}
-		}
-		catch (JSONException je)
-		{
-			LOG.error(je.getMessage(), je);
-			
-			progress = 100;
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
 		}
 		catch (IOException ioe)
 		{
@@ -364,21 +358,21 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 	
 	private boolean downloadLastAppFromServer(final ApkInfo apkInfo, final int ratio, final int factor, final int offset)
 	{
-		final DefaultHttpClient httpClient = new DefaultHttpClient();
-		final HttpParams httpParameters = httpClient.getParams();
-		HttpConnectionParams.setConnectionTimeout(httpParameters, 5000);
-		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
-		
 		try
 		{
+			final DefaultHttpClient httpClient = new DefaultHttpClient();
+			final HttpParams httpParameters = httpClient.getParams();
+			HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+			//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
+			
+			
 			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
-			nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_TOKEN)));
+			nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSyncSettings().getServerToken()));
 			
-			String urlVersion = LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_SERVER_URL) +
-								LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getJSONObject(LoadSettingsCallable.KEY_APP_UPDATE).get(LoadSettingsCallable.KEY_APP_UPDATE_DOWNLOAD_URL) +
-								"/" + apkInfo.getApkName() + "/";
-			
-			HttpPost httpPost = new HttpPost(urlVersion);
+			HttpPost httpPost = new HttpPost(
+					LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
+					LoadSettingsCallable.getInstance().getSyncSettings().getAppUpdateDownloadUrl() +
+					"/" + apkInfo.getApkName() + "/");
 			
 			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 			HttpResponse httpResponse = httpClient.execute(httpPost);
@@ -420,15 +414,6 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 				
 				return false;
 			}
-		}
-		catch (JSONException je)
-		{
-			LOG.error(je.getMessage(), je);
-			
-			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.STATUS_FAILED));
-			
-			return false;
 		}
 		catch (IOException ioe)
 		{

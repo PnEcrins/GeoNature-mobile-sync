@@ -80,13 +80,14 @@ public class CheckServerRunnable extends Observable implements Runnable
 		{
 			final DefaultHttpClient httpClient = new DefaultHttpClient();
 			final HttpParams httpParameters = httpClient.getParams();
-			HttpConnectionParams.setConnectionTimeout(httpParameters, 5000);
-			HttpConnectionParams.setSoTimeout(httpParameters, 5000);
+			HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+			//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
 			
 			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
-			nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_TOKEN)));
+			nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSyncSettings().getServerToken()));
 			
-			String urlStatus = LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_SERVER_URL) + LoadSettingsCallable.getInstance().getJsonSettings().getJSONObject(LoadSettingsCallable.KEY_SYNC).getString(LoadSettingsCallable.KEY_STATUS_URL);
+			String urlStatus =	LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
+								LoadSettingsCallable.getInstance().getSyncSettings().getStatusUrl();
 			
 			HttpPost httpPost = new HttpPost(urlStatus);
 			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));

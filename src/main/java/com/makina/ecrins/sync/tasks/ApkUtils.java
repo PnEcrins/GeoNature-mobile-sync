@@ -82,7 +82,7 @@ public class ApkUtils
 	
 	/**
 	 * Tries to find the mount path used by external storage using adb command line.
-	 * If not, returns the default mount path '/mnt/sdcard'.
+	 * If not, returns the default mount path '/mnt/sdcard/'.
 	 * @return the mount path used by external storage.
 	 */
 	public static String getExternalStorageDirectory(ApkInfo apkInfo)

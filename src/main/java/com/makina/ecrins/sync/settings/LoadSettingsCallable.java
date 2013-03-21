@@ -1,6 +1,7 @@
 package com.makina.ecrins.sync.settings;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
 import java.util.concurrent.Callable;
@@ -8,34 +9,23 @@ import java.util.concurrent.Callable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * <code>Callable</code> implementation for loading application global settings as JSON file.
+ * <code>Callable</code> implementation for loading application global settings as {@link SyncSettings}.
  * 
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
-public class LoadSettingsCallable implements Callable<JSONObject>
+public class LoadSettingsCallable implements Callable<SyncSettings>
 {
 	private static final Logger LOG = Logger.getLogger(LoadSettingsCallable.class);
 	
-	public static final String KEY_SYNC = "sync";
-	public static final String KEY_SERVER_URL = "url";
-	public static final String KEY_TOKEN = "token";
-	public static final String KEY_STATUS_URL = "status_url";
-	public static final String KEY_IMPORT_URL = "import_url";
-	public static final String KEY_APP_UPDATE = "app_update";
-	public static final String KEY_APP_UPDATE_VERSION_URL = "version_url";
-	public static final String KEY_APP_UPDATE_DOWNLOAD_URL = "download_url";
-	public static final String KEY_EXPORTS = "exports";
-	public static final String KEY_EXPORTS_URL = "url";
-	public static final String KEY_EXPORTS_FILE = "file";
-	
-	private JSONObject jsonSettings;
+	private SyncSettings syncSettings;
 	
 	private LoadSettingsCallable()
 	{
-		jsonSettings = new JSONObject();
+		syncSettings = null;
 	}
 	
 	public static LoadSettingsCallable getInstance()
@@ -43,14 +33,13 @@ public class LoadSettingsCallable implements Callable<JSONObject>
 		return LoadSettingsCallableHolder.instance;
 	}
 	
-	public JSONObject getJsonSettings()
+	public SyncSettings getSyncSettings()
 	{
-		return jsonSettings;
+		return syncSettings;
 	}
 
-	
 	@Override
-	public JSONObject call() throws Exception
+	public SyncSettings call() throws Exception
 	{
 		LOG.debug("loading 'settings.json' ...");
 		
@@ -58,48 +47,61 @@ public class LoadSettingsCallable implements Callable<JSONObject>
 		
 		LOG.info("installation directory : " + rootDirectory.getAbsolutePath());
 		
-		File settingsFile = new File(rootDirectory, "settings.json");
+		File jsonSettingsFile = new File(rootDirectory, "settings.json");
 		
-		if (!settingsFile.exists())
+		if (jsonSettingsFile.exists())
 		{
-			InputStream is = null;
-			
 			try
 			{
-				is = Thread.currentThread().getContextClassLoader().getResourceAsStream("settings.json");
+				syncSettings = new SyncSettings(new JSONObject(FileUtils.readFileToString(jsonSettingsFile)));
 				
-				if (is == null)
-				{
-					LOG.error("failed to load default 'settings.json'");
-				}
-				else
-				{
-					IOUtils.copy(is, FileUtils.openOutputStream(settingsFile));
-					
-					LOG.debug("default 'settings.json' copied");
-				}
+				LOG.info("'settings.json' loaded");
 			}
-			finally
+			catch (JSONException je)
 			{
-				if (is != null)
-				{
-					is.close();
-				}
+				LOG.warn("failed to load 'settings.json'");
+				
+				copyDefaultJsonSettingsToFile(jsonSettingsFile);
+				syncSettings = new SyncSettings(new JSONObject(FileUtils.readFileToString(jsonSettingsFile)));
+				
+				LOG.info("default 'settings.json' loaded");
 			}
-		}
-		
-		jsonSettings = new JSONObject(FileUtils.readFileToString(settingsFile));
-
-		if (jsonSettings.length() > 0)
-		{
-			LOG.info("'settings.json' loaded");
 		}
 		else
 		{
-			LOG.error("failed to load 'settings.json'");
+			copyDefaultJsonSettingsToFile(jsonSettingsFile);
+			syncSettings = new SyncSettings(new JSONObject(FileUtils.readFileToString(jsonSettingsFile)));
+			
+			LOG.info("default 'settings.json' loaded");
 		}
 		
-		return jsonSettings;
+		return syncSettings;
+	}
+	
+	private void copyDefaultJsonSettingsToFile(File jsonSettingsFile) throws IOException
+	{
+		InputStream is = null;
+		
+		try
+		{
+			is = Thread.currentThread().getContextClassLoader().getResourceAsStream("settings.json");
+			
+			if (is == null)
+			{
+				LOG.error("failed to load default 'settings.json'");
+			}
+			else
+			{
+				IOUtils.copy(is, FileUtils.openOutputStream(jsonSettingsFile));
+			}
+		}
+		finally
+		{
+			if (is != null)
+			{
+				is.close();
+			}
+		}
 	}
 	
 	private static class LoadSettingsCallableHolder
