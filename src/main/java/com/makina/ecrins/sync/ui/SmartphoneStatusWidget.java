@@ -32,10 +32,14 @@ public class SmartphoneStatusWidget implements Observer
 	private Label labelSmartphoneSeparator;
 	private Label labelSmartphoneStatus;
 	
+	private Status status;
+	
 	public SmartphoneStatusWidget(Display display, Composite parent)
 	{
 		this.display = display;
 		this.parent = parent;
+		
+		this.status = Status.STATUS_NONE;
 		
 		createContents();
 	}
@@ -44,18 +48,19 @@ public class SmartphoneStatusWidget implements Observer
 	{
 		canvasSmartphoneStatus = new Canvas(parent, SWT.NONE);
 		canvasSmartphoneStatus.setLayout(new FormLayout());
+		
 		FormData fd_canvasSmartphoneStatus = new FormData();
 		fd_canvasSmartphoneStatus.left = new FormAttachment(parent, 10);
 		fd_canvasSmartphoneStatus.top = new FormAttachment(parent, 10);
 		fd_canvasSmartphoneStatus.height = 22;
 		fd_canvasSmartphoneStatus.width = 22;
-		canvasSmartphoneStatus.setLayoutData(fd_canvasSmartphoneStatus);
 		
+		canvasSmartphoneStatus.setLayoutData(fd_canvasSmartphoneStatus);
 		canvasSmartphoneStatus.addPaintListener(new PaintListener()
 		{
 			public void paintControl(PaintEvent pe)
 			{
-				pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_none.png"), 0, 0);
+				pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_" + status.getLabel() + ".png"), 0, 0);
 			}
 		});
 
@@ -86,7 +91,7 @@ public class SmartphoneStatusWidget implements Observer
 	{
 		if (arg instanceof Status)
 		{
-			final Status status = (Status) arg;
+			this.status = (Status) arg;
 			
 			if (!display.isDisposed())
 			{
@@ -95,14 +100,6 @@ public class SmartphoneStatusWidget implements Observer
 					@Override
 					public void run()
 					{
-						canvasSmartphoneStatus.addPaintListener(new PaintListener()
-						{
-							public void paintControl(PaintEvent pe)
-							{
-								pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_" + status.getLabel() + ".png"), 0, 0);
-							}
-						});
-						
 						canvasSmartphoneStatus.redraw();
 						
 						labelSmartphoneStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + status.getLabel()));

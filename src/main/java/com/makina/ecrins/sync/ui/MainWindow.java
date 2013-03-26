@@ -27,6 +27,7 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
+import com.makina.ecrins.sync.adb.ADBCommandException;
 import com.makina.ecrins.sync.adb.CheckDeviceRunnable;
 import com.makina.ecrins.sync.logger.ConsoleLogAppender;
 import com.makina.ecrins.sync.server.CheckServerRunnable;
@@ -89,7 +90,14 @@ public class MainWindow implements Observer
 				@Override
 				public void run()
 				{
-					ADBCommand.getInstance();
+					try
+					{
+						ADBCommand.getInstance();
+					}
+					catch (ADBCommandException ace)
+					{
+						LOG.warn(ace.getMessage());
+					}
 					
 					UpdateApplicationsFromServerTaskRunnable updateApplicationsFromServerTaskRunnable = new UpdateApplicationsFromServerTaskRunnable();
 					updateApplicationsFromServerTaskRunnable.addObserver(appUpdateFromServerComposite);
@@ -160,7 +168,15 @@ public class MainWindow implements Observer
 			scheduler.shutdownNow();
 			TaskManager.getInstance().shutdownNow();
 			
-			ADBCommand.getInstance().dispose();
+			try
+			{
+				ADBCommand.getInstance().dispose();
+			}
+			catch (ADBCommandException ace)
+			{
+				LOG.warn(ace.getMessage());
+			}
+			
 			UIResourceManager.dispose();
 			
 			if (!shell.isDisposed())

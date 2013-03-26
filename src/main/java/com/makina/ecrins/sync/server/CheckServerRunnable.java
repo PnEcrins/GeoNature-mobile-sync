@@ -2,7 +2,6 @@ package com.makina.ecrins.sync.server;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
@@ -14,9 +13,9 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.HttpConnectionParams;
@@ -76,13 +75,15 @@ public class CheckServerRunnable extends Observable implements Runnable
 			setStatus(Status.STATUS_PENDING);
 		}
 		
+		final DefaultHttpClient httpClient = new DefaultHttpClient();
+		final HttpParams httpParameters = httpClient.getParams();
+		HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
+		
+		HttpResponse httpResponse = null;
+		
 		try
 		{
-			final DefaultHttpClient httpClient = new DefaultHttpClient();
-			final HttpParams httpParameters = httpClient.getParams();
-			HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
-			//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
-			
 			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
 			nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSyncSettings().getServerToken()));
 			
@@ -92,7 +93,7 @@ public class CheckServerRunnable extends Observable implements Runnable
 			HttpPost httpPost = new HttpPost(urlStatus);
 			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 			
-			HttpResponse httpResponse = httpClient.execute(httpPost);
+			httpResponse = httpClient.execute(httpPost);
 			
 			// checks if server response is valid
 			StatusLine status = httpResponse.getStatusLine();
@@ -102,8 +103,6 @@ public class CheckServerRunnable extends Observable implements Runnable
 				HttpEntity entity = httpResponse.getEntity();
 				InputStream is = entity.getContent();
 				JSONObject jsonResponse = new JSONObject(IOUtils.toString(is));
-				
-				LOG.debug("status_code : " + jsonResponse.getInt("status_code"));
 				
 				if (jsonResponse.getInt("status_code") == 0)
 				{
@@ -125,23 +124,19 @@ public class CheckServerRunnable extends Observable implements Runnable
 		}
 		catch (JSONException je)
 		{
-			LOG.error(je.getMessage(), je);
+			LOG.error(je.getLocalizedMessage());
 			setStatus(Status.STATUS_FAILED);
-		}
-		catch (UnsupportedEncodingException uee)
-		{
-			LOG.error(uee.getMessage(), uee);
-			setStatus(Status.STATUS_FAILED);
-		}
-		catch (ClientProtocolException cpe)
-		{
-			LOG.error(cpe.getMessage(), cpe);
-			setStatus(Status.STATUS_FAILED);
+			HttpClientUtils.closeQuietly(httpResponse);
 		}
 		catch (IOException ioe)
 		{
-			LOG.error(ioe.getMessage(), ioe);
+			LOG.error(ioe.getLocalizedMessage());
 			setStatus(Status.STATUS_FAILED);
+			HttpClientUtils.closeQuietly(httpResponse);
+		}
+		finally
+		{
+			httpClient.getConnectionManager().shutdown();
 		}
 	}
 }

@@ -1,7 +1,5 @@
 package com.makina.ecrins.sync.adb;
 
-import java.io.IOException;
-
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -35,14 +33,10 @@ public class ADBTests
 		{
 			ADBCommand.getInstance().waitForDevice();
 		}
-		catch (IOException ioe)
+		catch (ADBCommandException ace)
 		{
-			LOG.error(ioe.getMessage(), ioe);
-		}
-		catch (InterruptedException ie)
-		{
-			LOG.error(ie.getMessage(), ie);
-			Assert.fail(ie.getMessage());
+			LOG.error(ace.getMessage(), ace);
+			Assert.fail(ace.getMessage());
 		}
 	}
 	
@@ -51,6 +45,13 @@ public class ADBTests
 	{
 		LOG.debug("release");
 		
-		ADBCommand.getInstance().dispose();
+		try
+		{
+			ADBCommand.getInstance().dispose();
+		}
+		catch (ADBCommandException ace)
+		{
+			LOG.warn(ace.getMessage(), ace);
+		}
 	}
 }

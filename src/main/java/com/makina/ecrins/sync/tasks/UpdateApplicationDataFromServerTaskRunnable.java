@@ -26,6 +26,7 @@ import org.apache.http.params.HttpParams;
 import org.apache.log4j.Logger;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
+import com.makina.ecrins.sync.adb.ADBCommandException;
 import com.makina.ecrins.sync.service.Status;
 import com.makina.ecrins.sync.settings.ExportSettings;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
@@ -79,7 +80,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		}
 	}
 	
-	private boolean checkFileSize(long remoteFileSize, String remoteName) throws IOException, InterruptedException
+	private boolean checkFileSize(long remoteFileSize, String remoteName) throws ADBCommandException
 	{
 		return ADBCommand.getInstance().getFileSize(getDeviceFilePath(remoteName)) == remoteFileSize;
 	}
@@ -158,17 +159,17 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 						result = false;
 					}
 				}
-				catch (IOException ioe)
+				catch (ADBCommandException ace)
 				{
-					LOG.error(ioe.getLocalizedMessage());
+					LOG.error(ace.getLocalizedMessage());
 					
 					httpPost.abort();
 					result = false;
 					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
 				}
-				catch (InterruptedException ie)
+				catch (IOException ioe)
 				{
-					LOG.error(ie.getLocalizedMessage());
+					LOG.error(ioe.getLocalizedMessage());
 					
 					httpPost.abort();
 					result = false;
@@ -195,7 +196,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		return ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + apkInfo.getSharedUserId() + "/" + remoteName;
 	}
 	
-	private void copyFileToDevice(File localFile, String remoteName) throws InterruptedException, IOException
+	private void copyFileToDevice(File localFile, String remoteName) throws ADBCommandException
 	{
 		ADBCommand.getInstance().push(localFile.getAbsolutePath(),getDeviceFilePath(remoteName));
 	}

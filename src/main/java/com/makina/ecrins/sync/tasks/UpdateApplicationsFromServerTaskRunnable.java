@@ -53,6 +53,8 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 	private int apkIndex;
 	private int progress;
 	
+	private boolean result = true;
+	
 	@Override
 	public void run()
 	{
@@ -118,25 +120,12 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 						}
 					}
 				}
-				catch (IOException ioe)
+				catch (TaskException te)
 				{
-					LOG.error(ioe.getMessage(), ioe);
+					LOG.error(te.getLocalizedMessage(), te);
 					
 					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, 100, 0);
-					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
-				}
-				catch (InterruptedException ie)
-				{
-					LOG.error(ie.getMessage(), ie);
-					
-					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, 100, 0);
-					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
-				}
-				catch (ADBCommandException ace)
-				{
-					LOG.error(ace.getMessage(), ace);
-					
-					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, 100, 0);
+					result = false;
 					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
 				}
 				
@@ -146,13 +135,18 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 		else
 		{
 			LOG.warn("nothing to check");
-			
-			progress = 100;
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FINISH));
 		}
 		
 		progress = 100;
-		setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FINISH));
+		
+		if (result)
+		{
+			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FINISH));
+		}
+		else
+		{
+			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
+		}
 	}
 	
 	private boolean fetchLastAppsVersionsFromServer(final int factor)
@@ -214,6 +208,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 					LOG.error("unable to download file from URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode());
 					
 					progress = 100;
+					this.result = false;
 					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
 				}
 			}
@@ -223,6 +218,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 				
 				httpPost.abort();
 				progress = 100;
+				this.result = false;
 				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
 			}
 			finally
@@ -243,20 +239,25 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 	 * @param apkInfo {@link ApkInfo} instance to check
 	 * @param factor factor as percentage to apply for the current progress
 	 * @return <code>true</code> if the given {@link ApkInfo#getPackageName()} is currently installed, <code>false</code> otherwise
-	 * @throws IOException
-	 * @throws InterruptedException
-	 * @throws ADBCommandException
+	 * @throws TaskException
 	 */
-	private boolean checkInstalledAppFromDevice(ApkInfo apkInfo, int ratio, int factor) throws IOException, InterruptedException, ADBCommandException
+	private boolean checkInstalledAppFromDevice(ApkInfo apkInfo, int ratio, int factor) throws TaskException
 	{
-		List<String> result = ADBCommand.getInstance().executeCommand("pm list packages | grep " + apkInfo.getPackageName());
-		progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, 0);
-		setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
-		
-		return !result.isEmpty() && StringUtils.substringAfter(result.get(0), ":").equals(apkInfo.getPackageName());
+		try
+		{
+			List<String> result = ADBCommand.getInstance().executeCommand("pm list packages | grep " + apkInfo.getPackageName());
+			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, 0);
+			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
+			
+			return !result.isEmpty() && StringUtils.substringAfter(result.get(0), ":").equals(apkInfo.getPackageName());
+		}
+		catch (ADBCommandException ace)
+		{
+			throw new TaskException(ace.getLocalizedMessage(), ace);
+		}
 	}
 	
-	private boolean fetchAppVersionFromDevice(ApkInfo apkInfo, int ratio, int factor, int offset)
+	private boolean fetchAppVersionFromDevice(ApkInfo apkInfo, int ratio, int factor, int offset) throws TaskException
 	{
 		try
 		{
@@ -276,45 +277,25 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 				return false;
 			}
 		}
+		catch (ADBCommandException ace)
+		{
+			throw new TaskException(ace.getLocalizedMessage(), ace);
+		}
 		catch (FileNotFoundException fnfe)
 		{
-			LOG.error(fnfe.getMessage(), fnfe);
-			
-			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
-			
-			return false;
+			throw new TaskException(fnfe.getLocalizedMessage(), fnfe);
 		}
 		catch (IOException ioe)
 		{
-			LOG.error(ioe.getMessage(), ioe);
-			
-			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
-			
-			return false;
-		}
-		catch (InterruptedException ie)
-		{
-			LOG.error(ie.getMessage(), ie);
-			
-			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
-			
-			return false;
+			throw new TaskException(ioe.getLocalizedMessage(), ioe);
 		}
 		catch (JSONException je)
 		{
-			LOG.error(je.getMessage(), je);
-			
-			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
-			
-			return false;
+			throw new TaskException(je.getLocalizedMessage(), je);
 		}
 	}
 	
-	private boolean checkInstalledAppVersion(ApkInfo apkInfo, int ratio, int factor, int offset)
+	private boolean checkInstalledAppVersion(ApkInfo apkInfo, int ratio, int factor, int offset) throws TaskException
 	{
 		try
 		{
@@ -343,30 +324,15 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 		}
 		catch (FileNotFoundException fnfe)
 		{
-			LOG.error(fnfe.getMessage(), fnfe);
-			
-			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
-			
-			return false;
+			throw new TaskException(fnfe.getLocalizedMessage(), fnfe);
 		}
 		catch (JSONException je)
 		{
-			LOG.error(je.getMessage(), je);
-			
-			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
-			
-			return false;
+			throw new TaskException(je.getLocalizedMessage(), je);
 		}
 		catch (IOException ioe)
 		{
-			LOG.error(ioe.getMessage(), ioe);
-			
-			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
-			
-			return false;
+			throw new TaskException(ioe.getLocalizedMessage(), ioe);
 		}
 	}
 	
@@ -428,7 +394,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 					
 					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
 					setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.STATUS_FAILED));
-					
+					this.result = false;
 					result = false;
 				}
 			}
@@ -438,7 +404,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 				
 				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
 				setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.STATUS_FAILED));
-				
+				this.result = false;
 				result = false;
 			}
 			finally
@@ -480,25 +446,18 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 					
 					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
 					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_FAILED));
+					this.result = false;
 				}
 				
 				return result;
 			}
-			catch (InterruptedException ie)
+			catch (ADBCommandException ace)
 			{
-				LOG.error(ie.getMessage(), ie);
+				LOG.error(ace.getMessage(), ace);
 				
 				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
 				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_FAILED));
-				
-				return false;
-			}
-			catch (IOException ioe)
-			{
-				LOG.error(ioe.getMessage(), ioe);
-				
-				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_FAILED));
+				this.result = false;
 				
 				return false;
 			}
@@ -509,6 +468,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 			
 			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
 			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_FAILED));
+			this.result = false;
 			
 			return false;
 		}

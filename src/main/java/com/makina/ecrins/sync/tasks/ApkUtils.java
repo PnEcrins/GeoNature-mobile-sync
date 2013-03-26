@@ -13,6 +13,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
+import com.makina.ecrins.sync.adb.ADBCommandException;
 
 /**
  * Helpers for Android application packages using adb command line.
@@ -63,13 +64,9 @@ public class ApkUtils
 				}
 			}
 		}
-		catch (IOException ioe)
+		catch (ADBCommandException ace)
 		{
-			LOG.warn(ioe.getMessage(), ioe);
-		}
-		catch (InterruptedException ie)
-		{
-			LOG.warn(ie.getMessage(), ie);
+			LOG.warn(ace.getMessage(), ace);
 		}
 		
 		if (externalStorage == null)
@@ -126,13 +123,9 @@ public class ApkUtils
 				}
 			}
 		}
-		catch (IOException ioe)
+		catch (ADBCommandException ace)
 		{
-			LOG.warn(ioe.getMessage(), ioe);
-		}
-		catch (InterruptedException ie)
-		{
-			LOG.warn(ie.getMessage(), ie);
+			LOG.warn(ace.getMessage(), ace);
 		}
 		
 		if (externalStorage == null)

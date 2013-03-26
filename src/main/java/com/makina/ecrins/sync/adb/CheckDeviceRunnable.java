@@ -1,6 +1,5 @@
 package com.makina.ecrins.sync.adb;
 
-import java.io.IOException;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -77,14 +76,9 @@ public class CheckDeviceRunnable extends Observable implements Runnable
 				}
 			}
 		}
-		catch (InterruptedException ie)
+		catch (ADBCommandException ace)
 		{
-			LOG.error(ie.getMessage(), ie);
-			setStatus(Status.STATUS_FAILED);
-		}
-		catch (IOException ioe)
-		{
-			LOG.error(ioe.getMessage(), ioe);
+			LOG.error(ace.getMessage(), ace);
 			setStatus(Status.STATUS_FAILED);
 		}
 	}

@@ -73,15 +73,20 @@ public class ADBCommand
 		}
 	}
 
-	public static ADBCommand getInstance()
+	public static ADBCommand getInstance() throws ADBCommandException
 	{
+		if (ADBCommandHolder.instance.isDisposed())
+		{
+			throw new ADBCommandException("ADBCommand is disposed");
+		}
+		
 		try
 		{
 			ADBCommandHolder.instance.startServer();
 		}
 		catch (ADBCommandException ace)
 		{
-			LOG.error(ace.getMessage(), ace);
+			LOG.warn(ace.getMessage());
 		}
 		
 		return ADBCommandHolder.instance;
@@ -91,33 +96,40 @@ public class ADBCommand
 	 * Lists all devices currently connected.
 	 * 
 	 * @return a <code>List</code> of connected devices
-	 * @throws InterruptedException 
-	 * @throws IOException 
+	 * @throws ADBCommandException 
 	 */
-	public List<String> getDevices() throws InterruptedException, IOException
+	public List<String> getDevices() throws ADBCommandException
 	{
-		List<String> devices = new ArrayList<String>();
-		
-		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "devices");
-		Process p = pb.start();
-		boolean firstLine = true;
-		
-		for (String line : IOUtils.readLines(p.getInputStream()))
+		try
 		{
-			if (firstLine)
+			List<String> devices = new ArrayList<String>();
+			
+			ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "devices");
+			Process p = pb.start();
+			
+			boolean firstLine = true;
+			
+			for (String line : IOUtils.readLines(p.getInputStream()))
 			{
-				firstLine = false;
-			}
-			else
-			{
-				if (!line.isEmpty())
+				if (firstLine)
 				{
-					devices.add(line);
+					firstLine = false;
+				}
+				else
+				{
+					if (!line.isEmpty())
+					{
+						devices.add(line);
+					}
 				}
 			}
+			
+			return devices;
 		}
-		
-		return devices;
+		catch (IOException ioe)
+		{
+			throw new ADBCommandException(ioe.getMessage(), ioe);
+		}
 	}
 	
 	/**
@@ -125,27 +137,41 @@ public class ADBCommand
 	 * 
 	 * @param localPath local path to use for the copy
 	 * @param remotePath remote path from the connected device
-	 * @throws IOException 
-	 * @throws InterruptedException 
+	 * @throws ADBCommandException 
 	 */
-	public void push(String localPath, String remotePath) throws InterruptedException, IOException
+	public void push(String localPath, String remotePath) throws ADBCommandException
 	{
-		CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
-		cmdLine.addArgument("push");
-		cmdLine.addArgument(localPath);
-		cmdLine.addArgument(remotePath);
-		
-		LOG.debug("push : " + cmdLine.toString());
-		
-		DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
-		
-		ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
-		Executor executor = new DefaultExecutor();
-		executor.setExitValue(1);
-		executor.setWatchdog(watchdog);
-		
-		executor.execute(cmdLine, resultHandler);
-		resultHandler.waitFor();
+		try
+		{
+			CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
+			cmdLine.addArgument("push");
+			cmdLine.addArgument(localPath);
+			cmdLine.addArgument(remotePath);
+			
+			LOG.debug("push : " + cmdLine.toString());
+			
+			DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
+			
+			ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
+			Executor executor = new DefaultExecutor();
+			executor.setExitValue(1);
+			executor.setWatchdog(watchdog);
+			
+			executor.execute(cmdLine, resultHandler);
+			resultHandler.waitFor();
+		}
+		catch (ExecuteException ee)
+		{
+			throw new ADBCommandException(ee.getMessage(), ee);
+		}
+		catch (IOException ioe)
+		{
+			throw new ADBCommandException(ioe.getMessage(), ioe);
+		}
+		catch (InterruptedException ie)
+		{
+			throw new ADBCommandException(ie.getMessage(), ie);
+		}
 	}
 	
 	/**
@@ -153,27 +179,41 @@ public class ADBCommand
 	 * 
 	 * @param remotePath remote path from the connected device to copy
 	 * @param localPath local path to use for the copy
-	 * @throws IOException 
-	 * @throws InterruptedException 
+	 * @throws ADBCommandException 
 	 */
-	public void pull(String remotePath, String localPath) throws InterruptedException, IOException
+	public void pull(String remotePath, String localPath) throws ADBCommandException
 	{
-		CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
-		cmdLine.addArgument("pull");
-		cmdLine.addArgument(remotePath);
-		cmdLine.addArgument(localPath);
-		
-		LOG.debug("pull : " + cmdLine.toString());
-		
-		DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
-		
-		ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
-		Executor executor = new DefaultExecutor();
-		executor.setExitValue(1);
-		executor.setWatchdog(watchdog);
-		
-		executor.execute(cmdLine, resultHandler);
-		resultHandler.waitFor();
+		try
+		{
+			CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
+			cmdLine.addArgument("pull");
+			cmdLine.addArgument(remotePath);
+			cmdLine.addArgument(localPath);
+			
+			LOG.debug("pull : " + cmdLine.toString());
+			
+			DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
+			
+			ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
+			Executor executor = new DefaultExecutor();
+			executor.setExitValue(1);
+			executor.setWatchdog(watchdog);
+			
+			executor.execute(cmdLine, resultHandler);
+			resultHandler.waitFor();
+		}
+		catch (ExecuteException ee)
+		{
+			throw new ADBCommandException(ee.getMessage(), ee);
+		}
+		catch (IOException ioe)
+		{
+			throw new ADBCommandException(ioe.getMessage(), ioe);
+		}
+		catch (InterruptedException ie)
+		{
+			throw new ADBCommandException(ie.getMessage(), ie);
+		}
 	}
 	
 	/**
@@ -181,34 +221,39 @@ public class ADBCommand
 	 * 
 	 * @param command the command to execute
 	 * @return the output as <code>List</code>
-	 * @throws InterruptedException 
-	 * @throws IOException 
+	 * @throws ADBCommandException 
 	 */
-	public List<String> executeCommand(String command) throws IOException, InterruptedException
+	public List<String> executeCommand(String command) throws ADBCommandException
 	{
-		List<String> output = new ArrayList<String>();
-		
-		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "shell", command);
-		LOG.debug("executeCommand : " + pb.command().toString());
-		
-		Process p = pb.start();
-		
-		for (String line : IOUtils.readLines(p.getInputStream()))
+		try
 		{
-			output.add(line);
+			List<String> output = new ArrayList<String>();
+			
+			ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "shell", command);
+			LOG.debug("executeCommand : " + pb.command().toString());
+			
+			Process p = pb.start();
+			
+			for (String line : IOUtils.readLines(p.getInputStream()))
+			{
+				output.add(line);
+			}
+			
+			return output;
 		}
-		
-		return output;
+		catch (IOException ioe)
+		{
+			throw new ADBCommandException(ioe.getMessage(), ioe);
+		}
 	}
 	
 	/**
 	 * Tries to get the size of a given filename.
 	 * @param filename the name of the file on which we want to obtain its current size
 	 * @return the file size in bytes
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws ADBCommandException 
 	 */
-	public long getFileSize(String filename) throws IOException, InterruptedException
+	public long getFileSize(String filename) throws ADBCommandException
 	{
 		List<String> results = executeCommand("ls -la " + filename);
 		
@@ -229,24 +274,30 @@ public class ADBCommand
 	 * Gets the version number
 	 * 
 	 * @return the version number
-	 * @throws IOException 
+	 * @throws ADBCommandException 
 	 */
-	public String getVersion() throws IOException
+	public String getVersion() throws ADBCommandException
 	{
-		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "version");
-		Process p = pb.start();
-		
-		return IOUtils.toString(p.getInputStream()).trim();
+		try
+		{
+			ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "version");
+			Process p = pb.start();
+			
+			return IOUtils.toString(p.getInputStream()).trim();
+		}
+		catch (IOException ioe)
+		{
+			throw new ADBCommandException(ioe.getMessage(), ioe);
+		}
 	}
 	
 	/**
 	 * Gets the current Android build version of the connected device.
 	 * 
 	 * @return the build version from <code>/system/build.prop</code>
-	 * @throws InterruptedException 
-	 * @throws IOException 
+	 * @throws ADBCommandException 
 	 */
-	public int getBuildVersion() throws IOException, InterruptedException
+	public int getBuildVersion() throws ADBCommandException
 	{
 		List<String> output = executeCommand("grep ro.build.version.sdk= /system/build.prop");
 		
@@ -266,41 +317,57 @@ public class ADBCommand
 	 * @param apkPath path to the apk file to install
 	 * @param keepData flag to indicate if we wants to reinstall the app, keeping its data
 	 * @return <code>true</code> if the given package file was successfully installed
-	 * @throws IOException 
-	 * @throws InterruptedException 
+	 * @throws ADBCommandException 
 	 */
-	public boolean install(String apkPath, boolean keepData) throws InterruptedException, IOException
+	public boolean install(String apkPath, boolean keepData) throws ADBCommandException
 	{
-		boolean result = false;
-		
-		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "install", (keepData)?"-r":"", apkPath);
-		LOG.debug("install : " + pb.command().toString());
-		
-		Process p = pb.start();
-		
-		for (String line : IOUtils.readLines(p.getInputStream()))
+		try
 		{
-			LOG.debug(line);
+			boolean result = false;
 			
-			if (!result)
+			ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "install", (keepData)?"-r":"", apkPath);
+			LOG.debug("install : " + pb.command().toString());
+			
+			Process p = pb.start();
+			
+			for (String line : IOUtils.readLines(p.getInputStream()))
 			{
-				result = line.startsWith("Success");
+				LOG.debug(line);
+				
+				if (!result)
+				{
+					result = line.startsWith("Success");
+				}
 			}
+			
+			return result;
 		}
-		
-		return result;
+		catch (IOException ioe)
+		{
+			throw new ADBCommandException(ioe.getMessage(), ioe);
+		}
 	}
 	
 	/**
 	 * Blocks until device is connected.
 	 * 
-	 * @throws InterruptedException
-	 * @throws IOException
+	 * @throws ADBCommandException 
 	 */
-	public void waitForDevice() throws InterruptedException, IOException
+	public void waitForDevice() throws ADBCommandException
 	{
-		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "wait-for-device");
-		pb.start().waitFor();
+		try
+		{
+			ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "wait-for-device");
+			pb.start().waitFor();
+		}
+		catch (InterruptedException ie)
+		{
+			throw new ADBCommandException(ie.getMessage(), ie);
+		}
+		catch (IOException ioe)
+		{
+			throw new ADBCommandException(ioe.getMessage(), ioe);
+		}
 	}
 	
 	/**
@@ -310,11 +377,6 @@ public class ADBCommand
 	 */
 	public void startServer() throws ADBCommandException
 	{
-		if (isDisposed())
-		{
-			throw new ADBCommandException("ADBCommand is disposed");
-		}
-		
 		CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
 		cmdLine.addArgument("start-server");
 		
@@ -358,11 +420,6 @@ public class ADBCommand
 	 */
 	public void killServer() throws ADBCommandException
 	{
-		if (isDisposed())
-		{
-			throw new ADBCommandException("ADBCommand is disposed");
-		}
-		
 		LOG.info("kill adb server ...");
 		
 		CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
@@ -406,15 +463,21 @@ public class ADBCommand
 	 * </ul>
 	 * 
 	 * @return the current status of the connected device
-	 * @throws InterruptedException 
-	 * @throws IOException 
+	 * @throws ADBCommandException 
 	 */
-	public String getState() throws IOException, InterruptedException
+	public String getState() throws ADBCommandException
 	{
-		ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "get-state");
-		Process p = pb.start();
-		
-		return IOUtils.toString(p.getInputStream()).trim();
+		try
+		{
+			ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "get-state");
+			Process p = pb.start();
+			
+			return IOUtils.toString(p.getInputStream()).trim();
+		}
+		catch (IOException ioe)
+		{
+			throw new ADBCommandException(ioe.getMessage(), ioe);
+		}
 	}
 	
 	/**
@@ -422,6 +485,8 @@ public class ADBCommand
 	 */
 	public void dispose()
 	{
+		isDisposed = true;
+		
 		try
 		{
 			killServer();
@@ -440,8 +505,6 @@ public class ADBCommand
 			{
 				LOG.error(ace.getMessage(), ace);
 			}
-			
-			isDisposed = true;
 		}
 		
 		if (adbCommandFile.exists())
@@ -452,6 +515,10 @@ public class ADBCommand
 		}
 	}
 	
+	/**
+	 * Returns <code>true</code> if this {@link ADBCommand} instance is disposed or not.
+	 * @return <code>true</code> if this {@link ADBCommand} instance is disposed, <code>false</code> otherwise
+	 */
 	public boolean isDisposed()
 	{
 		return isDisposed;

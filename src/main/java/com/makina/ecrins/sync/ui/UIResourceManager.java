@@ -27,7 +27,7 @@ import org.eclipse.swt.widgets.Display;
  */
 public class UIResourceManager
 {
-private static final Logger LOG = Logger.getLogger(UIResourceManager.class);
+	private static final Logger LOG = Logger.getLogger(UIResourceManager.class);
 	
 	private static Map<RGB, Color> m_colorMap = new HashMap<RGB, Color>();
 	

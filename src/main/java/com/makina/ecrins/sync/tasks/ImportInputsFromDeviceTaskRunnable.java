@@ -69,14 +69,9 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 			}
 		}
-		catch (InterruptedException ie)
+		catch (ADBCommandException ace)
 		{
-			LOG.error(ie.getMessage(), ie);
-			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
-		}
-		catch (IOException ioe)
-		{
-			LOG.error(ioe.getMessage(), ioe);
+			LOG.error(ace.getMessage(), ace);
 			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 		}
 		finally
@@ -85,7 +80,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		}
 	}
 	
-	private boolean fetchInputsFromDevice() throws InterruptedException, IOException
+	private boolean fetchInputsFromDevice() throws ADBCommandException
 	{
 		this.inputsTempDir = new File(TaskManager.getInstance().getTemporaryDirectory(), "inputs");
 		this.inputsTempDir.mkdir();
@@ -105,7 +100,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		}
 	}
 	
-	private void deleteInputFromDevice(File inputJson) throws IOException, InterruptedException, ADBCommandException
+	private void deleteInputFromDevice(File inputJson) throws ADBCommandException
 	{
 		ADBCommand.getInstance().executeCommand("rm " + ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + "com.makina.ecrins" + "/inputs/" + inputJson.getParentFile().getName() + "/" + inputJson.getName());
 	}
@@ -224,14 +219,6 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 				catch (IOException ioe)
 				{
 					LOG.error(ioe.getLocalizedMessage());
-					
-					httpPost.abort();
-					result = false;
-					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.STATUS_FAILED));
-				}
-				catch (InterruptedException ie)
-				{
-					LOG.error(ie.getLocalizedMessage());
 					
 					httpPost.abort();
 					result = false;

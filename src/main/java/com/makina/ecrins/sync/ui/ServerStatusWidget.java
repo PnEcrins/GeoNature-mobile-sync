@@ -32,10 +32,14 @@ public class ServerStatusWidget implements Observer
 	private Label labelServerSeparator;
 	private Label labelServerStatus;
 	
+	private Status status;
+	
 	public ServerStatusWidget(Display display, Composite parent)
 	{
 		this.display = display;
 		this.parent = parent;
+		
+		this.status = Status.STATUS_NONE;
 		
 		createContents();
 	}
@@ -44,17 +48,19 @@ public class ServerStatusWidget implements Observer
 	{
 		canvasServerStatus = new Canvas(parent, SWT.NONE);
 		canvasServerStatus.setLayout(new FormLayout());
+		
 		FormData fd_canvasServerStatus = new FormData();
 		fd_canvasServerStatus.left = new FormAttachment(parent, 10);
 		fd_canvasServerStatus.top = new FormAttachment(parent, 37);
 		fd_canvasServerStatus.height = 22;
 		fd_canvasServerStatus.width = 22;
+		
 		canvasServerStatus.setLayoutData(fd_canvasServerStatus);
 		canvasServerStatus.addPaintListener(new PaintListener()
 		{
 			public void paintControl(PaintEvent pe)
 			{
-				pe.gc.drawImage(UIResourceManager.getImage("server_status_none.png"), 0, 0);
+				pe.gc.drawImage(UIResourceManager.getImage("server_status_" + status.getLabel() + ".png"), 0, 0);
 			}
 		});
 		
@@ -85,7 +91,7 @@ public class ServerStatusWidget implements Observer
 	{
 		if (arg instanceof Status)
 		{
-			final Status status = (Status) arg;
+			this.status = (Status) arg;
 			
 			if (!display.isDisposed())
 			{
@@ -94,14 +100,6 @@ public class ServerStatusWidget implements Observer
 					@Override
 					public void run()
 					{
-						canvasServerStatus.addPaintListener(new PaintListener()
-						{
-							public void paintControl(PaintEvent pe)
-							{
-								pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_" + status.getLabel() + ".png"), 0, 0);
-							}
-						});
-						
 						canvasServerStatus.redraw();
 						
 						labelServerStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + status.getLabel()));

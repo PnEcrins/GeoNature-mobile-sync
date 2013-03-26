@@ -29,15 +29,10 @@ public class ADBCommandTest
 			List<String> devices = ADBCommand.getInstance().getDevices();
 			Assert.assertTrue(devices.size() >= 0);
 		}
-		catch (InterruptedException ie)
+		catch (ADBCommandException ace)
 		{
-			LOG.error(ie.getMessage(), ie);
-			Assert.fail(ie.getMessage());
-		}
-		catch (IOException ioe)
-		{
-			LOG.error(ioe.getMessage(), ioe);
-			Assert.fail(ioe.getMessage());
+			LOG.error(ace.getMessage(), ace);
+			Assert.fail(ace.getMessage());
 		}
 	}
 	
@@ -70,6 +65,11 @@ public class ADBCommandTest
 			
 			Assert.assertEquals(FileUtils.checksumCRC32(inputJson), FileUtils.checksumCRC32(inputJsonFromDevice));
 		}
+		catch (ADBCommandException ace)
+		{
+			LOG.error(ace.getMessage(), ace);
+			Assert.fail(ace.getMessage());
+		}
 		catch (FileNotFoundException fnfe)
 		{
 			LOG.error(fnfe.getMessage(), fnfe);
@@ -79,11 +79,6 @@ public class ADBCommandTest
 		{
 			LOG.error(ioe.getMessage(), ioe);
 			Assert.fail(ioe.getMessage());
-		}
-		catch (InterruptedException ie)
-		{
-			LOG.error(ie.getMessage(), ie);
-			Assert.fail(ie.getMessage());
 		}
 		finally
 		{
@@ -103,15 +98,10 @@ public class ADBCommandTest
 				LOG.debug(line);
 			}
 		}
-		catch (IOException ioe)
+		catch (ADBCommandException ace)
 		{
-			LOG.error(ioe.getMessage(), ioe);
-			Assert.fail(ioe.getMessage());
-		}
-		catch (InterruptedException ie)
-		{
-			LOG.error(ie.getMessage(), ie);
-			Assert.fail(ie.getMessage());
+			LOG.error(ace.getMessage(), ace);
+			Assert.fail(ace.getMessage());
 		}
 	}
 	
@@ -140,15 +130,15 @@ public class ADBCommandTest
 			
 			Assert.assertTrue(fileSize > 0);
 		}
+		catch (ADBCommandException ace)
+		{
+			LOG.error(ace.getMessage(), ace);
+			Assert.fail(ace.getMessage());
+		}
 		catch (IOException ioe)
 		{
 			LOG.error(ioe.getMessage(), ioe);
 			Assert.fail(ioe.getMessage());
-		}
-		catch (InterruptedException ie)
-		{
-			LOG.error(ie.getMessage(), ie);
-			Assert.fail(ie.getMessage());
 		}
 		finally
 		{
@@ -167,15 +157,10 @@ public class ADBCommandTest
 			
 			Assert.assertEquals(ADBCommand.STATE_DEVICE, state);
 		}
-		catch (InterruptedException ie)
+		catch (ADBCommandException ace)
 		{
-			LOG.error(ie.getMessage(), ie);
-			Assert.fail(ie.getMessage());
-		}
-		catch (IOException ioe)
-		{
-			LOG.error(ioe.getMessage(), ioe);
-			Assert.fail(ioe.getMessage());
+			LOG.error(ace.getMessage(), ace);
+			Assert.fail(ace.getMessage());
 		}
 	}
 	
@@ -190,15 +175,10 @@ public class ADBCommandTest
 			
 			Assert.assertTrue(buildVersion > 0);
 		}
-		catch (InterruptedException ie)
+		catch (ADBCommandException ace)
 		{
-			LOG.error(ie.getMessage(), ie);
-			Assert.fail(ie.getMessage());
-		}
-		catch (IOException ioe)
-		{
-			LOG.error(ioe.getMessage(), ioe);
-			Assert.fail(ioe.getMessage());
+			LOG.error(ace.getMessage(), ace);
+			Assert.fail(ace.getMessage());
 		}
 	}
 }

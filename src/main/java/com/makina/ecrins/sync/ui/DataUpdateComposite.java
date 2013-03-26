@@ -169,7 +169,7 @@ public class DataUpdateComposite extends Composite implements Observer
 	{
 		if (arg instanceof TaskStatus)
 		{
-			this.taskStatus = (TaskStatus) arg;
+			final TaskStatus taskStatus = (TaskStatus) arg;
 			
 			if (!isDisposed())
 			{
@@ -178,7 +178,12 @@ public class DataUpdateComposite extends Composite implements Observer
 					@Override
 					public void run()
 					{
-						canvasLedDataUpdate.redraw();
+						if (!taskStatus.getStatus().getLabel().equals(DataUpdateComposite.this.taskStatus.getStatus().getLabel()))
+						{
+							DataUpdateComposite.this.taskStatus = taskStatus;
+							canvasLedDataUpdate.redraw();
+						}
+						
 						labelDataUpdate.setText(taskStatus.getMessage());
 						
 						// don't update the progress bar if getProgress() is not defined (i.e. 0)
@@ -195,6 +200,8 @@ public class DataUpdateComposite extends Composite implements Observer
 						
 						labelDataUpdateStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + taskStatus.getStatus().getLabel()));
 						labelDataUpdateStatus.getParent().layout();
+						
+						DataUpdateComposite.this.taskStatus = taskStatus;
 					}
 				});
 			}
