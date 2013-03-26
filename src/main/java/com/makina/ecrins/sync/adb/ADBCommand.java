@@ -202,6 +202,30 @@ public class ADBCommand
 	}
 	
 	/**
+	 * Tries to get the size of a given filename.
+	 * @param filename the name of the file on which we want to obtain its current size
+	 * @return the file size in bytes
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public long getFileSize(String filename) throws IOException, InterruptedException
+	{
+		List<String> results = executeCommand("ls -la " + filename);
+		
+		if (results.size() > 0)
+		{
+			String[] tokens = StringUtils.split(results.get(0));
+			
+			if ((tokens.length > 4) && StringUtils.isNumeric(tokens[3]))
+			{
+				return Long.valueOf(tokens[3]);
+			}
+		}
+		
+		return -1;
+	}
+	
+	/**
 	 * Gets the version number
 	 * 
 	 * @return the version number

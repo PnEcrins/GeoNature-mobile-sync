@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Sync"
-#define MyAppVersion "0.1.9"
+#define MyAppVersion "0.2.0"
 #define MyAppPublisher "Makina Corpus"
 #define MyAppExeName "sync.exe"
 
@@ -31,8 +31,17 @@ Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 
 #include ReadReg(HKEY_LOCAL_MACHINE,'Software\Sherlock Software\InnoTools\Downloader','ScriptPath','');
 
+[Types]
+Name: "full"; Description: "Full installation"
+Name: "compact"; Description: "Compact installation"
+Name: "custom"; Description: "Custom installation"; Flags: iscustom
+
+[Components]
+Name: "program"; Description: "Program Files"; Types: full compact custom; Flags: fixed
+Name: "drivers"; Description: "Google USB Driver"; Types: full; ExtraDiskSpaceRequired: 8681704
+
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Components: program; Flags: unchecked
 
 [Files]
 Source: "unzip.exe"; DestDir: "{tmp}"; Flags: ignoreversion
@@ -102,7 +111,7 @@ begin
   UsbDriverFile := GetUsbDriverFile();
   
   if (length(UsbDriverFile) > 0) then begin
-    FileCopy(expandconstant('{tmp}\') + GetUsbDriverFile(), expandconstant('{app}\') + GetUsbDriverFile(), false);
+    FileCopy(expandconstant('{tmp}\') + UsbDriverFile, expandconstant('{app}\') + UsbDriverFile, false);
     Log('extracting file ' + expandconstant('{app}\') + UsbDriverFile + ' ...');
     if FileExists(expandconstant('{app}\') + UsbDriverFile) then begin
       Log('extracting file ' + UsbDriverFile + ' ...');
@@ -114,19 +123,38 @@ begin
   end;  
 end;
 
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+
+  if CurPageID = wpSelectComponents then
+  begin
+    if WizardForm.ComponentsList.Checked[1] then
+    begin
+      // downloads addon.xml file from Google
+      ITD_DownloadFile('http://dl-ssl.google.com/android/repository/addon.xml', expandconstant('{tmp}\addon.xml'));
+      DownloadUSBDriver();
+    end
+    else
+    begin
+      ITD_ClearFiles;
+    end;
+  end;
+end;
+
 procedure InitializeWizard();
 begin
   ITD_Init;
-  // downloads addon.xml file from Google
-  ITD_DownloadFile('http://dl-ssl.google.com/android/repository/addon.xml', expandconstant('{tmp}\addon.xml'));
-
-  DownloadUSBDriver();
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
-  if CurStep=ssPostInstall then begin
-    ExtractUSBDriver();
+  if CurStep=ssPostInstall then
+  begin
+    if WizardForm.ComponentsList.Checked[1] then
+    begin
+      ExtractUSBDriver();
+    end;
   end;
 end;
 

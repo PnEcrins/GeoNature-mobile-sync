@@ -44,13 +44,12 @@ public class ADBCommandTest
 	@Test
 	public void pushAndPullTest()
 	{
+		// creates the temporary directory to use for copying files to the connected device
+		File tempDir = new File(FileUtils.getTempDirectory(), "sync_" + Long.toString(System.currentTimeMillis()));
+		tempDir.mkdir();
+		
 		try
 		{
-			// creates the temporary directory to use for copying files to the connected device
-			File tempDir = new File(FileUtils.getTempDirectory(), "sync_" + Long.toString(System.currentTimeMillis()));
-			tempDir.mkdir();
-			FileUtils.forceDeleteOnExit(tempDir);
-			
 			// gets the input sample file to copy
 			File inputResourceJson = FileUtils.toFile(getClass().getResource("/input_1234.json"));
 			Assert.assertTrue(inputResourceJson.exists());
@@ -86,6 +85,10 @@ public class ADBCommandTest
 			LOG.error(ie.getMessage(), ie);
 			Assert.fail(ie.getMessage());
 		}
+		finally
+		{
+			FileUtils.deleteQuietly(tempDir);
+		}
 	}
 	
 	@Test
@@ -109,6 +112,47 @@ public class ADBCommandTest
 		{
 			LOG.error(ie.getMessage(), ie);
 			Assert.fail(ie.getMessage());
+		}
+	}
+	
+	@Test
+	public void getFileSizeTest()
+	{
+		// creates the temporary directory to use for copying files to the connected device
+		File tempDir = new File(FileUtils.getTempDirectory(), "sync_" + Long.toString(System.currentTimeMillis()));
+		tempDir.mkdir();
+		
+		try
+		{
+			// gets the input sample file to copy
+			File inputResourceJson = FileUtils.toFile(getClass().getResource("/input_1234.json"));
+			
+			// copy the sample file to the temporary directory
+			File inputJson = new File(tempDir, "input_1234.json");
+			FileUtils.copyFile(inputResourceJson, inputJson);
+			Assert.assertTrue(inputJson.exists());
+			
+			ADBCommand.getInstance().push(inputJson.getAbsolutePath(), ApkUtils.getExternalStorageDirectory() + "Android/data/sync/input_1234.json");
+			
+			long fileSize = ADBCommand.getInstance().getFileSize(ApkUtils.getExternalStorageDirectory() + "Android/data/sync/input_1234.json");
+			
+			LOG.debug("file size : " + fileSize);
+			
+			Assert.assertTrue(fileSize > 0);
+		}
+		catch (IOException ioe)
+		{
+			LOG.error(ioe.getMessage(), ioe);
+			Assert.fail(ioe.getMessage());
+		}
+		catch (InterruptedException ie)
+		{
+			LOG.error(ie.getMessage(), ie);
+			Assert.fail(ie.getMessage());
+		}
+		finally
+		{
+			FileUtils.deleteQuietly(tempDir);
 		}
 	}
 	

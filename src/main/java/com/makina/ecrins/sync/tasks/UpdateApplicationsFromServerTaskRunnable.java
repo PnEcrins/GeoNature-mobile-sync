@@ -21,6 +21,7 @@ import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.HttpConnectionParams;
@@ -156,69 +157,82 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 	
 	private boolean fetchLastAppsVersionsFromServer(final int factor)
 	{
+		final DefaultHttpClient httpClient = new DefaultHttpClient();
+		final HttpParams httpParameters = httpClient.getParams();
+		HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
+		
+		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
+		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSyncSettings().getServerToken()));
+		
 		try
 		{
-			final DefaultHttpClient httpClient = new DefaultHttpClient();
-			final HttpParams httpParameters = httpClient.getParams();
-			HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
-			//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
-			
-			
-			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
-			nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSyncSettings().getServerToken()));
-			
 			HttpPost httpPost = new HttpPost(
 					LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
 					LoadSettingsCallable.getInstance().getSyncSettings().getAppUpdateVersionUrl());
 			
-			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-			HttpResponse httpResponse = httpClient.execute(httpPost);
+			HttpResponse httpResponse = null;
 			
-			// checks if server response is valid
-			StatusLine status = httpResponse.getStatusLine();
-			
-			if (status.getStatusCode() == HttpStatus.SC_OK)
+			try
 			{
-				// pulls content stream from response
-				final HttpEntity entity = httpResponse.getEntity();
-				InputStream inputStream = entity.getContent();
+				httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+				httpResponse = httpClient.execute(httpPost);
 				
-				FileOutputStream fos = new FileOutputStream(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json"));
+				// checks if server response is valid
+				StatusLine status = httpResponse.getStatusLine();
 				
-				IOUtils.copy(inputStream, new CountingOutputStream(fos)
+				if (status.getStatusCode() == HttpStatus.SC_OK)
 				{
-					@Override
-					protected void afterWrite(int n) throws IOException
+					// pulls content stream from response
+					final HttpEntity entity = httpResponse.getEntity();
+					InputStream inputStream = entity.getContent();
+					
+					FileOutputStream fos = new FileOutputStream(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json"));
+					
+					IOUtils.copy(inputStream, new CountingOutputStream(fos)
 					{
-						super.afterWrite(n);
-						
-						progress = computeProgress(0, 1, getCount(), entity.getContentLength(), 100, factor, 0);
-						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
-					}
-				});
-				
-				inputStream.close();
-				fos.close();
-				
-				apks.addAll(ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json")));
-				
-				progress = factor;
-				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
+						@Override
+						protected void afterWrite(int n) throws IOException
+						{
+							super.afterWrite(n);
+							
+							progress = computeProgress(0, 1, getCount(), entity.getContentLength(), 100, factor, 0);
+							setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
+						}
+					});
+					
+					inputStream.close();
+					fos.close();
+					
+					apks.addAll(ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json")));
+					
+					progress = factor;
+					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
+				}
+				else
+				{
+					LOG.error("unable to download file from URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode());
+					
+					progress = 100;
+					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
+				}
 			}
-			else
+			catch (IOException ioe)
 			{
-				LOG.error("unable to download file from URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode());
+				LOG.error(ioe.getMessage(), ioe);
 				
+				httpPost.abort();
 				progress = 100;
 				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
 			}
+			finally
+			{
+				HttpClientUtils.closeQuietly(httpResponse);
+			}
 		}
-		catch (IOException ioe)
+		finally
 		{
-			LOG.error(ioe.getMessage(), ioe);
-			
-			progress = 100;
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
+			httpClient.getConnectionManager().shutdown();
 		}
 		
 		return !apks.isEmpty();
@@ -358,72 +372,86 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 	
 	private boolean downloadLastAppFromServer(final ApkInfo apkInfo, final int ratio, final int factor, final int offset)
 	{
+		boolean result = true;
+		
+		final DefaultHttpClient httpClient = new DefaultHttpClient();
+		final HttpParams httpParameters = httpClient.getParams();
+		HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
+		
+		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
+		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSyncSettings().getServerToken()));
+		
 		try
 		{
-			final DefaultHttpClient httpClient = new DefaultHttpClient();
-			final HttpParams httpParameters = httpClient.getParams();
-			HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
-			//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
-			
-			
-			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
-			nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSyncSettings().getServerToken()));
-			
 			HttpPost httpPost = new HttpPost(
 					LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
 					LoadSettingsCallable.getInstance().getSyncSettings().getAppUpdateDownloadUrl() +
 					"/" + apkInfo.getApkName() + "/");
 			
-			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-			HttpResponse httpResponse = httpClient.execute(httpPost);
-
-			// checks if server response is valid
-			StatusLine status = httpResponse.getStatusLine();
+			HttpResponse httpResponse = null;
 			
-			if (status.getStatusCode() == HttpStatus.SC_OK)
+			try
 			{
-				// pulls content stream from response
-				final HttpEntity entity = httpResponse.getEntity();
+				httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+				httpResponse = httpClient.execute(httpPost);
+
+				// checks if server response is valid
+				StatusLine status = httpResponse.getStatusLine();
 				
-				InputStream inputStream = entity.getContent();
-				FileOutputStream fos = new FileOutputStream(new File(TaskManager.getInstance().getTemporaryDirectory(), apkInfo.getApkName()));
-				
-				IOUtils.copy(inputStream, new CountingOutputStream(fos)
+				if (status.getStatusCode() == HttpStatus.SC_OK)
 				{
-					@Override
-					protected void afterWrite(int n) throws IOException
+					// pulls content stream from response
+					final HttpEntity entity = httpResponse.getEntity();
+					
+					InputStream inputStream = entity.getContent();
+					FileOutputStream fos = new FileOutputStream(new File(TaskManager.getInstance().getTemporaryDirectory(), apkInfo.getApkName()));
+					
+					IOUtils.copy(inputStream, new CountingOutputStream(fos)
 					{
-						super.afterWrite(n);
-						
-						progress = computeProgress(apkIndex, apks.size(), getCount(), entity.getContentLength(), ratio, factor, offset);
-						setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.STATUS_PENDING));
-					}
-				});
-				
-				inputStream.close();
-				fos.close();
-				
-				return true;
+						@Override
+						protected void afterWrite(int n) throws IOException
+						{
+							super.afterWrite(n);
+							
+							progress = computeProgress(apkIndex, apks.size(), getCount(), entity.getContentLength(), ratio, factor, offset);
+							setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.STATUS_PENDING));
+						}
+					});
+					
+					inputStream.close();
+					fos.close();
+				}
+				else
+				{
+					LOG.error("unable to download file from URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode());
+					
+					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
+					setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.STATUS_FAILED));
+					
+					result = false;
+				}
 			}
-			else
+			catch (IOException ioe)
 			{
-				LOG.error("unable to download file from URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode());
+				LOG.error(ioe.getMessage(), ioe);
 				
 				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
 				setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.STATUS_FAILED));
 				
-				return false;
+				result = false;
+			}
+			finally
+			{
+				HttpClientUtils.closeQuietly(httpResponse);
 			}
 		}
-		catch (IOException ioe)
+		finally
 		{
-			LOG.error(ioe.getMessage(), ioe);
-			
-			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.STATUS_FAILED));
-			
-			return false;
+			httpClient.getConnectionManager().shutdown();
 		}
+		
+		return result;
 	}
 	
 	private boolean installAppToDevice(ApkInfo apkInfo, int ratio, int factor, int offset, boolean keepData)

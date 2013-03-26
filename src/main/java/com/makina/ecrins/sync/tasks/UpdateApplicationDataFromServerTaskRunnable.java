@@ -18,6 +18,7 @@ import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.HttpConnectionParams;
@@ -45,32 +46,19 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	{
 		setTaskStatus(new TaskStatus(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_PENDING));
 		
-		try
+		if (getApkInfo())
 		{
-			if (getApkInfo())
+			if (downloadDataFromServer())
 			{
-				if (downloadDataFromServer())
-				{
-					setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FINISH));
-				}
-				else
-				{
-					setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
-				}
+				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FINISH));
 			}
 			else
 			{
 				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 			}
 		}
-		catch (IOException ioe)
+		else
 		{
-			LOG.error(ioe.getMessage(), ioe);
-			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
-		}
-		catch (InterruptedException ie)
-		{
-			LOG.error(ie.getMessage(), ie);
 			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
 		}
 	}
@@ -91,8 +79,15 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		}
 	}
 	
-	private boolean downloadDataFromServer() throws IOException, InterruptedException
+	private boolean checkFileSize(long remoteFileSize, String remoteName) throws IOException, InterruptedException
 	{
+		return ADBCommand.getInstance().getFileSize(getDeviceFilePath(remoteName)) == remoteFileSize;
+	}
+	
+	private boolean downloadDataFromServer()
+	{
+		boolean result = true;
+		
 		final DefaultHttpClient httpClient = new DefaultHttpClient();
 		final HttpParams httpParameters = httpClient.getParams();
 		HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
@@ -104,58 +99,105 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		List<ExportSettings> exportsSettings = LoadSettingsCallable.getInstance().getSyncSettings().getExportsSettings();
 		int i = 0;
 		
-		for (ExportSettings exportSettings : exportsSettings)
+		try
 		{
-			setTaskStatus(new TaskStatus((int) (((double) i / (double) exportsSettings.size()) * 100), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_PENDING));
-			
-			HttpPost httpPost = new HttpPost(
-					LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
-					exportSettings.getExportUrl());
-			
-			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-			HttpResponse httpResponse = httpClient.execute(httpPost);
-			
-			// checks if server response is valid
-			StatusLine status = httpResponse.getStatusLine();
-			
-			if (status.getStatusCode() == HttpStatus.SC_OK)
+			for (ExportSettings exportSettings : exportsSettings)
 			{
-				// pulls content stream from response
-				HttpEntity entity = httpResponse.getEntity();
-				InputStream inputStream = entity.getContent();
+				setTaskStatus(new TaskStatus((int) (((double) i / (double) exportsSettings.size()) * 100), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_PENDING));
 				
-				File localFile = new File(TaskManager.getInstance().getTemporaryDirectory(), exportSettings.getExportFile());
-				FileUtils.touch(localFile);
+				HttpPost httpPost = new HttpPost(
+						LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
+						exportSettings.getExportUrl());
 				
-				if (copyInputStream(exportSettings.getExportFile(), inputStream, new FileOutputStream(localFile), entity.getContentLength(), i, exportsSettings.size()))
+				HttpResponse httpResponse = null;
+				
+				try
 				{
-					copyFileToDevice(localFile, exportSettings.getExportFile());
+					httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+					httpResponse = httpClient.execute(httpPost);
 					
-					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.finish.text"), exportSettings.getExportFile()), Status.STATUS_PENDING));
+					// checks if server response is valid
+					StatusLine status = httpResponse.getStatusLine();
+					
+					if (status.getStatusCode() == HttpStatus.SC_OK)
+					{
+						// compare file sizes between the remote file and the local file
+						if (checkFileSize(Long.valueOf(httpResponse.getFirstHeader("Content-Length").getValue()), exportSettings.getExportFile()))
+						{
+							LOG.info("'" + exportSettings.getExportFile() + "' is already downloaded and installed");
+							
+							httpPost.abort();
+						}
+						else
+						{
+							// pulls content stream from response
+							HttpEntity entity = httpResponse.getEntity();
+							InputStream inputStream = entity.getContent();
+							
+							File localFile = new File(TaskManager.getInstance().getTemporaryDirectory(), exportSettings.getExportFile());
+							FileUtils.touch(localFile);
+							
+							if (copyInputStream(exportSettings.getExportFile(), inputStream, new FileOutputStream(localFile), entity.getContentLength(), i, exportsSettings.size()))
+							{
+								copyFileToDevice(localFile, exportSettings.getExportFile());
+								
+								setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.finish.text"), exportSettings.getExportFile()), Status.STATUS_PENDING));
+							}
+							else
+							{
+								setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
+								result = false;
+							}
+						}
+					}
+					else
+					{
+						LOG.error("unable to download file from URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode());
+						setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
+						
+						result = false;
+					}
 				}
-				else
+				catch (IOException ioe)
 				{
+					LOG.error(ioe.getLocalizedMessage());
+					
+					httpPost.abort();
+					result = false;
 					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
-					return false;
 				}
-			}
-			else
-			{
-				LOG.error("unable to download file from URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode());
-				setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
+				catch (InterruptedException ie)
+				{
+					LOG.error(ie.getLocalizedMessage());
+					
+					httpPost.abort();
+					result = false;
+					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
+				}
+				finally
+				{
+					HttpClientUtils.closeQuietly(httpResponse);
+				}
 				
-				return false;
+				i++;
 			}
-			
-			i++;
+		}
+		finally
+		{
+			httpClient.getConnectionManager().shutdown();
 		}
 		
-		return true;
+		return result;
+	}
+	
+	private String getDeviceFilePath(String remoteName)
+	{
+		return ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + apkInfo.getSharedUserId() + "/" + remoteName;
 	}
 	
 	private void copyFileToDevice(File localFile, String remoteName) throws InterruptedException, IOException
 	{
-		ADBCommand.getInstance().push(localFile.getAbsolutePath(), ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + apkInfo.getSharedUserId() + "/" + remoteName);
+		ADBCommand.getInstance().push(localFile.getAbsolutePath(),getDeviceFilePath(remoteName));
 	}
 	
 	private boolean copyInputStream(String inputName, InputStream in, OutputStream out, long contentLength, int currentExport, int numberOfExports)

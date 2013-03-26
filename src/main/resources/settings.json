@@ -20,6 +20,10 @@
 			{
 				"url": "export/unity_polygons/",
 				"file": "unities.wkt"
+			},
+			{
+				"url": "data_download/unities.mbtiles",
+				"file": "databases/unities.mbtiles"
 			}
 		]
 	}
