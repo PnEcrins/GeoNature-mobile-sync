@@ -102,7 +102,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	
 	private void deleteInputFromDevice(File inputJson) throws ADBCommandException
 	{
-		ADBCommand.getInstance().executeCommand("rm " + ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + "com.makina.ecrins" + "/inputs/" + inputJson.getParentFile().getName() + "/" + inputJson.getName());
+		ADBCommand.getInstance().executeCommand("rm " + ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + apkInfo.getSharedUserId() + "/inputs/" + inputJson.getParentFile().getName() + "/" + inputJson.getName());
 	}
 	
 	private void copyInputToUserDir(File inputJson, boolean isSynchronized)
@@ -294,9 +294,12 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 				out.write(buffer, 0, len);
 				totalBytesRead += len;
 				
-				int currentProgress =  (int) (((double) totalBytesRead / (double) contentLength) * 100);
-				
-				setTaskStatus(new TaskStatus((int) (((double) currentInput / (double) numberOfInputs) * 100) + (currentProgress / numberOfInputs), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputName), Status.STATUS_PENDING));
+				if (contentLength > 0)
+				{
+					int currentProgress =  (int) (((double) totalBytesRead / (double) contentLength) * 100);
+					
+					setTaskStatus(new TaskStatus((int) (((double) currentInput / (double) numberOfInputs) * 100) + (currentProgress / numberOfInputs), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputName), Status.STATUS_PENDING));
+				}
 			}
 			
 			out.flush();

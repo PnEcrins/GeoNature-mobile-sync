@@ -64,7 +64,6 @@ public class CheckDeviceRunnable extends Observable implements Runnable
 			else
 			{
 				String deviceState = ADBCommand.getInstance().getState();
-				LOG.debug("device state : " + deviceState);
 				
 				if (deviceState.equals(ADBCommand.STATE_DEVICE))
 				{
