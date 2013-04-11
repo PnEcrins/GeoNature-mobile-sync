@@ -6,4 +6,4 @@ bin
 target
 setup/Output
 setup/*.log
-setup/*.exe
+setup/sync.exe
