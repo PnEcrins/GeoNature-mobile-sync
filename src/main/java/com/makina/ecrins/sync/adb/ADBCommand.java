@@ -15,6 +15,7 @@ import org.apache.commons.exec.Executor;
 import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.log4j.Level;
@@ -152,7 +153,7 @@ public class ADBCommand
 			
 			DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
 			
-			ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
+			ExecuteWatchdog watchdog = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
 			Executor executor = new DefaultExecutor();
 			executor.setExitValue(1);
 			executor.setWatchdog(watchdog);
@@ -178,10 +179,11 @@ public class ADBCommand
 	 * Copy file or a directory from device to a given local folder.
 	 * 
 	 * @param remotePath remote path from the connected device to copy
+	 * @return <code>true</code> if the given file or directory was successfully copied
 	 * @param localPath local path to use for the copy
 	 * @throws ADBCommandException 
 	 */
-	public void pull(String remotePath, String localPath) throws ADBCommandException
+	public boolean pull(String remotePath, String localPath) throws ADBCommandException
 	{
 		try
 		{
@@ -194,13 +196,24 @@ public class ADBCommand
 			
 			DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
 			
-			ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			PumpStreamHandler streamHandler = new PumpStreamHandler(baos);
+			
+			ExecuteWatchdog watchdog = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
 			Executor executor = new DefaultExecutor();
 			executor.setExitValue(1);
 			executor.setWatchdog(watchdog);
+			executor.setStreamHandler(streamHandler);
 			
 			executor.execute(cmdLine, resultHandler);
 			resultHandler.waitFor();
+			
+			if (baos.toString().trim().contains("does not exist"))
+			{
+				return false;
+			}
+			
+			return true;
 		}
 		catch (ExecuteException ee)
 		{
@@ -601,11 +614,11 @@ public class ADBCommand
 		{
 			if (SystemUtils.OS_ARCH.equalsIgnoreCase("x86"))
 			{
-				return Thread.currentThread().getContextClassLoader().getResourceAsStream("adb-win32-" + SystemUtils.OS_ARCH + "_1.0.31.exe");
+				return Thread.currentThread().getContextClassLoader().getResourceAsStream("adb-win32-x86_1.0.31.exe");
 			}
 			else
 			{
-				throw new UnsupportedOSVersionException();
+				return Thread.currentThread().getContextClassLoader().getResourceAsStream("adb-win32-x86_64_1.0.31.exe");
 			}
 		}
 		else if (SystemUtils.IS_OS_LINUX)

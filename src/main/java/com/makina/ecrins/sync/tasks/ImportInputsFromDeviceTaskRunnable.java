@@ -94,7 +94,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		else
 		{
 			apkInfo = apks.get(0);
-			ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + apks.get(0).getSharedUserId() + "/inputs/", this.inputsTempDir.getAbsolutePath());
+			ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + "inputs/", this.inputsTempDir.getAbsolutePath());
 			
 			return FileUtils.listFiles(this.inputsTempDir, new RegexFileFilter("^input_\\d+.json$"), new PrefixFileFilter(apkInfo.getSharedUserId())).size() > 0;
 		}
@@ -102,7 +102,15 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	
 	private void deleteInputFromDevice(File inputJson) throws ADBCommandException
 	{
-		ADBCommand.getInstance().executeCommand("rm " + ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + apkInfo.getSharedUserId() + "/inputs/" + inputJson.getParentFile().getName() + "/" + inputJson.getName());
+		if (ADBCommand.getInstance().getBuildVersion() > 15)
+		{
+			ADBCommand.getInstance().executeCommand("rm " + ApkUtils.getExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + "inputs/" + inputJson.getParentFile().getName() + "/" + inputJson.getName());
+		}
+		else
+		{
+			// uses specific service from mobile application to delete the given input
+			ADBCommand.getInstance().executeCommand("am broadcast -a " + inputJson.getParentFile().getName() + ".INTENT_DELETE_INPUT -e " + apkInfo.getPackageName() + ".file " + inputJson.getName() + " -f 32");
+		}
 	}
 	
 	private void copyInputToUserDir(File inputJson, boolean isSynchronized)

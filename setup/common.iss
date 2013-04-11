@@ -17,7 +17,7 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={pf}\PNE Sync
 DefaultGroupName={#MyAppName}
-OutputBaseFilename=setup_sync-{#MyAppVersion}
+OutputBaseFilename=setup_sync-{#MyAppVersion}-{#Arch}
 LicenseFile=LICENSE.txt
 SetupIconFile=../art/sync.ico
 Compression=lzma
@@ -46,7 +46,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "unzip.exe"; DestDir: "{tmp}"; Flags: ignoreversion
 Source: "sync.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "../target/sync-{#MyAppVersion}-win32-x86.jar"; DestDir: "{app}"; Flags: ignoreversion
+Source: "../target/sync-{#MyAppVersion}-win32-{#Arch}.jar"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "../src/main/resources/settings.json"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files

@@ -33,12 +33,59 @@ public class ApkUtils
 	}
 	
 	/**
+	 * Gets the relative path used by the given {@link ApkInfo} instance.
+	 * @param apkInfo {@link ApkInfo} instance on which to get {@link ApkInfo#getApkName()}
+	 * @return the relative path
+	 */
+	public static String getRelativeSharedPath(ApkInfo apkInfo)
+	{
+		return "Android/data/" + apkInfo.getSharedUserId() + "/";
+	}
+	
+	/**
+	 * Tries to find the default mount path used by external storage using adb command line.
+	 * If not, returns the default mount path (usually '/mnt/sdcard').
+	 * @return the mount path used by external storage.
+	 */
+	public static String getDefaultExternalStorageDirectory()
+	{
+		String defaultExternalStorage = null;
+		
+		try
+		{
+			Iterator<String> iterator = ADBCommand.getInstance().executeCommand("echo \\$EXTERNAL_STORAGE").iterator();
+			
+			while (iterator.hasNext() && (defaultExternalStorage == null))
+			{
+				String line = iterator.next();
+				
+				if (line.startsWith("/"))
+				{
+					defaultExternalStorage = line;
+				}
+			}
+		}
+		catch (ADBCommandException ace)
+		{
+			LOG.warn(ace.getMessage(), ace);
+		}
+		
+		if (defaultExternalStorage == null)
+		{
+			defaultExternalStorage = "/mnt/sdcard";
+		}
+		
+		return defaultExternalStorage;
+	}
+	
+	/**
 	 * Tries to find the mount path used by external storage using adb command line.
-	 * If not, returns the default mount path '/mnt/sdcard'.
+	 * If not, returns the default mount path (usually '/mnt/sdcard').
 	 * @return the mount path used by external storage.
 	 */
 	public static String getExternalStorageDirectory()
 	{
+		String defaultExternalStorage = getDefaultExternalStorageDirectory();
 		String externalStorage = null;
 		
 		try
@@ -57,9 +104,9 @@ public class ApkUtils
 					String element = lineElements[1];
 					
 					// ignore default mount path and others
-					if (!element.equals("/mnt/sdcard") && !element.equals("/mnt/secure/asec"))
+					if (!element.equals(defaultExternalStorage) && !element.equals("/mnt/secure/asec"))
 					{
-						externalStorage = element + "/";
+						externalStorage = element;
 					}
 				}
 			}
@@ -71,75 +118,16 @@ public class ApkUtils
 		
 		if (externalStorage == null)
 		{
-			externalStorage = "/mnt/sdcard/";
+			externalStorage = defaultExternalStorage;
 		}
 		
 		return externalStorage;
 	}
 	
 	/**
-	 * Tries to find the mount path used by external storage using adb command line.
-	 * If not, returns the default mount path '/mnt/sdcard/'.
-	 * @return the mount path used by external storage.
-	 */
-	public static String getExternalStorageDirectory(ApkInfo apkInfo)
-	{
-		String externalStorage = null;
-		
-		try
-		{
-			Iterator<String> iterator = ADBCommand.getInstance().executeCommand("cat /proc/mounts").iterator();
-			
-			while (iterator.hasNext() && (externalStorage == null))
-			{
-				String line = iterator.next();
-				
-				if (line.startsWith("/dev/block/vold/"))
-				{
-					// device mount_path fs_type options
-					String[] lineElements = line.split(" ");
-					// gets the mount path
-					String element = lineElements[1];
-					
-					if (!element.equals("/mnt/secure/asec"))
-					{
-						String testPath = element + File.separator + "Android" + File.separator + "data" + File.separator + apkInfo.getSharedUserId();
-						
-						List<String> results = ADBCommand.getInstance().executeCommand("[ -d " + testPath + " ] && echo '1' || echo '0'");
-						
-						if (!results.isEmpty() && Integer.valueOf(results.get(0)).intValue() == 1)
-						{
-							externalStorage = element + "/";
-						}
-						else
-						{
-							// ignore default mount path and others
-							if (!element.equals("/mnt/sdcard"))
-							{
-								externalStorage = element + "/";
-							}
-						}
-					}
-				}
-			}
-		}
-		catch (ADBCommandException ace)
-		{
-			LOG.warn(ace.getMessage(), ace);
-		}
-		
-		if (externalStorage == null)
-		{
-			externalStorage = "/mnt/sdcard/";
-		}
-		
-		return externalStorage;
-	}
-	
-	/**
-	 * Reads and parse <code>version.json</code> from a given JSON file and builds a {@link List} of {@link ApkInfo}.
+	 * Reads and parse <code>versions.json</code> from a given JSON file and builds a {@link List} of {@link ApkInfo}.
 	 * @param jsonFile JSON file to parse
-	 * @return a {@link List} of {@link ApkInfo} parsed from <code>version.json</code> or empty list if <code>version.json</code> cannot be found
+	 * @return a {@link List} of {@link ApkInfo} parsed from <code>versions.json</code> or empty list if <code>versions.json</code> cannot be found
 	 */
 	public static List<ApkInfo> getApkInfosFromJson(File jsonFile)
 	{

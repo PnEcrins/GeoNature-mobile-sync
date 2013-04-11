@@ -264,13 +264,19 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 			// about flag -f 32, see: http://developer.android.com/reference/android/content/Intent.html#FLAG_INCLUDE_STOPPED_PACKAGES
 			if (!ADBCommand.getInstance().executeCommand("am broadcast -a " + apkInfo.getPackageName() + ".INTENT_PACKAGE_INFO -f 32").isEmpty())
 			{
-				ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory() + "Android/data/" + apkInfo.getSharedUserId() + "/version.json", TaskManager.getInstance().getTemporaryDirectory().getAbsolutePath());
-				JSONObject versionJson = new JSONObject(FileUtils.readFileToString(new File(TaskManager.getInstance().getTemporaryDirectory(), "version.json")));
-				
-				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
-				
-				return versionJson.has("package") && versionJson.has("versionCode");
+				if (ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory() + "Android/data/" + apkInfo.getSharedUserId() + "/version_" + apkInfo.getPackageName() + ".json", TaskManager.getInstance().getTemporaryDirectory().getAbsolutePath()))
+				{
+					JSONObject versionJson = new JSONObject(FileUtils.readFileToString(new File(TaskManager.getInstance().getTemporaryDirectory(), "version_" + apkInfo.getPackageName() + ".json")));
+					
+					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
+					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
+					
+					return versionJson.has("package") && versionJson.has("versionCode");
+				}
+				else
+				{
+					return false;
+				}
 			}
 			else
 			{
@@ -299,7 +305,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 	{
 		try
 		{
-			ApkInfo apkInfoFromDevice = new ApkInfo(new JSONObject(FileUtils.readFileToString(new File(TaskManager.getInstance().getTemporaryDirectory(), "version.json"))));
+			ApkInfo apkInfoFromDevice = new ApkInfo(new JSONObject(FileUtils.readFileToString(new File(TaskManager.getInstance().getTemporaryDirectory(), "version_" + apkInfo.getPackageName() + ".json"))));
 			
 			LOG.info("installed mobile application : " + apkInfoFromDevice.getPackageName() + ", version : " + apkInfoFromDevice.getVersionName() + " (" + apkInfoFromDevice.getVersionCode() + ")");
 			

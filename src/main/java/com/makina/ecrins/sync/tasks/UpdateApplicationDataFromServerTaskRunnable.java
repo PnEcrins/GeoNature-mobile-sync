@@ -74,6 +74,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		}
 		else
 		{
+			// uses the first mobile application declaration
 			apkInfo = apks.get(0);
 			
 			return true;
@@ -82,7 +83,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	
 	private boolean checkFileSize(long remoteFileSize, String remoteName) throws ADBCommandException
 	{
-		return ADBCommand.getInstance().getFileSize(getDeviceFilePath(remoteName)) == remoteFileSize;
+		return ADBCommand.getInstance().getFileSize(getDeviceFilePath(remoteName, false)) == remoteFileSize;
 	}
 	
 	private boolean downloadDataFromServer()
@@ -191,14 +192,30 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		return result;
 	}
 	
-	private String getDeviceFilePath(String remoteName)
+	private String getDeviceFilePath(String remoteName, boolean useDefaultExternalStorage)
 	{
-		return ApkUtils.getExternalStorageDirectory(apkInfo) + "Android/data/" + apkInfo.getSharedUserId() + "/" + remoteName;
+		if (useDefaultExternalStorage)
+		{
+			return ApkUtils.getDefaultExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + "/" + remoteName;
+		}
+		else
+		{
+			return ApkUtils.getExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + "/" + remoteName;
+		}
 	}
 	
 	private void copyFileToDevice(File localFile, String remoteName) throws ADBCommandException
 	{
-		ADBCommand.getInstance().push(localFile.getAbsolutePath(),getDeviceFilePath(remoteName));
+		if ((ADBCommand.getInstance().getBuildVersion() > 15) || ApkUtils.getExternalStorageDirectory().equals(ApkUtils.getDefaultExternalStorageDirectory()))
+		{
+			ADBCommand.getInstance().push(localFile.getAbsolutePath(), getDeviceFilePath(remoteName, false));
+		}
+		else
+		{
+			// uses specific service from mobile application to move the given file to the right place (use the external storage path)
+			ADBCommand.getInstance().push(localFile.getAbsolutePath(), getDeviceFilePath(remoteName, true));
+			ADBCommand.getInstance().executeCommand("am broadcast -a " + apkInfo.getPackageName() + ".INTENT_MOVE_FILE_TO_EXTERNAL_STORAGE -e " + apkInfo.getPackageName() + ".file " + remoteName + " -f 32");
+		}
 	}
 	
 	private boolean copyInputStream(String inputName, InputStream in, OutputStream out, long contentLength, int currentExport, int numberOfExports)

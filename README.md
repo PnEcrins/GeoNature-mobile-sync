@@ -24,15 +24,15 @@ You'll need to download and install :
 
 #### Launch4j
 
-Execute *Launch4j* and open configuration file using `setup/sync.xml`.
+Execute *Launch4j* and open configuration file using `setup/sync-x86.xml` or `setup/sync-x86_64.xml` depending on the target architecture.
 Click on "Build wrapper" button (button shaped like a wheel gear).
 *Launch4j* will produce an executable `sync.exe` in `setup/` folder.
 
 #### Inno Setup Compiler
 
-Execute *Inno Setup Compiler* and open script file `setup/sync.iss`.
+Execute *Inno Setup Compiler* and open script file `setup/sync-x86.iss` or `setup/sync-x86_64.iss` depending on the target architecture.
 Click on "Compile" button or use combination keys ``CTRL+F9`` to perform the final build.
-*Inno Setup* will produce the final executable to distribute named `setup_sync-<version>.exe` in `setup/Output/` folder.
+*Inno Setup* will produce the final executable to distribute named `setup_sync-<version>-<arch>.exe` in `setup/Output/` folder.
 
 ## Run
 
