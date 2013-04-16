@@ -34,7 +34,7 @@ public class ApkUtils
 	
 	/**
 	 * Gets the relative path used by the given {@link ApkInfo} instance.
-	 * @param apkInfo {@link ApkInfo} instance on which to get {@link ApkInfo#getApkName()}
+	 * @param apkInfo {@link ApkInfo} instance on which to get {@link ApkInfo#getSharedUserId()}
 	 * @return the relative path
 	 */
 	public static String getRelativeSharedPath(ApkInfo apkInfo)

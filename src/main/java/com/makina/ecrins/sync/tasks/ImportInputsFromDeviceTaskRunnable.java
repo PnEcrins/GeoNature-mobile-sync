@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.io.filefilter.PrefixFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.apache.http.HttpEntity;
@@ -49,7 +50,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	private static DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 	
 	private File inputsTempDir;
-	private ApkInfo apkInfo;
+	private List<ApkInfo> apks = new ArrayList<ApkInfo>();
 	
 	@Override
 	public void run()
@@ -85,7 +86,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		this.inputsTempDir = new File(TaskManager.getInstance().getTemporaryDirectory(), "inputs");
 		this.inputsTempDir.mkdir();
 		
-		List<ApkInfo> apks = ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json"));
+		apks = ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json"));
 		
 		if (apks.isEmpty())
 		{
@@ -93,10 +94,9 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		}
 		else
 		{
-			apkInfo = apks.get(0);
-			ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + "inputs/", this.inputsTempDir.getAbsolutePath());
+			ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apks.get(0)) + "inputs/", this.inputsTempDir.getAbsolutePath());
 			
-			return FileUtils.listFiles(this.inputsTempDir, new RegexFileFilter("^input_\\d+.json$"), new PrefixFileFilter(apkInfo.getSharedUserId())).size() > 0;
+			return FileUtils.listFiles(this.inputsTempDir, new RegexFileFilter("^input_\\d+.json$"), new PrefixFileFilter(apks.get(0).getSharedUserId())).size() > 0;
 		}
 	}
 	
@@ -104,12 +104,12 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	{
 		if (ADBCommand.getInstance().getBuildVersion() > 15)
 		{
-			ADBCommand.getInstance().executeCommand("rm " + ApkUtils.getExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + "inputs/" + inputJson.getParentFile().getName() + "/" + inputJson.getName());
+			ADBCommand.getInstance().executeCommand("rm " + ApkUtils.getExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apks.get(0)) + "inputs/" + inputJson.getParentFile().getName() + "/" + inputJson.getName());
 		}
 		else
 		{
 			// uses specific service from mobile application to delete the given input
-			ADBCommand.getInstance().executeCommand("am broadcast -a " + inputJson.getParentFile().getName() + ".INTENT_DELETE_INPUT -e " + apkInfo.getPackageName() + ".file " + inputJson.getName() + " -f 32");
+			ADBCommand.getInstance().executeCommand("am broadcast -a " + inputJson.getParentFile().getName() + ".INTENT_DELETE_INPUT -e " + inputJson.getParentFile().getName() + ".file " + inputJson.getName() + " -f 32");
 		}
 	}
 	
@@ -176,8 +176,15 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		{
 			int currentInput = 0;
 			
+			List<String> packageNames = new ArrayList<String>();
+			
+			for (ApkInfo apkInfo : apks)
+			{
+				packageNames.add(apkInfo.getPackageName());
+			}
+			
 			// finds all inputs as json file
-			Collection<File> inputFiles = FileUtils.listFiles(this.inputsTempDir, new RegexFileFilter("^input_\\d+.json$"), new PrefixFileFilter(apkInfo.getSharedUserId()));
+			Collection<File> inputFiles = FileUtils.listFiles(this.inputsTempDir, new RegexFileFilter("^input_\\d+.json$"), new NameFileFilter(packageNames));
 			
 			for (File inputFile : inputFiles)
 			{
