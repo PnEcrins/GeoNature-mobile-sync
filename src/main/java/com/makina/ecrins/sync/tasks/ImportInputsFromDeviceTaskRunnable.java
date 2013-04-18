@@ -227,6 +227,12 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 					else
 					{
 						LOG.error("unable to upload input from URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode());
+						
+						// pulls content stream from response
+						HttpEntity entity = httpResponse.getEntity();
+						InputStream inputStream = entity.getContent();
+						readInputStreamAsJson(inputFile.getName(), inputStream, entity.getContentLength(), currentInput, inputFiles.size());
+						
 						setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.STATUS_FAILED));
 						result = false;
 					}

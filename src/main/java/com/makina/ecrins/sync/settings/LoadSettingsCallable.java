@@ -75,6 +75,8 @@ public class LoadSettingsCallable implements Callable<SyncSettings>
 			LOG.info("default 'settings.json' loaded");
 		}
 		
+		LOG.info("server sync : " + LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl());
+		
 		return syncSettings;
 	}
 	
