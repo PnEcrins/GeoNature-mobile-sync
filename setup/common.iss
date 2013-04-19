@@ -5,6 +5,7 @@
 #define MyAppVersion "0.2.1"
 #define MyAppPublisher "Makina Corpus"
 #define MyAppExeName "sync.exe"
+#define MyAppHelpFileName "sync.pdf"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -45,6 +46,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "unzip.exe"; DestDir: "{tmp}"; Flags: ignoreversion
+Source: "sync.pdf"; DestDir: "{app}"; Flags: ignoreversion
 Source: "sync.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "../target/sync-{#MyAppVersion}-win32-{#Arch}.jar"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
@@ -57,6 +59,7 @@ Name: "{app}\usb_driver"
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
+Name: "{group}\{#MyAppHelpFileName}"; Filename: "{app}\{#MyAppHelpFileName}"
 Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Code]
