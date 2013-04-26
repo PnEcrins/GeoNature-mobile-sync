@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -245,11 +246,20 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 	{
 		try
 		{
-			List<String> result = ADBCommand.getInstance().executeCommand("pm list packages | grep " + apkInfo.getPackageName());
+			boolean result = false;
+			
+			List<String> results = ADBCommand.getInstance().executeCommand("pm list packages");
+			Iterator<String> iterator = results.iterator();
+			
+			while (!result && iterator.hasNext())
+			{
+				result = StringUtils.substringAfter(iterator.next(), ":").equals(apkInfo.getPackageName());
+			}
+			
 			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, 0);
 			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
 			
-			return !result.isEmpty() && StringUtils.substringAfter(result.get(0), ":").equals(apkInfo.getPackageName());
+			return result;
 		}
 		catch (ADBCommandException ace)
 		{
@@ -264,7 +274,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 			// about flag -f 32, see: http://developer.android.com/reference/android/content/Intent.html#FLAG_INCLUDE_STOPPED_PACKAGES
 			if (!ADBCommand.getInstance().executeCommand("am broadcast -a " + apkInfo.getPackageName() + ".INTENT_PACKAGE_INFO -f 32").isEmpty())
 			{
-				if (ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory() + "Android/data/" + apkInfo.getSharedUserId() + "/version_" + apkInfo.getPackageName() + ".json", TaskManager.getInstance().getTemporaryDirectory().getAbsolutePath()))
+				if (ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory() + "/Android/data/" + apkInfo.getSharedUserId() + "/version_" + apkInfo.getPackageName() + ".json", TaskManager.getInstance().getTemporaryDirectory().getAbsolutePath()))
 				{
 					JSONObject versionJson = new JSONObject(FileUtils.readFileToString(new File(TaskManager.getInstance().getTemporaryDirectory(), "version_" + apkInfo.getPackageName() + ".json")));
 					
@@ -437,22 +447,55 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 			
 			try
 			{
+				LOG.info("try to install " + apkInfo.getApkName() + " ...");
+				
 				boolean result = ADBCommand.getInstance().install(apkFile.getAbsolutePath(), keepData);
 				
 				if (result)
 				{
-					LOG.info(apkInfo.getApkName() + " successfully installed");
+					LOG.info(apkInfo.getPackageName() + " successfully installed");
 					
 					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
 					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_PENDING));
 				}
 				else
 				{
-					LOG.error("failed to install " + apkInfo.getApkName());
+					// something is going wrong : trying to uninstall and reinstall the application package
+					LOG.warn("failed to install " + apkInfo.getApkName());
 					
-					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_FAILED));
-					this.result = false;
+					if (uninstallAllApplications())
+					{
+						progress = computeProgress(apkIndex, apks.size(), 1, 2, ratio, factor, offset);
+						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_PENDING));
+						
+						LOG.info("try to install " + apkInfo.getApkName() + " ...");
+						
+						result = ADBCommand.getInstance().install(apkFile.getAbsolutePath(), false);
+						
+						if (result)
+						{
+							LOG.info(apkInfo.getApkName() + " successfully installed");
+							
+							progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
+							setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_PENDING));
+						}
+						else
+						{
+							LOG.error("failed to install " + apkInfo.getApkName());
+							
+							progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
+							setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_FAILED));
+							this.result = false;
+						}
+					}
+					else
+					{
+						LOG.error("failed to uninstall " + apkInfo.getPackageName());
+						
+						progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
+						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_FAILED));
+						this.result = false;
+					}
 				}
 				
 				return result;
@@ -478,6 +521,50 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 			
 			return false;
 		}
+	}
+	
+	/**
+	 * Tries to uninstall all registered mobile applications
+	 * 
+	 * @return <code>true</code> if all registered mobile applications were successfully uninstalled
+	 */
+	private boolean uninstallAllApplications()
+	{
+		boolean result = true;
+		
+		for (ApkInfo apkInfo : apks)
+		{
+			try
+			{
+				LOG.info("try to uninstall " + apkInfo.getPackageName() + " ...");
+				
+				if (ADBCommand.getInstance().listPackages(apkInfo.getPackageName()).isEmpty())
+				{
+					LOG.info(apkInfo.getPackageName() + " is not installed");
+				}
+				else
+				{
+					if (ADBCommand.getInstance().uninstall(apkInfo.getPackageName()))
+					{
+						LOG.info(apkInfo.getPackageName() + " successfully uninstalled");
+					}
+					else
+					{
+						LOG.error("failed to uninstall " + apkInfo.getPackageName());
+						
+						result = false;
+					}
+				}
+			}
+			catch (ADBCommandException ace)
+			{
+				LOG.error(ace.getMessage(), ace);
+				
+				result = false;
+			}
+		}
+		
+		return result;
 	}
 	
 	/**

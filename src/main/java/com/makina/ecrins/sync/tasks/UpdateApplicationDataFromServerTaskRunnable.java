@@ -196,11 +196,11 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	{
 		if (useDefaultExternalStorage)
 		{
-			return ApkUtils.getDefaultExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + "/" + remoteName;
+			return ApkUtils.getDefaultExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + remoteName;
 		}
 		else
 		{
-			return ApkUtils.getExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + "/" + remoteName;
+			return ApkUtils.getExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + remoteName;
 		}
 	}
 	

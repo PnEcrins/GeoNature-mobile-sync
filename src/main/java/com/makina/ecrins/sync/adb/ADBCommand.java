@@ -362,6 +362,61 @@ public class ADBCommand
 	}
 	
 	/**
+	 * Removes the given application package from the device
+	 * 
+	 * @param packageName the application package to remove
+	 * @return <code>true</code> if the given application package was successfully removed
+	 * @throws ADBCommandException
+	 */
+	public boolean uninstall(String packageName) throws ADBCommandException
+	{
+		try
+		{
+			boolean result = false;
+			
+			ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "uninstall", packageName);
+			LOG.debug("uninstall : " + pb.command().toString());
+			
+			Process p = pb.start();
+			
+			for (String line : IOUtils.readLines(p.getInputStream()))
+			{
+				LOG.debug(line);
+				
+				if (!result)
+				{
+					result = line.startsWith("Success");
+				}
+			}
+			
+			return result;
+		}
+		catch (IOException ioe)
+		{
+			throw new ADBCommandException(ioe.getMessage(), ioe);
+		}
+	}
+	
+	/**
+	 * Returns a list of installed packages, optionally only those whose package name contains the text in filterNames.
+	 * 
+	 * @param filter filter to apply
+	 * @return a list of installed packages
+	 * @throws ADBCommandException 
+	 */
+	public List<String> listPackages(String filter) throws ADBCommandException
+	{
+		if (StringUtils.isNotBlank(filter))
+		{
+			return ADBCommand.getInstance().executeCommand("pm list packages " + filter);
+		}
+		else
+		{
+			return ADBCommand.getInstance().executeCommand("pm list packages");
+		}
+	}
+	
+	/**
 	 * Blocks until device is connected.
 	 * 
 	 * @throws ADBCommandException 

@@ -140,6 +140,7 @@ public class ConsoleLogComposite extends Composite implements Observer
 											break;
 										case Level.WARN_INT:
 											tableItem.setForeground(getDisplay().getSystemColor(SWT.COLOR_DARK_YELLOW));
+											break;
 										default:
 											tableItem.setForeground(getDisplay().getSystemColor(SWT.COLOR_BLUE));
 											break;

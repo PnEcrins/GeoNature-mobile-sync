@@ -56,8 +56,8 @@ public class ADBCommandTest
 			Assert.assertTrue(inputJson.exists());
 			
 			File inputJsonFromDevice = new File(tempDir, "input_1234_copy.json");
-			ADBCommand.getInstance().push(inputJson.getAbsolutePath(), ApkUtils.getExternalStorageDirectory() + "Android/data/sync/input_1234.json");
-			ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory() + "Android/data/sync/input_1234.json", inputJsonFromDevice.getAbsolutePath());
+			ADBCommand.getInstance().push(inputJson.getAbsolutePath(), ApkUtils.getExternalStorageDirectory() + "/Android/data/sync/input_1234.json");
+			ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory() + "/Android/data/sync/input_1234.json", inputJsonFromDevice.getAbsolutePath());
 			
 			LOG.debug("input JSON from device : " + inputJsonFromDevice.getAbsolutePath());
 			LOG.debug("input_1234.json checksum : " + FileUtils.checksumCRC32(inputJson));
@@ -122,9 +122,9 @@ public class ADBCommandTest
 			FileUtils.copyFile(inputResourceJson, inputJson);
 			Assert.assertTrue(inputJson.exists());
 			
-			ADBCommand.getInstance().push(inputJson.getAbsolutePath(), ApkUtils.getExternalStorageDirectory() + "Android/data/sync/input_1234.json");
+			ADBCommand.getInstance().push(inputJson.getAbsolutePath(), ApkUtils.getExternalStorageDirectory() + "/Android/data/sync/input_1234.json");
 			
-			long fileSize = ADBCommand.getInstance().getFileSize(ApkUtils.getExternalStorageDirectory() + "Android/data/sync/input_1234.json");
+			long fileSize = ADBCommand.getInstance().getFileSize(ApkUtils.getExternalStorageDirectory() + "/Android/data/sync/input_1234.json");
 			
 			LOG.debug("file size : " + fileSize);
 			
