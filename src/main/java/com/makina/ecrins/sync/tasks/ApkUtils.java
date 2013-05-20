@@ -20,7 +20,7 @@ import com.makina.ecrins.sync.adb.ADBCommandException;
  * 
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
-public class ApkUtils
+public final class ApkUtils
 {
 	private static final Logger LOG = Logger.getLogger(ApkUtils.class);
 	

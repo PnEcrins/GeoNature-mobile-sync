@@ -13,7 +13,7 @@ import org.json.JSONObject;
  * 
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
-public class InputUtils
+public final class InputUtils
 {
 	/**
 	 * {@link InputUtils} instances should NOT be constructed in standard programming.

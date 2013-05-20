@@ -28,7 +28,7 @@ import com.makina.ecrins.sync.logger.LoggingOutputStream;
  * 
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
-public class ADBCommand
+public final class ADBCommand
 {
 	public static final String STATE_OFFLINE = "offline";
 	public static final String STATE_BOOTLOADER = "bootloader";

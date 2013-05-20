@@ -2,8 +2,6 @@ package com.makina.ecrins.sync.server;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -11,19 +9,14 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.utils.HttpClientUtils;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.makina.ecrins.sync.server.WebAPIClientUtils.HTTPCallback;
 import com.makina.ecrins.sync.service.Status;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 
@@ -75,68 +68,71 @@ public class CheckServerRunnable extends Observable implements Runnable
 			setStatus(Status.STATUS_PENDING);
 		}
 		
-		final DefaultHttpClient httpClient = new DefaultHttpClient();
-		final HttpParams httpParameters = httpClient.getParams();
-		HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
-		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
-		
-		HttpResponse httpResponse = null;
-		
-		try
-		{
-			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
-			nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSyncSettings().getServerToken()));
-			
-			String urlStatus =	LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
-								LoadSettingsCallable.getInstance().getSyncSettings().getStatusUrl();
-			
-			HttpPost httpPost = new HttpPost(urlStatus);
-			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-			
-			httpResponse = httpClient.execute(httpPost);
-			
-			// checks if server response is valid
-			StatusLine status = httpResponse.getStatusLine();
-			
-			if (status.getStatusCode() == HttpStatus.SC_OK)
-			{
-				HttpEntity entity = httpResponse.getEntity();
-				InputStream is = entity.getContent();
-				JSONObject jsonResponse = new JSONObject(IOUtils.toString(is));
-				
-				if (jsonResponse.getInt("status_code") == 0)
+		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+		WebAPIClientUtils.httpPost(httpClient,
+				LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
+				LoadSettingsCallable.getInstance().getSyncSettings().getStatusUrl(),
+				LoadSettingsCallable.getInstance().getSyncSettings().getServerToken(),
+				new HTTPCallback()
 				{
-					if (!getStatus().equals(Status.STATUS_CONNECTED))
+					@Override
+					public void onResponse(HttpRequestBase httpRequestBase, HttpResponse httpResponse)
 					{
-						setStatus(Status.STATUS_CONNECTED);
+						// checks if server response is valid
+						StatusLine status = httpResponse.getStatusLine();
+						
+						if (status.getStatusCode() == HttpStatus.SC_OK)
+						{
+							HttpEntity entity = httpResponse.getEntity();
+							
+							try
+							{
+								InputStream is = entity.getContent();
+								JSONObject jsonResponse = new JSONObject(IOUtils.toString(is));
+								
+								if (jsonResponse.getInt("status_code") == 0)
+								{
+									if (!getStatus().equals(Status.STATUS_CONNECTED))
+									{
+										setStatus(Status.STATUS_CONNECTED);
+									}
+								}
+								else
+								{
+									setStatus(Status.STATUS_FAILED);
+								}
+							}
+							catch (IllegalStateException ise)
+							{
+								LOG.error(ise.getLocalizedMessage());
+								setStatus(Status.STATUS_FAILED);
+							}
+							catch (IOException ioe)
+							{
+								LOG.error(ioe.getLocalizedMessage());
+								setStatus(Status.STATUS_FAILED);
+							}
+							catch (JSONException je)
+							{
+								LOG.error(je.getLocalizedMessage());
+								setStatus(Status.STATUS_FAILED);
+							}
+						}
+						else
+						{
+							LOG.warn("unable to check server status from URL : " + httpRequestBase.getURI() + ", HTTP status : " + status.getStatusCode());
+							setStatus(Status.STATUS_FAILED);
+						}
 					}
-				}
-				else
-				{
-					setStatus(Status.STATUS_FAILED);
-				}
-			}
-			else
-			{
-				LOG.warn("unable to check server status from URL : " + urlStatus + ", HTTP status : " + status.getStatusCode());
-				setStatus(Status.STATUS_FAILED);
-			}
-		}
-		catch (JSONException je)
-		{
-			LOG.error(je.getLocalizedMessage());
-			setStatus(Status.STATUS_FAILED);
-			HttpClientUtils.closeQuietly(httpResponse);
-		}
-		catch (IOException ioe)
-		{
-			LOG.error(ioe.getLocalizedMessage());
-			setStatus(Status.STATUS_FAILED);
-			HttpClientUtils.closeQuietly(httpResponse);
-		}
-		finally
-		{
-			httpClient.getConnectionManager().shutdown();
-		}
+					
+					@Override
+					public void onError(Exception e)
+					{
+						LOG.error(e.getLocalizedMessage());
+						setStatus(Status.STATUS_FAILED);
+					}
+				});
+				
+		WebAPIClientUtils.shutdownHttpClient(httpClient);
 	}
 }

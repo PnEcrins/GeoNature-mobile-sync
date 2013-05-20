@@ -1,0 +1,30 @@
+{
+	"sync":
+	{
+		"url": "http://dev.ecrins-parcnational.fr/synchrofaune/",
+		"token": 666,
+		"timeout": 10000,
+		"status_url": "status/",
+		"import_url": "import/",
+		"app_update":
+		{
+			"version_url": "soft_version/",
+			"download_url": "soft_download/"
+		},
+		"exports":
+		[
+			{
+				"url": "export/sqlite/",
+				"file": "databases/data.db"
+			},
+			{
+				"url": "export/unity_polygons/",
+				"file": "unities.wkt"
+			},
+			{
+				"url": "data_download/unities.mbtiles/",
+				"file": "databases/unities.mbtiles"
+			}
+		]
+	}
+}
