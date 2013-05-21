@@ -39,7 +39,7 @@ public class SmartphoneStatusWidget implements Observer
 		this.display = display;
 		this.parent = parent;
 		
-		this.status = Status.STATUS_NONE;
+		this.status = Status.NONE;
 		
 		createContents();
 	}
@@ -60,7 +60,7 @@ public class SmartphoneStatusWidget implements Observer
 		{
 			public void paintControl(PaintEvent pe)
 			{
-				pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_" + status.getLabel() + ".png"), 0, 0);
+				pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_" + status.name() + ".png"), 0, 0);
 			}
 		});
 
@@ -102,23 +102,23 @@ public class SmartphoneStatusWidget implements Observer
 					{
 						canvasSmartphoneStatus.redraw();
 						
-						labelSmartphoneStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + status.getLabel()));
+						labelSmartphoneStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + status.name().toLowerCase()));
 						labelSmartphoneStatus.getParent().layout();
 						
 						switch (status)
 						{
-							case STATUS_PENDING:
+							case PENDING:
 								labelSmartphone.setForeground(UIResourceManager.getColor(218, 165, 32));
 								labelSmartphoneSeparator.setForeground(UIResourceManager.getColor(218, 165, 32));
 								labelSmartphoneStatus.setForeground(UIResourceManager.getColor(218, 165, 32));
 								break;
-							case STATUS_FAILED:
+							case FAILED:
 								labelSmartphone.setForeground(UIResourceManager.getColor(255, 0, 0));
 								labelSmartphoneSeparator.setForeground(UIResourceManager.getColor(255, 0, 0));
 								labelSmartphoneStatus.setForeground(UIResourceManager.getColor(255, 0, 0));
 								break;
-							case STATUS_CONNECTED:
-							case STATUS_FINISH:
+							case CONNECTED:
+							case FINISH:
 								labelSmartphone.setForeground(UIResourceManager.getColor(0, 128, 0));
 								labelSmartphoneSeparator.setForeground(UIResourceManager.getColor(0, 128, 0));
 								labelSmartphoneStatus.setForeground(UIResourceManager.getColor(0, 128, 0));

@@ -48,7 +48,7 @@ public class TaskManager implements Observer
 	{
 		LOG.debug("new instance of TaskManager");
 		
-		this.status = Status.STATUS_NONE;
+		this.status = Status.NONE;
 		this.tempDir = new File(FileUtils.getTempDirectory(), "sync_data_" + Long.toString(System.currentTimeMillis()));
 		this.tempDir.mkdir();
 		
@@ -96,9 +96,9 @@ public class TaskManager implements Observer
 		
 		synchronized (tasks)
 		{
-			if (this.status.equals(Status.STATUS_NONE))
+			if (this.status.equals(Status.NONE))
 			{
-				this.status = Status.STATUS_PENDING;
+				this.status = Status.PENDING;
 				
 				for (AbstractTaskRunnable taskRunnable : this.tasks)
 				{
@@ -128,20 +128,20 @@ public class TaskManager implements Observer
 		{
 			switch (((AbstractTaskRunnable) o).getTaskStatus().getStatus())
 			{
-				case STATUS_FINISH:
+				case FINISH:
 					synchronized (tasks)
 					{
-						Status currentStatus = Status.STATUS_FINISH;
+						Status currentStatus = Status.FINISH;
 						Iterator<AbstractTaskRunnable> iterator = tasks.iterator();
 						
-						while (iterator.hasNext() && currentStatus.equals(Status.STATUS_FINISH))
+						while (iterator.hasNext() && currentStatus.equals(Status.FINISH))
 						{
 							currentStatus = iterator.next().getTaskStatus().getStatus();
 						}
 						
-						if (currentStatus.equals(Status.STATUS_FINISH))
+						if (currentStatus.equals(Status.FINISH))
 						{
-							this.status = Status.STATUS_FINISH;
+							this.status = Status.FINISH;
 						}
 					}
 					

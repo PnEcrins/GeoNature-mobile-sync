@@ -55,7 +55,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	@Override
 	public void run()
 	{
-		setTaskStatus(new TaskStatus(-1, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_PENDING));
+		setTaskStatus(new TaskStatus(-1, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.PENDING));
 		
 		try
 		{
@@ -63,17 +63,17 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 			
 			if (uploadInputs())
 			{
-				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FINISH));
+				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.FINISH));
 			}
 			else
 			{
-				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
+				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.FAILED));
 			}
 		}
 		catch (ADBCommandException ace)
 		{
 			LOG.error(ace.getMessage(), ace);
-			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
+			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.FAILED));
 		}
 		finally
 		{
@@ -125,11 +125,11 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 				
 				if (isSynchronized)
 				{
-					LOG.info("'" + inputJson.getName() + "' synchronized");
+					LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.success.text"), inputJson.getName()));
 				}
 				else
 				{
-					LOG.warn("'" + inputJson.getName() + "' not synchronized");
+					LOG.warn(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.failed.text"), inputJson.getName()));
 				}
 			}
 			catch (JSONException je)
@@ -147,7 +147,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		}
 		else
 		{
-			LOG.warn("'" + inputJson.getAbsolutePath() + "' not found !");
+			LOG.warn(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.notfound.text"), inputJson.getAbsolutePath()));
 		}
 	}
 	
@@ -185,12 +185,13 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 			
 			// finds all inputs as json file
 			Collection<File> inputFiles = FileUtils.listFiles(this.inputsTempDir, new RegexFileFilter("^input_\\d+.json$"), new NameFileFilter(packageNames));
+			int inputsSynchronized = 0;
+			int inputsFailed = 0;
 			
 			for (File inputFile : inputFiles)
 			{
-				LOG.info("synchronizing '" + inputFile.getName() + "' ...");
-				
-				setTaskStatus(new TaskStatus((int) (((double) currentInput / (double) inputFiles.size()) * 100), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.STATUS_PENDING));
+				setTaskStatus(new TaskStatus((int) (((double) currentInput / (double) inputFiles.size()) * 100), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.PENDING));
+				LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()));
 				
 				try
 				{
@@ -213,12 +214,14 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 						
 						if (isSynchronized)
 						{
-							setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.finish.text"), inputFile.getName()), Status.STATUS_PENDING));
+							setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.finish.text"), inputFile.getName()), Status.PENDING));
+							inputsSynchronized++;
 						}
 						else
 						{
-							setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.STATUS_FAILED));
+							setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.FAILED));
 							result = false;
+							inputsFailed++;
 						}
 						
 						deleteInputFromDevice(inputFile);
@@ -226,15 +229,16 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 					}
 					else
 					{
-						LOG.error("unable to upload input from URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode());
+						LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.failed.text"), inputFile.getName()) + " (URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
 						
 						// pulls content stream from response
 						HttpEntity entity = httpResponse.getEntity();
 						InputStream inputStream = entity.getContent();
 						readInputStreamAsJson(inputFile.getName(), inputStream, entity.getContentLength(), currentInput, inputFiles.size());
 						
-						setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.STATUS_FAILED));
+						setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.FAILED));
 						result = false;
+						inputsFailed++;
 					}
 				}
 				catch (IOException ioe)
@@ -243,7 +247,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 					
 					httpPost.abort();
 					result = false;
-					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.STATUS_FAILED));
+					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.FAILED));
 				}
 				catch (ADBCommandException ace)
 				{
@@ -251,7 +255,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 					
 					httpPost.abort();
 					result = false;
-					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.STATUS_FAILED));
+					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.FAILED));
 				}
 				finally
 				{
@@ -261,17 +265,33 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 				currentInput++;
 			}
 			
-			if (inputFiles.size() > 1)
+			if (inputFiles.size() > 0)
 			{
-				LOG.info(inputFiles.size() + " inputs synchronized");
-			}
-			else if (inputFiles.size() == 1)
-			{
-				LOG.info(inputFiles.size() + " input synchronized");
+				if (inputsSynchronized == 1)
+				{
+					LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.size.one.text"), inputsSynchronized));
+				}
+				else if (inputsSynchronized > 1)
+				{
+					LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.size.other.text"), inputsSynchronized));
+				}
+				else
+				{
+					LOG.warn(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.size.none.text"));
+				}
+				
+				if (inputsFailed == 1)
+				{
+					LOG.warn(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.failed.size.one.text"), inputsFailed));
+				}
+				else if (inputsFailed > 1)
+				{
+					LOG.warn(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.failed.size.other.text"), inputsFailed));
+				}
 			}
 			else
 			{
-				LOG.info("no input to synchronize");
+				LOG.info(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.size.none.text"));
 			}
 		}
 		finally
@@ -319,7 +339,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 				{
 					int currentProgress =  (int) (((double) totalBytesRead / (double) contentLength) * 100);
 					
-					setTaskStatus(new TaskStatus((int) (((double) currentInput / (double) numberOfInputs) * 100) + (currentProgress / numberOfInputs), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputName), Status.STATUS_PENDING));
+					setTaskStatus(new TaskStatus((int) (((double) currentInput / (double) numberOfInputs) * 100) + (currentProgress / numberOfInputs), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputName), Status.PENDING));
 				}
 			}
 			

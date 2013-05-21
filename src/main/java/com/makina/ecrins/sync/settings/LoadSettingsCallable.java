@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
+import java.text.MessageFormat;
+import java.util.ResourceBundle;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.io.FileUtils;
@@ -19,6 +21,8 @@ import org.json.JSONObject;
  */
 public class LoadSettingsCallable implements Callable<SyncSettings>
 {
+	public static final String SETTINGS_FILE = "settings.json";
+	
 	private static final Logger LOG = Logger.getLogger(LoadSettingsCallable.class);
 	
 	private SyncSettings syncSettings;
@@ -41,13 +45,13 @@ public class LoadSettingsCallable implements Callable<SyncSettings>
 	@Override
 	public SyncSettings call() throws Exception
 	{
-		LOG.debug("loading 'settings.json' ...");
+		LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.loading.text"), SETTINGS_FILE));
 		
 		File rootDirectory = new File(URLDecoder.decode(getClass().getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8")).getParentFile();
 		
-		LOG.info("installation directory : " + rootDirectory.getAbsolutePath());
+		LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.path.text"), rootDirectory.getAbsolutePath()));
 		
-		File jsonSettingsFile = new File(rootDirectory, "settings.json");
+		File jsonSettingsFile = new File(rootDirectory, SETTINGS_FILE);
 		
 		if (jsonSettingsFile.exists())
 		{
@@ -55,16 +59,16 @@ public class LoadSettingsCallable implements Callable<SyncSettings>
 			{
 				syncSettings = new SyncSettings(new JSONObject(FileUtils.readFileToString(jsonSettingsFile)));
 				
-				LOG.info("'settings.json' loaded");
+				LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.loaded.text"), SETTINGS_FILE));
 			}
 			catch (JSONException je)
 			{
-				LOG.warn("failed to load 'settings.json'");
+				LOG.warn(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.load.failed.text"), SETTINGS_FILE));
 				
 				copyDefaultJsonSettingsToFile(jsonSettingsFile);
 				syncSettings = new SyncSettings(new JSONObject(FileUtils.readFileToString(jsonSettingsFile)));
 				
-				LOG.info("default 'settings.json' loaded");
+				LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.loaded.default.text"), SETTINGS_FILE));
 			}
 		}
 		else
@@ -72,10 +76,10 @@ public class LoadSettingsCallable implements Callable<SyncSettings>
 			copyDefaultJsonSettingsToFile(jsonSettingsFile);
 			syncSettings = new SyncSettings(new JSONObject(FileUtils.readFileToString(jsonSettingsFile)));
 			
-			LOG.info("default 'settings.json' loaded");
+			LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.loaded.default.text"), SETTINGS_FILE));
 		}
 		
-		LOG.info("server sync : " + LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl());
+		LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.server.text"), LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl()));
 		
 		return syncSettings;
 	}
@@ -90,7 +94,7 @@ public class LoadSettingsCallable implements Callable<SyncSettings>
 			
 			if (is == null)
 			{
-				LOG.error("failed to load default 'settings.json'");
+				LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.load.default.failed.text"), SETTINGS_FILE));
 			}
 			else
 			{

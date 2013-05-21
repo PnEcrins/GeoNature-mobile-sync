@@ -20,7 +20,7 @@ public class CheckDeviceRunnable extends Observable implements Runnable
 	
 	public CheckDeviceRunnable()
 	{
-		this.status = Status.STATUS_NONE;
+		this.status = Status.NONE;
 	}
 	
 	@Override
@@ -52,14 +52,14 @@ public class CheckDeviceRunnable extends Observable implements Runnable
 	{
 		try
 		{
-			if (getStatus().equals(Status.STATUS_NONE))
+			if (getStatus().equals(Status.NONE))
 			{
-				setStatus(Status.STATUS_PENDING);
+				setStatus(Status.PENDING);
 			}
 			
 			if (ADBCommand.getInstance().getDevices().isEmpty())
 			{
-				setStatus(Status.STATUS_PENDING);
+				setStatus(Status.PENDING);
 			}
 			else
 			{
@@ -67,18 +67,18 @@ public class CheckDeviceRunnable extends Observable implements Runnable
 				
 				if (deviceState.equals(ADBCommand.STATE_DEVICE))
 				{
-					setStatus(Status.STATUS_CONNECTED);
+					setStatus(Status.CONNECTED);
 				}
 				else
 				{
-					setStatus(Status.STATUS_PENDING);
+					setStatus(Status.PENDING);
 				}
 			}
 		}
 		catch (ADBCommandException ace)
 		{
 			LOG.error(ace.getMessage(), ace);
-			setStatus(Status.STATUS_FAILED);
+			setStatus(Status.FAILED);
 		}
 	}
 }

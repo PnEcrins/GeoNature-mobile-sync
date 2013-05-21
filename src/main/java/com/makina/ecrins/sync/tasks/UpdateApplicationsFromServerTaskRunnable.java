@@ -68,7 +68,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 		progress = 0;
 		apks.clear();
 		
-		setTaskStatus(new TaskStatus(-1, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
+		setTaskStatus(new TaskStatus(-1, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
 		
 		// gets all available applications informations from the server
 		if (fetchLastAppsVersionsFromServer(10))
@@ -108,7 +108,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 					else
 					{
 						// the mobile application was not found on the connected device, so install it
-						LOG.info(apkinfo.getPackageName() + " is not installed");
+						LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.notinstalled.text"), apkinfo.getPackageName()));
 						
 						if (downloadLastAppFromServer(apkinfo, ratio, 50, 10))
 						{
@@ -132,7 +132,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 					
 					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, 100, 0);
 					this.result.set(false);
-					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
+					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
 				}
 				
 				apkIndex++;
@@ -147,11 +147,11 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 		
 		if (this.result.get())
 		{
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FINISH));
+			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FINISH));
 		}
 		else
 		{
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
+			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
 		}
 	}
 	
@@ -188,7 +188,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 										super.afterWrite(n);
 										
 										progress = computeProgress(0, 1, getCount(), entity.getContentLength(), 100, factor, 0);
-										setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
+										setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
 									}
 								});
 								
@@ -198,32 +198,32 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 								apks.addAll(ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json")));
 								
 								progress = factor;
-								setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
+								setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
 							}
 							catch (IllegalStateException ise)
 							{
-								LOG.error("unable to download file from URL '" + httpRequestBase.getURI().toString() + "', HTTP status : " + status.getStatusCode());
+								LOG.error(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.downloadversion.failed.text") + " (URL '" + httpRequestBase.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
 								
 								progress = 100;
 								result.set(false);
-								setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
+								setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
 							}
 							catch (IOException ioe)
 							{
-								LOG.error("unable to download file from URL '" + httpRequestBase.getURI().toString() + "', HTTP status : " + status.getStatusCode());
+								LOG.error(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.downloadversion.failed.text") + " (URL '" + httpRequestBase.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
 								
 								progress = 100;
 								result.set(false);
-								setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
+								setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
 							}
 						}
 						else
 						{
-							LOG.error("unable to download file from URL '" + httpRequestBase.getURI().toString() + "', HTTP status : " + status.getStatusCode());
+							LOG.error(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.downloadversion.failed.text") + " (URL '" + httpRequestBase.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
 							
 							progress = 100;
 							result.set(false);
-							setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
+							setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
 						}
 					}
 					
@@ -234,7 +234,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 						
 						progress = 100;
 						result.set(false);
-						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_FAILED));
+						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
 					}
 				});
 		
@@ -265,7 +265,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 			}
 			
 			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, 0);
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
+			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
 			
 			return result;
 		}
@@ -287,7 +287,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 					JSONObject versionJson = new JSONObject(FileUtils.readFileToString(new File(TaskManager.getInstance().getTemporaryDirectory(), "version_" + apkInfo.getPackageName() + ".json")));
 					
 					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
+					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
 					
 					return versionJson.has("package") && versionJson.has("versionCode");
 				}
@@ -325,23 +325,23 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 		{
 			ApkInfo apkInfoFromDevice = new ApkInfo(new JSONObject(FileUtils.readFileToString(new File(TaskManager.getInstance().getTemporaryDirectory(), "version_" + apkInfo.getPackageName() + ".json"))));
 			
-			LOG.info("installed mobile application : " + apkInfoFromDevice.getPackageName() + ", version : " + apkInfoFromDevice.getVersionName() + " (" + apkInfoFromDevice.getVersionCode() + ")");
+			LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.app.installed.text"), apkInfoFromDevice.getPackageName(), apkInfoFromDevice.getVersionName(), apkInfoFromDevice.getVersionCode()));
 			
 			if (apkInfoFromDevice.getVersionCode() < apkInfo.getVersionCode())
 			{
-				LOG.info("found a new version of " + apkInfoFromDevice.getPackageName());
+				LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.app.new.text"), apkInfoFromDevice.getPackageName()));
 				
 				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
+				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
 				
 				return true;
 			}
 			else
 			{
-				LOG.info(apkInfoFromDevice.getPackageName() + " is up to date");
+				LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.app.uptodate.text"), apkInfoFromDevice.getPackageName()));
 				
 				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.STATUS_PENDING));
+				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
 				
 				return false;
 			}
@@ -405,7 +405,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 							super.afterWrite(n);
 							
 							progress = computeProgress(apkIndex, apks.size(), getCount(), entity.getContentLength(), ratio, factor, offset);
-							setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.STATUS_PENDING));
+							setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.PENDING));
 						}
 					});
 					
@@ -414,10 +414,10 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 				}
 				else
 				{
-					LOG.error("unable to download file from URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode());
+					LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.failed.text"), apkInfo.getApkName()) + " (URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
 					
 					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-					setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.STATUS_FAILED));
+					setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.FAILED));
 					this.result.set(false);
 					result = false;
 				}
@@ -427,7 +427,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 				LOG.error(ioe.getMessage(), ioe);
 				
 				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-				setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.STATUS_FAILED));
+				setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.FAILED));
 				this.result.set(false);
 				result = false;
 			}
@@ -451,57 +451,57 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 		if (apkFile.exists())
 		{
 			progress = computeProgress(apkIndex, apks.size(), 0, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_PENDING));
+			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.PENDING));
 			
 			try
 			{
-				LOG.info("try to install " + apkInfo.getApkName() + " ...");
+				LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.text"), apkInfo.getApkName()));
 				
 				boolean result = ADBCommand.getInstance().install(apkFile.getAbsolutePath(), keepData);
 				
 				if (result)
 				{
-					LOG.info(apkInfo.getPackageName() + " successfully installed");
+					LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.success.text"), apkInfo.getPackageName()));
 					
 					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_PENDING));
+					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.PENDING));
 				}
 				else
 				{
 					// something is going wrong : trying to uninstall and reinstall the application package
-					LOG.warn("failed to install " + apkInfo.getApkName());
+					LOG.warn(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.failed.text"), apkInfo.getApkName()));
 					
 					if (uninstallAllApplications())
 					{
 						progress = computeProgress(apkIndex, apks.size(), 1, 2, ratio, factor, offset);
-						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_PENDING));
+						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.PENDING));
 						
-						LOG.info("try to install " + apkInfo.getApkName() + " ...");
+						LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.text"), apkInfo.getApkName()));
 						
 						result = ADBCommand.getInstance().install(apkFile.getAbsolutePath(), false);
 						
 						if (result)
 						{
-							LOG.info(apkInfo.getApkName() + " successfully installed");
+							LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.success.text"), apkInfo.getApkName()));
 							
 							progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-							setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_PENDING));
+							setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.PENDING));
 						}
 						else
 						{
-							LOG.error("failed to install " + apkInfo.getApkName());
+							LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.failed.text"), apkInfo.getApkName()));
 							
 							progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-							setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_FAILED));
+							setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.FAILED));
 							this.result.set(false);
 						}
 					}
 					else
 					{
-						LOG.error("failed to uninstall " + apkInfo.getPackageName());
+						LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.uninstall.failed.text"), apkInfo.getPackageName()));
 						
 						progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_FAILED));
+						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.FAILED));
 						this.result.set(false);
 					}
 				}
@@ -513,7 +513,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 				LOG.error(ace.getMessage(), ace);
 				
 				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_FAILED));
+				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.FAILED));
 				this.result.set(false);
 				
 				return false;
@@ -521,10 +521,10 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 		}
 		else
 		{
-			LOG.error(apkFile.getAbsolutePath() + " not found");
+			LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.notfound.text"), apkFile.getAbsolutePath()));
 			
 			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.STATUS_FAILED));
+			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.FAILED));
 			this.result.set(false);
 			
 			return false;
@@ -544,21 +544,21 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 		{
 			try
 			{
-				LOG.info("try to uninstall " + apkInfo.getPackageName() + " ...");
+				LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.uninstall.text"), apkInfo.getPackageName()));
 				
 				if (ADBCommand.getInstance().listPackages(apkInfo.getPackageName()).isEmpty())
 				{
-					LOG.info(apkInfo.getPackageName() + " is not installed");
+					LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.notinstalled.text"), apkInfo.getPackageName()));
 				}
 				else
 				{
 					if (ADBCommand.getInstance().uninstall(apkInfo.getPackageName()))
 					{
-						LOG.info(apkInfo.getPackageName() + " successfully uninstalled");
+						LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.uninstall.success.text"), apkInfo.getPackageName()));
 					}
 					else
 					{
-						LOG.error("failed to uninstall " + apkInfo.getPackageName());
+						LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.uninstall.failed.text"), apkInfo.getPackageName()));
 						
 						result = false;
 					}

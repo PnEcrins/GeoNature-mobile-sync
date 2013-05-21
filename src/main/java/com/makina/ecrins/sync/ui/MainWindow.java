@@ -1,5 +1,6 @@
 package com.makina.ecrins.sync.ui;
 
+import java.text.MessageFormat;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.ResourceBundle;
@@ -65,15 +66,15 @@ public class MainWindow implements Observer
 	 */
 	public void open()
 	{
-		serverStatus = Status.STATUS_NONE;
-		deviceStatus = Status.STATUS_NONE;
+		serverStatus = Status.NONE;
+		deviceStatus = Status.NONE;
 		
 		final Display display = Display.getDefault();
 		createContents(display);
 		
 		configureLogger();
 		
-		LOG.info("starting " + ResourceBundle.getBundle("messages").getString("MainWindow.shell.text") + " (version : " + ResourceBundle.getBundle("messages").getString("version") + ")");
+		LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.startup.text"), ResourceBundle.getBundle("messages").getString("MainWindow.shell.text"), ResourceBundle.getBundle("messages").getString("version")));
 		
 		final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
 		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
@@ -145,7 +146,7 @@ public class MainWindow implements Observer
 					catch (ExecutionException ee)
 					{
 						LOG.error(ee.getLocalizedMessage(), ee);
-						LOG.error("failed to load 'settings.json'");
+						LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.load.failed.text"), LoadSettingsCallable.SETTINGS_FILE));
 					}
 					finally
 					{
@@ -274,7 +275,7 @@ public class MainWindow implements Observer
 	
 	private void startTaskManager()
 	{
-		if (this.deviceStatus.equals(Status.STATUS_CONNECTED) && this.serverStatus.equals((Status.STATUS_CONNECTED)))
+		if (this.deviceStatus.equals(Status.CONNECTED) && this.serverStatus.equals((Status.CONNECTED)))
 		{
 			TaskManager.getInstance().start();
 		}

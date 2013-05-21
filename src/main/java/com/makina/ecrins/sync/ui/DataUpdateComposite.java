@@ -44,7 +44,7 @@ public class DataUpdateComposite extends Composite implements Observer
 		super(parent, SWT.NONE);
 		
 		this.layout = layout;
-		this.taskStatus = new TaskStatus(Status.STATUS_NONE.name(), Status.STATUS_NONE);
+		this.taskStatus = new TaskStatus(Status.NONE.name(), Status.NONE);
 		
 		initialize();
 	}
@@ -134,7 +134,7 @@ public class DataUpdateComposite extends Composite implements Observer
 		{
 			public void paintControl(PaintEvent pe)
 			{
-				pe.gc.drawImage(UIResourceManager.getImage("led_" + taskStatus.getStatus().getLabel() + ".png"), 0, 0);
+				pe.gc.drawImage(UIResourceManager.getImage("led_" + taskStatus.getStatus().name().toLowerCase() + ".png"), 0, 0);
 			}
 		});
 		
@@ -178,7 +178,7 @@ public class DataUpdateComposite extends Composite implements Observer
 					@Override
 					public void run()
 					{
-						if (!taskStatus.getStatus().getLabel().equals(DataUpdateComposite.this.taskStatus.getStatus().getLabel()))
+						if (!taskStatus.getStatus().name().equals(DataUpdateComposite.this.taskStatus.getStatus().name()))
 						{
 							DataUpdateComposite.this.taskStatus = taskStatus;
 							canvasLedDataUpdate.redraw();
@@ -198,7 +198,7 @@ public class DataUpdateComposite extends Composite implements Observer
 							progressBarDataUpdate.setSelection(0);
 						}
 						
-						labelDataUpdateStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + taskStatus.getStatus().getLabel()));
+						labelDataUpdateStatus.setText(ResourceBundle.getBundle("messages").getString("MainWindow.status." + taskStatus.getStatus().name().toLowerCase()));
 						labelDataUpdateStatus.getParent().layout();
 						
 						DataUpdateComposite.this.taskStatus = taskStatus;

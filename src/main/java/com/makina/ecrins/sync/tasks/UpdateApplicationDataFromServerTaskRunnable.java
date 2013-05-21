@@ -43,22 +43,22 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	@Override
 	public void run()
 	{
-		setTaskStatus(new TaskStatus(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_PENDING));
+		setTaskStatus(new TaskStatus(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.PENDING));
 		
 		if (getApkInfo())
 		{
 			if (downloadDataFromServer())
 			{
-				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FINISH));
+				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.FINISH));
 			}
 			else
 			{
-				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
+				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.FAILED));
 			}
 		}
 		else
 		{
-			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_FAILED));
+			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.FAILED));
 		}
 	}
 	
@@ -95,7 +95,8 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		
 		for (final ExportSettings exportSettings : exportsSettings)
 		{
-			setTaskStatus(new TaskStatus((int) (((double) increment.get() / (double) exportsSettings.size()) * 100), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_PENDING));
+			setTaskStatus(new TaskStatus((int) (((double) increment.get() / (double) exportsSettings.size()) * 100), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.PENDING));
+			LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()));
 			
 			WebAPIClientUtils.httpPost(httpClient,
 					LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
@@ -116,7 +117,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 									// compare file sizes between the remote file and the local file
 									if (checkFileSize(Long.valueOf(httpResponse.getFirstHeader("Content-Length").getValue()), exportSettings.getExportFile()))
 									{
-										LOG.info("'" + exportSettings.getExportFile() + "' is already downloaded and installed");
+										LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.uptodate.text"), exportSettings.getExportFile()));
 										
 										httpRequestBase.abort();
 									}
@@ -132,12 +133,13 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 										if (copyInputStream(exportSettings.getExportFile(), inputStream, new FileOutputStream(localFile), entity.getContentLength(), increment.get(), exportsSettings.size()))
 										{
 											copyFileToDevice(localFile, exportSettings.getExportFile());
-											
-											setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.finish.text"), exportSettings.getExportFile()), Status.STATUS_PENDING));
+											setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.finish.text"), exportSettings.getExportFile()), Status.PENDING));
+											LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.finish.text"), exportSettings.getExportFile()));
 										}
 										else
 										{
-											setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
+											setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.FAILED));
+											LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.fail.text"), exportSettings.getExportFile()));
 											result.set(false);
 										}
 									}
@@ -147,41 +149,41 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 									LOG.error(nfe.getLocalizedMessage());
 									
 									result.set(false);
-									setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
+									setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.FAILED));
 								}
 								catch (IllegalStateException ise)
 								{
 									LOG.error(ise.getLocalizedMessage());
 									
 									result.set(false);
-									setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
+									setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.FAILED));
 								}
 								catch (FileNotFoundException fnfe)
 								{
 									LOG.error(fnfe.getLocalizedMessage());
 									
 									result.set(false);
-									setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
+									setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.FAILED));
 								}
 								catch (ADBCommandException ace)
 								{
 									LOG.error(ace.getLocalizedMessage());
 									
 									result.set(false);
-									setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
+									setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.FAILED));
 								}
 								catch (IOException ioe)
 								{
 									LOG.error(ioe.getLocalizedMessage());
 									
 									result.set(false);
-									setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
+									setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.FAILED));
 								}
 							}
 							else
 							{
-								LOG.error("unable to download file from URL '" + httpRequestBase.getURI().toString() + "', HTTP status : " + status.getStatusCode());
-								setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
+								LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()) + " (URL '" + httpRequestBase.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
+								setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.FAILED));
 								
 								result.set(false);
 							}
@@ -193,7 +195,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 							LOG.error(e.getLocalizedMessage());
 							
 							result.set(false);
-							setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.STATUS_FAILED));
+							setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.FAILED));
 						}
 					});
 			
@@ -219,6 +221,8 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	
 	private void copyFileToDevice(File localFile, String remoteName) throws ADBCommandException
 	{
+		LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.copytodevice.text"), localFile.getName()));
+		
 		if ((ADBCommand.getInstance().getBuildVersion() > 15) || ApkUtils.getExternalStorageDirectory().equals(ApkUtils.getDefaultExternalStorageDirectory()))
 		{
 			ADBCommand.getInstance().push(localFile.getAbsolutePath(), getDeviceFilePath(remoteName, false));
@@ -247,7 +251,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 				
 				int currentProgress =  (int) (((double) totalBytesRead / (double) contentLength) * 100);
 				
-				setTaskStatus(new TaskStatus((int) (((double) currentExport / (double) numberOfExports) * 100) + (currentProgress / numberOfExports), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), inputName), Status.STATUS_PENDING));
+				setTaskStatus(new TaskStatus((int) (((double) currentExport / (double) numberOfExports) * 100) + (currentProgress / numberOfExports), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), inputName), Status.PENDING));
 			}
 			
 			out.flush();

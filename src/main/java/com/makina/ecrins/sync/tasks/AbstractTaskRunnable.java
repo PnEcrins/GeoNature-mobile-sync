@@ -13,11 +13,13 @@ import com.makina.ecrins.sync.service.Status;
  */
 public abstract class AbstractTaskRunnable extends Observable implements Runnable
 {
+	//private static final Logger LOG = Logger.getLogger(AbstractTaskRunnable.class);
+	
 	private TaskStatus taskStatus;
 	
 	public AbstractTaskRunnable()
 	{
-		this.taskStatus = new TaskStatus(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.STATUS_NONE);
+		this.taskStatus = new TaskStatus(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.NONE);
 	}
 	
 	@Override
@@ -40,6 +42,18 @@ public abstract class AbstractTaskRunnable extends Observable implements Runnabl
 		{
 			this.taskStatus = taskStatus;
 			setChanged();
+			/*
+			switch (this.taskStatus.getStatus())
+			{
+				case PENDING:
+					LOG.info(this.taskStatus.getMessage());
+					break;
+				case FAILED:
+					LOG.error(this.taskStatus.getMessage());
+					break;
+				default:
+			}
+			*/
 			notifyObservers(getTaskStatus());
 		}
 	}

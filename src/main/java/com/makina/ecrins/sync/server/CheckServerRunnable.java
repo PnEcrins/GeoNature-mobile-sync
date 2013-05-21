@@ -33,7 +33,7 @@ public class CheckServerRunnable extends Observable implements Runnable
 	
 	public CheckServerRunnable()
 	{
-		this.status = Status.STATUS_NONE;
+		this.status = Status.NONE;
 	}
 	
 	@Override
@@ -63,9 +63,9 @@ public class CheckServerRunnable extends Observable implements Runnable
 	@Override
 	public void run()
 	{
-		if (getStatus().equals(Status.STATUS_NONE))
+		if (getStatus().equals(Status.NONE))
 		{
-			setStatus(Status.STATUS_PENDING);
+			setStatus(Status.PENDING);
 		}
 		
 		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
@@ -92,36 +92,36 @@ public class CheckServerRunnable extends Observable implements Runnable
 								
 								if (jsonResponse.getInt("status_code") == 0)
 								{
-									if (!getStatus().equals(Status.STATUS_CONNECTED))
+									if (!getStatus().equals(Status.CONNECTED))
 									{
-										setStatus(Status.STATUS_CONNECTED);
+										setStatus(Status.CONNECTED);
 									}
 								}
 								else
 								{
-									setStatus(Status.STATUS_FAILED);
+									setStatus(Status.FAILED);
 								}
 							}
 							catch (IllegalStateException ise)
 							{
 								LOG.error(ise.getLocalizedMessage());
-								setStatus(Status.STATUS_FAILED);
+								setStatus(Status.FAILED);
 							}
 							catch (IOException ioe)
 							{
 								LOG.error(ioe.getLocalizedMessage());
-								setStatus(Status.STATUS_FAILED);
+								setStatus(Status.FAILED);
 							}
 							catch (JSONException je)
 							{
 								LOG.error(je.getLocalizedMessage());
-								setStatus(Status.STATUS_FAILED);
+								setStatus(Status.FAILED);
 							}
 						}
 						else
 						{
 							LOG.warn("unable to check server status from URL : " + httpRequestBase.getURI() + ", HTTP status : " + status.getStatusCode());
-							setStatus(Status.STATUS_FAILED);
+							setStatus(Status.FAILED);
 						}
 					}
 					
@@ -129,7 +129,7 @@ public class CheckServerRunnable extends Observable implements Runnable
 					public void onError(Exception e)
 					{
 						LOG.error(e.getLocalizedMessage());
-						setStatus(Status.STATUS_FAILED);
+						setStatus(Status.FAILED);
 					}
 				});
 				
