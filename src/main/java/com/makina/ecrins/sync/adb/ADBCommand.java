@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.exec.CommandLine;
@@ -312,16 +313,26 @@ public final class ADBCommand
 	 */
 	public int getBuildVersion() throws ADBCommandException
 	{
-		List<String> output = executeCommand("grep ro.build.version.sdk= /system/build.prop");
+		List<String> output = executeCommand("cat /system/build.prop");
+		
+		int buildVersion = -1;
 		
 		if (!output.isEmpty())
 		{
-			return Integer.valueOf(StringUtils.substringAfter(output.get(0), "="));
+			Iterator<String> it = output.iterator();
+			
+			while ((buildVersion == -1) && it.hasNext())
+			{
+				String property = it.next();
+				
+				if (StringUtils.startsWith(property, "ro.build.version.sdk"))
+				{
+					buildVersion = Integer.valueOf(StringUtils.substringAfter(property, "="));
+				}
+			}
 		}
-		else
-		{
-			return -1;
-		}
+		
+		return buildVersion;
 	}
 	
 	/**
