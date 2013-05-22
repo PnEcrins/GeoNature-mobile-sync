@@ -1,7 +1,7 @@
 {
 	"sync":
 	{
-		"url": "http://dev.ecrins-parcnational.fr/synchrofaune/",
+		"url": "http://ara.local/faune/",
 		"token": 666,
 		"timeout": 10000,
 		"status_url": "status/",

@@ -7,18 +7,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.MessageFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.impl.cookie.DateParseException;
+import org.apache.http.impl.cookie.DateUtils;
 import org.apache.log4j.Logger;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
@@ -79,9 +83,32 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		}
 	}
 	
-	private boolean checkFileSize(long remoteFileSize, String remoteName) throws ADBCommandException
+	private boolean checkFileLastModified(String headerLastModified, String remoteName)
 	{
-		return ADBCommand.getInstance().getFileSize(getDeviceFilePath(remoteName, false)) == remoteFileSize;
+		boolean check = false;
+		
+		if (StringUtils.isNotBlank(headerLastModified))
+		{
+			try
+			{
+				Date remoteLastModified = DateUtils.parseDate(headerLastModified);
+				Date localFileLastModified = ADBCommand.getInstance().getFileLastModified(getDeviceFilePath(remoteName, false));
+				
+				LOG.debug("remoteName : " + remoteName + ", localFileLastModified : " + localFileLastModified.toString() + ", remoteLastModified : " + remoteLastModified.toString());
+				
+				check = !remoteLastModified.after(localFileLastModified);
+			}
+			catch (DateParseException dpe)
+			{
+				LOG.debug(dpe.getMessage());
+			}
+			catch (ADBCommandException ace)
+			{
+				LOG.debug(ace.getMessage());
+			}
+		}
+		
+		return check;
 	}
 	
 	private boolean downloadDataFromServer()
@@ -114,8 +141,8 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 							{
 								try
 								{
-									// compare file sizes between the remote file and the local file
-									if (checkFileSize(Long.valueOf(httpResponse.getFirstHeader("Content-Length").getValue()), exportSettings.getExportFile()))
+									// check the last modified date between the remote file and the local file
+									if (httpResponse.containsHeader("Last-Modified") && checkFileLastModified(httpResponse.getFirstHeader("Last-Modified").getValue(), exportSettings.getExportFile()))
 									{
 										LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.uptodate.text"), exportSettings.getExportFile()));
 										

@@ -469,7 +469,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 				else
 				{
 					// something is going wrong : trying to uninstall and reinstall the application package
-					LOG.warn(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.failed.text"), apkInfo.getApkName()));
+					LOG.warn(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.failed.text"), apkInfo.getPackageName()));
 					
 					if (uninstallAllApplications())
 					{
@@ -489,7 +489,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 						}
 						else
 						{
-							LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.failed.text"), apkInfo.getApkName()));
+							LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.failed.text"), apkInfo.getPackageName()));
 							
 							progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
 							setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.FAILED));

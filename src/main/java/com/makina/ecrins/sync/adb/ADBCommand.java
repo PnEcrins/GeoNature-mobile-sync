@@ -3,7 +3,10 @@ package com.makina.ecrins.sync.adb;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -265,7 +268,7 @@ public final class ADBCommand
 	 * Tries to get the size of a given filename.
 	 * @param filename the name of the file on which we want to obtain its current size
 	 * @return the file size in bytes
-	 * @throws ADBCommandException 
+	 * @throws ADBCommandException
 	 */
 	public long getFileSize(String filename) throws ADBCommandException
 	{
@@ -282,6 +285,58 @@ public final class ADBCommand
 		}
 		
 		return -1;
+	}
+	
+	/**
+	 * Tries to get the last modified date of a given filename.
+	 * @param filename the name of the file on which we want to obtain the last modified date
+	 * @return the last modified date as {@link Date}
+	 * @throws ADBCommandException
+	 */
+	public Date getFileLastModified(String filename) throws ADBCommandException
+	{
+		List<String> results = executeCommand("ls -la " + filename);
+		
+		if (results.size() > 0)
+		{
+			String[] tokens = StringUtils.split(results.get(0));
+			
+			if (tokens.length == 7)
+			{
+				String[] dateTokens = StringUtils.split(tokens[4], "-");
+				String[] timeTokens = StringUtils.split(tokens[5], ":");
+				
+				if ((dateTokens.length == 3) &&
+					(timeTokens.length == 2) &&
+					(StringUtils.isNumeric(dateTokens[0])) &&
+					(StringUtils.isNumeric(dateTokens[1])) &&
+					(StringUtils.isNumeric(dateTokens[2])) &&
+					(StringUtils.isNumeric(timeTokens[0])) &&
+					(StringUtils.isNumeric(timeTokens[1])))
+				{
+					SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+					
+					try
+					{
+						return sdf.parse(tokens[4] + " " + tokens[5]);
+					}
+					catch (ParseException pe)
+					{
+						LOG.debug(pe.getMessage());
+						
+						return new Date(0);
+					}
+				}
+				else
+				{
+					LOG.debug("getFileLastModified : wrong date format");
+					
+					return new Date(0);
+				}
+			}
+		}
+		
+		return new Date(0);
 	}
 	
 	/**

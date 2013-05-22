@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -142,6 +143,8 @@ public class TaskManager implements Observer
 						if (currentStatus.equals(Status.FINISH))
 						{
 							this.status = Status.FINISH;
+							
+							LOG.info(ResourceBundle.getBundle("messages").getString("MainWindow.status.finish"));
 						}
 					}
 					
