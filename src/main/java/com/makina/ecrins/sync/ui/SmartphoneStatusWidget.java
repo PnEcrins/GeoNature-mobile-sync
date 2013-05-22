@@ -60,7 +60,7 @@ public class SmartphoneStatusWidget implements Observer
 		{
 			public void paintControl(PaintEvent pe)
 			{
-				pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_" + status.name() + ".png"), 0, 0);
+				pe.gc.drawImage(UIResourceManager.getImage("smartphone_status_" + status.name().toLowerCase() + ".png"), 0, 0);
 			}
 		});
 
