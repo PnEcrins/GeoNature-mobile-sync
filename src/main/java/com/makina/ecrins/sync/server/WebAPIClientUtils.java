@@ -71,7 +71,7 @@ public final class WebAPIClientUtils
 		
 		try
 		{
-			httpPost.addHeader("Cache-Control", "no-cache");
+			httpPost.setHeader("Cache-Control", "no-cache");
 			httpPost.setHeader("ContentType", "application/x-force-download");
 			httpPost.setEntity(new UrlEncodedFormEntity(Arrays.asList(new BasicNameValuePair(PARAM_TOKEN, token), new BasicNameValuePair(PARAM_DATA, sanitizeData))));
 			httpResponse = httpClient.execute(httpPost);

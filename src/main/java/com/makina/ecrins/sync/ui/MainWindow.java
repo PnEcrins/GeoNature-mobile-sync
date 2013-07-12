@@ -196,7 +196,7 @@ public class MainWindow implements Observer
 	{
 		shell = new Shell(display, SWT.CLOSE | SWT.TITLE | SWT.MIN);
 		shell.setSize(480, 505);
-		shell.setText(ResourceBundle.getBundle("messages").getString("MainWindow.shell.text"));
+		shell.setText(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.text.full"), ResourceBundle.getBundle("messages").getString("MainWindow.shell.text"), ResourceBundle.getBundle("messages").getString("version")));
 		FormLayout flShell = new FormLayout();
 		flShell.marginLeft = 1;
 		flShell.marginRight = 1;

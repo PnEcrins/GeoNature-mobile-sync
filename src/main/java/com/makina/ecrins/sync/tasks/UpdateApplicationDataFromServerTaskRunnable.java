@@ -159,6 +159,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 										
 										if (copyInputStream(exportSettings.getExportFile(), inputStream, new FileOutputStream(localFile), entity.getContentLength(), increment.get(), exportsSettings.size()))
 										{
+											setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.copytodevice.text"), exportSettings.getExportFile()), Status.PENDING));
 											copyFileToDevice(localFile, exportSettings.getExportFile());
 											setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.finish.text"), exportSettings.getExportFile()), Status.PENDING));
 											LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.finish.text"), exportSettings.getExportFile()));
