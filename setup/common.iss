@@ -39,7 +39,7 @@ Name: "custom"; Description: "Custom installation"; Flags: iscustom
 
 [Components]
 Name: "program"; Description: "Program Files"; Types: full compact custom; Flags: fixed
-Name: "drivers"; Description: "Google USB Driver"; Types: full; ExtraDiskSpaceRequired: 8681704
+Name: "drivers"; Description: "Google USB Driver"; Types: full; ExtraDiskSpaceRequired: 8682752
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Components: program; Flags: unchecked
@@ -50,7 +50,6 @@ Source: "sync.pdf"; DestDir: "{app}"; Flags: ignoreversion
 Source: "sync.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "../target/sync-{#MyAppVersion}-win32-{#Arch}.jar"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "../src/main/resources/settings.json"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Dirs]
@@ -79,18 +78,18 @@ begin
     else
     begin
       XMLDocument.setProperty('SelectionLanguage', 'XPath');
-      XMLDocument.setProperty('SelectionNamespaces', 'xmlns:sdk="http://schemas.android.com/sdk/android/addon/5"');
+      XMLDocument.setProperty('SelectionNamespaces', 'xmlns:sdk="http://schemas.android.com/sdk/android/addon/7"');
       XMLNode := XMLDocument.selectSingleNode(APath);
       Result := XMLNode.text;
     end;
   except
-    MsgBox('An error occured!', mbError, MB_OK);
+    MsgBox('Unable to load ' + AFileName, mbError, MB_OK);
   end;
 end;
 
 function GetUsbDriverFile(): string;
 begin
-  Result := LoadValueFromXML(expandconstant('{tmp}\addon.xml'), '//sdk:sdk-addon/sdk:extra[sdk:path="usb_driver"]/sdk:archives/sdk:archive[@os="windows"]/sdk:url');
+  Result := LoadValueFromXML(expandconstant('{tmp}\addon.xml'), '//sdk:sdk-addon/sdk:extra[sdk:path="usb_driver"]/sdk:archives/sdk:archive[sdk:host-os="windows"]/sdk:url');
 end;
 
 Procedure DownloadUSBDriver();

@@ -3,7 +3,6 @@ package com.makina.ecrins.sync.settings;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URLDecoder;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
 import java.util.concurrent.Callable;
@@ -60,21 +59,23 @@ public class LoadSettingsCallable implements Callable<Settings>
 						ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.loading.text"),
 						SETTINGS_FILE));
 		
-		File rootDirectory = new File(URLDecoder.decode(getClass().getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8")).getParentFile();
+		File userDir = new File(FileUtils.getUserDirectory(), ".sync");
+		userDir.mkdir();
+		
 		
 		LOG.info(
 				MessageFormat.format(
 						ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.path.text"),
-						rootDirectory.getAbsolutePath()));
+						userDir.getAbsolutePath()));
 		
-		File jsonSettingsFile = new File(rootDirectory, SETTINGS_FILE);
+		File jsonSettingsFile = new File(userDir, SETTINGS_FILE);
 		
 		// load 'settings.json' from app installation directory or load the default 'settings.json' in case of errors
 		loadJsonSettings(jsonSettingsFile);
 		// try to update 'settings.json' from server
 		updateJsonSettingsFromServer(jsonSettingsFile);
 		// reload 'settings.json' from app installation directory or load the default 'settings.json' in case of errors
-		loadJsonSettings(new File(rootDirectory, SETTINGS_FILE));
+		loadJsonSettings(jsonSettingsFile);
 		
 		LOG.info(
 				MessageFormat.format(
