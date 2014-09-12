@@ -34,12 +34,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
+import com.makina.ecrins.sync.adb.ADBCommand.Prop;
 import com.makina.ecrins.sync.adb.ADBCommandException;
 import com.makina.ecrins.sync.service.Status;
+import com.makina.ecrins.sync.settings.AndroidSettings;
+import com.makina.ecrins.sync.settings.DeviceSettings;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 
 /**
- * {@link AbstractTaskRunnable} implementation for fetching all inputs to be imported from a connected to device.
+ * {@link AbstractTaskRunnable} implementation for fetching all inputs to be imported from a connected device.
  * 
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
@@ -50,6 +53,8 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	private static DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 	
 	private File inputsTempDir;
+	private DeviceSettings deviceSettings;
+	
 	private List<ApkInfo> apks = new ArrayList<ApkInfo>();
 	
 	@Override
@@ -59,6 +64,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		
 		try
 		{
+			loadDeviceSettings();
 			fetchInputsFromDevice();
 			
 			if (uploadInputs())
@@ -81,6 +87,27 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		}
 	}
 	
+	private void loadDeviceSettings()
+	{
+		try
+		{
+			deviceSettings = DeviceUtils.findLoadedDeviceSettings(
+					new DeviceSettings(
+							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_MANUFACTURER),
+							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_MODEL),
+							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_NAME),
+							new AndroidSettings(
+									ADBCommand.getInstance().getProp(Prop.RO_BUILD_VERSION_RELEASE),
+									ADBCommand.getInstance().getBuildVersion())));
+		}
+		catch (ADBCommandException ace)
+		{
+			LOG.warn(ace.getMessage());
+			
+			deviceSettings = null;
+		}
+	}
+	
 	private boolean fetchInputsFromDevice() throws ADBCommandException
 	{
 		this.inputsTempDir = new File(TaskManager.getInstance().getTemporaryDirectory(), "inputs");
@@ -94,7 +121,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		}
 		else
 		{
-			ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apks.get(0)) + "inputs/", this.inputsTempDir.getAbsolutePath());
+			ADBCommand.getInstance().pull(DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apks.get(0)) + "inputs/", this.inputsTempDir.getAbsolutePath());
 			
 			return FileUtils.listFiles(this.inputsTempDir, new RegexFileFilter("^input_\\d+.json$"), new PrefixFileFilter(apks.get(0).getSharedUserId())).size() > 0;
 		}
@@ -104,7 +131,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	{
 		if (ADBCommand.getInstance().getBuildVersion() > 15)
 		{
-			ADBCommand.getInstance().executeCommand("rm " + ApkUtils.getExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apks.get(0)) + "inputs/" + inputJson.getParentFile().getName() + "/" + inputJson.getName());
+			ADBCommand.getInstance().executeCommand("rm " + DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apks.get(0)) + "inputs/" + inputJson.getParentFile().getName() + "/" + inputJson.getName());
 		}
 		else
 		{
@@ -159,15 +186,15 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		
 		final DefaultHttpClient httpClient = new DefaultHttpClient();
 		final HttpParams httpParameters = httpClient.getParams();
-		HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+		HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
 		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
 		
 		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
-		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSyncSettings().getServerToken()));
+		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken()));
 		nameValuePairs.add(new BasicNameValuePair("data", "{}"));
 		
-		String urlImport = 	LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
-				LoadSettingsCallable.getInstance().getSyncSettings().getImportUrl();
+		String urlImport = 	LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
+				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getImportUrl();
 		
 		HttpPost httpPost = new HttpPost(urlImport);
 		HttpResponse httpResponse = null;

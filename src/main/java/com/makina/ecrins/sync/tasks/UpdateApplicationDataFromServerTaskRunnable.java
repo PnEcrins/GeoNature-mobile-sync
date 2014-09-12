@@ -27,9 +27,12 @@ import org.apache.log4j.Logger;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
 import com.makina.ecrins.sync.adb.ADBCommandException;
+import com.makina.ecrins.sync.adb.ADBCommand.Prop;
 import com.makina.ecrins.sync.server.WebAPIClientUtils;
 import com.makina.ecrins.sync.server.WebAPIClientUtils.HTTPCallback;
 import com.makina.ecrins.sync.service.Status;
+import com.makina.ecrins.sync.settings.AndroidSettings;
+import com.makina.ecrins.sync.settings.DeviceSettings;
 import com.makina.ecrins.sync.settings.ExportSettings;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 
@@ -43,6 +46,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	private static final Logger LOG = Logger.getLogger(UpdateApplicationDataFromServerTaskRunnable.class);
 	
 	private ApkInfo apkInfo;
+	private DeviceSettings deviceSettings;
 	
 	@Override
 	public void run()
@@ -51,6 +55,8 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		
 		if (getApkInfo())
 		{
+			loadDeviceSettings();
+			
 			if (downloadDataFromServer())
 			{
 				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.FINISH));
@@ -80,6 +86,27 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 			apkInfo = apks.get(0);
 			
 			return true;
+		}
+	}
+	
+	private void loadDeviceSettings()
+	{
+		try
+		{
+			deviceSettings = DeviceUtils.findLoadedDeviceSettings(
+					new DeviceSettings(
+							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_MANUFACTURER),
+							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_MODEL),
+							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_NAME),
+							new AndroidSettings(
+									ADBCommand.getInstance().getProp(Prop.RO_BUILD_VERSION_RELEASE),
+									ADBCommand.getInstance().getBuildVersion())));
+		}
+		catch (ADBCommandException ace)
+		{
+			LOG.warn(ace.getMessage());
+			
+			deviceSettings = null;
 		}
 	}
 	
@@ -115,9 +142,9 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	{
 		final AtomicBoolean result = new AtomicBoolean(true);
 		
-		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
 		
-		final List<ExportSettings> exportsSettings = LoadSettingsCallable.getInstance().getSyncSettings().getExportsSettings();
+		final List<ExportSettings> exportsSettings = LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getExportsSettings();
 		final AtomicInteger increment= new AtomicInteger();
 		
 		for (final ExportSettings exportSettings : exportsSettings)
@@ -126,9 +153,9 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 			LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()));
 			
 			WebAPIClientUtils.httpPost(httpClient,
-					LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
 					exportSettings.getExportUrl(),
-					LoadSettingsCallable.getInstance().getSyncSettings().getServerToken(),
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
 					new HTTPCallback()
 					{
 						@Override
@@ -239,11 +266,11 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	{
 		if (useDefaultExternalStorage)
 		{
-			return ApkUtils.getDefaultExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + remoteName;
+			return DeviceUtils.getDefaultExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + remoteName;
 		}
 		else
 		{
-			return ApkUtils.getExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + remoteName;
+			return DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + remoteName;
 		}
 	}
 	
@@ -251,7 +278,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	{
 		LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.copytodevice.text"), localFile.getName()));
 		
-		if ((ADBCommand.getInstance().getBuildVersion() > 15) || ApkUtils.getExternalStorageDirectory().equals(ApkUtils.getDefaultExternalStorageDirectory()))
+		if ((ADBCommand.getInstance().getBuildVersion() > 15) || DeviceUtils.getExternalStorageDirectory(deviceSettings).equals(DeviceUtils.getDefaultExternalStorageDirectory(deviceSettings)))
 		{
 			ADBCommand.getInstance().push(localFile.getAbsolutePath(), getDeviceFilePath(remoteName, false));
 		}

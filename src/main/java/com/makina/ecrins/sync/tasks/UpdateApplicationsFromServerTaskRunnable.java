@@ -36,9 +36,12 @@ import org.json.JSONObject;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
 import com.makina.ecrins.sync.adb.ADBCommandException;
+import com.makina.ecrins.sync.adb.ADBCommand.Prop;
 import com.makina.ecrins.sync.server.WebAPIClientUtils;
 import com.makina.ecrins.sync.server.WebAPIClientUtils.HTTPCallback;
 import com.makina.ecrins.sync.service.Status;
+import com.makina.ecrins.sync.settings.AndroidSettings;
+import com.makina.ecrins.sync.settings.DeviceSettings;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 
 /**
@@ -56,6 +59,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 	private static final Logger LOG = Logger.getLogger(UpdateApplicationsFromServerTaskRunnable.class);
 	
 	private final List<ApkInfo> apks = new ArrayList<ApkInfo>();
+	private DeviceSettings deviceSettings;
 	private int apkIndex;
 	private int progress;
 	
@@ -69,6 +73,8 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 		apks.clear();
 		
 		setTaskStatus(new TaskStatus(-1, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
+		
+		loadDeviceSettings();
 		
 		// gets all available applications informations from the server
 		if (fetchLastAppsVersionsFromServer(10))
@@ -155,13 +161,35 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 		}
 	}
 	
+	private void loadDeviceSettings()
+	{
+		try
+		{
+			deviceSettings = DeviceUtils.findLoadedDeviceSettings(
+					new DeviceSettings(
+							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_MANUFACTURER),
+							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_MODEL),
+							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_NAME),
+							new AndroidSettings(
+									ADBCommand.getInstance().getProp(Prop.RO_BUILD_VERSION_RELEASE),
+									ADBCommand.getInstance().getBuildVersion())));
+		}
+		catch (ADBCommandException ace)
+		{
+			LOG.warn(ace.getMessage());
+			
+			deviceSettings = null;
+		}
+	}
+	
 	private boolean fetchLastAppsVersionsFromServer(final int factor)
 	{
-		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
-		WebAPIClientUtils.httpPost(httpClient,
-				LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
-				LoadSettingsCallable.getInstance().getSyncSettings().getAppUpdateVersionUrl(),
-				LoadSettingsCallable.getInstance().getSyncSettings().getServerToken(),
+		final HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
+		WebAPIClientUtils.httpPost(
+				httpClient,
+				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
+				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getAppUpdateSettings().getVersionUrl(),
+				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
 				new HTTPCallback()
 				{
 					@Override
@@ -282,7 +310,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 			// about flag -f 32, see: http://developer.android.com/reference/android/content/Intent.html#FLAG_INCLUDE_STOPPED_PACKAGES
 			if (!ADBCommand.getInstance().executeCommand("am broadcast -a " + apkInfo.getPackageName() + ".INTENT_PACKAGE_INFO -f 32").isEmpty())
 			{
-				if (ADBCommand.getInstance().pull(ApkUtils.getExternalStorageDirectory() + "/Android/data/" + apkInfo.getSharedUserId() + "/version_" + apkInfo.getPackageName() + ".json", TaskManager.getInstance().getTemporaryDirectory().getAbsolutePath()))
+				if (ADBCommand.getInstance().pull(DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/Android/data/" + apkInfo.getSharedUserId() + "/version_" + apkInfo.getPackageName() + ".json", TaskManager.getInstance().getTemporaryDirectory().getAbsolutePath()))
 				{
 					JSONObject versionJson = new JSONObject(FileUtils.readFileToString(new File(TaskManager.getInstance().getTemporaryDirectory(), "version_" + apkInfo.getPackageName() + ".json")));
 					
@@ -366,17 +394,17 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 		
 		final DefaultHttpClient httpClient = new DefaultHttpClient();
 		final HttpParams httpParameters = httpClient.getParams();
-		HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+		HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
 		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
 		
 		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
-		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSyncSettings().getServerToken()));
+		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken()));
 		
 		try
 		{
 			HttpPost httpPost = new HttpPost(
-					LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
-					LoadSettingsCallable.getInstance().getSyncSettings().getAppUpdateDownloadUrl() +
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getAppUpdateSettings().getDownloadUrl() +
 					"/" + apkInfo.getApkName() + "/");
 			
 			HttpResponse httpResponse = null;

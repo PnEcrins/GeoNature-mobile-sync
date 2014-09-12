@@ -7,7 +7,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.exec.CommandLine;
@@ -289,6 +288,7 @@ public final class ADBCommand
 	
 	/**
 	 * Tries to get the last modified date of a given filename.
+	 * 
 	 * @param filename the name of the file on which we want to obtain the last modified date
 	 * @return the last modified date as {@link Date}
 	 * @throws ADBCommandException
@@ -361,6 +361,30 @@ public final class ADBCommand
 	}
 	
 	/**
+	 * Gets the value for a given {@link Prop} from the connected device.
+	 * 
+	 * @param property the {@link Prop} as property on which to retrieve its value
+	 * @return the value of the given {@link Prop}
+	 * @throws ADBCommandException
+	 */
+	public String getProp(Prop property) throws ADBCommandException
+	{
+		if (property == null)
+		{
+			return null;
+		}
+		
+		final List<String> output = executeCommand("getprop " + property.getValue());
+		
+		if (!output.isEmpty())
+		{
+			return output.get(0).trim();
+		}
+		
+		return null;
+	}
+	
+	/**
 	 * Gets the current Android build version of the connected device.
 	 * 
 	 * @return the build version from <code>/system/build.prop</code>
@@ -368,26 +392,16 @@ public final class ADBCommand
 	 */
 	public int getBuildVersion() throws ADBCommandException
 	{
-		List<String> output = executeCommand("cat /system/build.prop");
-		
-		int buildVersion = -1;
-		
-		if (!output.isEmpty())
+		try
 		{
-			Iterator<String> it = output.iterator();
-			
-			while ((buildVersion == -1) && it.hasNext())
-			{
-				String property = it.next();
-				
-				if (StringUtils.startsWith(property, "ro.build.version.sdk"))
-				{
-					buildVersion = Integer.valueOf(StringUtils.substringAfter(property, "="));
-				}
-			}
+			return Integer.valueOf(getProp(Prop.RO_BUILD_VERSION_SDK));
+		}
+		catch (NumberFormatException nfe)
+		{
+			LOG.debug(nfe.getMessage());
 		}
 		
-		return buildVersion;
+		return -1;
 	}
 	
 	/**
@@ -760,6 +774,33 @@ public final class ADBCommand
 		else
 		{
 			throw new UnsupportedOSVersionException();
+		}
+	}
+	
+	/**
+	 * Device system properties used to retrieve values from 'getprop' system command.
+	 * 
+	 * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
+	 */
+	public static enum Prop
+	{
+		RO_BUILD_VERSION_RELEASE("ro.build.version.release"),
+		RO_BUILD_VERSION_SDK("ro.build.version.sdk"),
+		
+		RO_PRODUCT_MANUFACTURER("ro.product.manufacturer"),
+		RO_PRODUCT_MODEL("ro.product.model"),
+		RO_PRODUCT_NAME("ro.product.name");
+		
+		private String value;
+		
+		private Prop(String value)
+		{
+			this.value = value;
+		}
+		
+		public String getValue()
+		{
+			return this.value;
 		}
 	}
 	

@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.makina.ecrins.sync.tasks.ApkUtils;
+import com.makina.ecrins.sync.tasks.DeviceUtils;
 
 /**
  * Test class for {@link ADBCommand}
@@ -57,8 +57,8 @@ public class ADBCommandTest
 			Assert.assertTrue(inputJson.exists());
 			
 			File inputJsonFromDevice = new File(tempDir, "input_1234_copy.json");
-			ADBCommand.getInstance().push(inputJson.getAbsolutePath(), ApkUtils.getDefaultExternalStorageDirectory() + "/Android/data/sync/input_1234.json");
-			ADBCommand.getInstance().pull(ApkUtils.getDefaultExternalStorageDirectory() + "/Android/data/sync/input_1234.json", inputJsonFromDevice.getAbsolutePath());
+			ADBCommand.getInstance().push(inputJson.getAbsolutePath(), DeviceUtils.getDefaultExternalStorageDirectory() + "/Android/data/sync/input_1234.json");
+			ADBCommand.getInstance().pull(DeviceUtils.getDefaultExternalStorageDirectory() + "/Android/data/sync/input_1234.json", inputJsonFromDevice.getAbsolutePath());
 			
 			LOG.debug("input JSON from device : " + inputJsonFromDevice.getAbsolutePath());
 			LOG.debug("input_1234.json checksum : " + FileUtils.checksumCRC32(inputJson));
@@ -123,9 +123,9 @@ public class ADBCommandTest
 			FileUtils.copyFile(inputResourceJson, inputJson);
 			Assert.assertTrue(inputJson.exists());
 			
-			ADBCommand.getInstance().push(inputJson.getAbsolutePath(), ApkUtils.getDefaultExternalStorageDirectory() + "/Android/data/sync/input_1234.json");
+			ADBCommand.getInstance().push(inputJson.getAbsolutePath(), DeviceUtils.getDefaultExternalStorageDirectory() + "/Android/data/sync/input_1234.json");
 			
-			long fileSize = ADBCommand.getInstance().getFileSize(ApkUtils.getDefaultExternalStorageDirectory() + "/Android/data/sync/input_1234.json");
+			long fileSize = ADBCommand.getInstance().getFileSize(DeviceUtils.getDefaultExternalStorageDirectory() + "/Android/data/sync/input_1234.json");
 			
 			LOG.debug("file size : " + fileSize);
 			
@@ -164,9 +164,9 @@ public class ADBCommandTest
 			FileUtils.copyFile(inputResourceJson, inputJson);
 			Assert.assertTrue(inputJson.exists());
 			
-			ADBCommand.getInstance().push(inputJson.getAbsolutePath(), ApkUtils.getDefaultExternalStorageDirectory() + "/Android/data/sync/input_1234.json");
+			ADBCommand.getInstance().push(inputJson.getAbsolutePath(), DeviceUtils.getDefaultExternalStorageDirectory() + "/Android/data/sync/input_1234.json");
 			
-			Date lastModified = ADBCommand.getInstance().getFileLastModified(ApkUtils.getDefaultExternalStorageDirectory() + "/Android/data/sync/input_1234.json");
+			Date lastModified = ADBCommand.getInstance().getFileLastModified(DeviceUtils.getDefaultExternalStorageDirectory() + "/Android/data/sync/input_1234.json");
 			
 			LOG.debug("last modified date : " + lastModified);
 			

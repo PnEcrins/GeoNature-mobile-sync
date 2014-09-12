@@ -34,11 +34,11 @@ public class WebAPIClientUtilsTest
 	@Test()
 	public void serverStatusTest()
 	{
-		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
 		WebAPIClientUtils.httpPost(httpClient,
-				LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
-				LoadSettingsCallable.getInstance().getSyncSettings().getStatusUrl(),
-				LoadSettingsCallable.getInstance().getSyncSettings().getServerToken(),
+				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
+				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getStatusUrl(),
+				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
 				new HTTPCallback()
 				{
 					@Override
@@ -94,11 +94,11 @@ public class WebAPIClientUtilsTest
 	@Test()
 	public void softVersionTest()
 	{
-		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
 		WebAPIClientUtils.httpPost(httpClient,
-				LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
-				LoadSettingsCallable.getInstance().getSyncSettings().getAppUpdateVersionUrl(),
-				LoadSettingsCallable.getInstance().getSyncSettings().getServerToken(),
+				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
+				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getAppUpdateSettings().getVersionUrl(),
+				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
 				new HTTPCallback()
 				{
 					@Override
@@ -132,16 +132,16 @@ public class WebAPIClientUtilsTest
 	@Test
 	public void exportsTest()
 	{
-		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
 		
-		List<ExportSettings> exportsSettings = LoadSettingsCallable.getInstance().getSyncSettings().getExportsSettings();
+		List<ExportSettings> exportsSettings = LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getExportsSettings();
 		
 		for (ExportSettings exportSettings : exportsSettings)
 		{
 			WebAPIClientUtils.httpPost(httpClient,
-					LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
 					exportSettings.getExportUrl(),
-					LoadSettingsCallable.getInstance().getSyncSettings().getServerToken(),
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
 					new HTTPCallback()
 					{
 						@Override

@@ -1,10 +1,13 @@
 package com.makina.ecrins.sync.adb;
 
+import java.text.MessageFormat;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.ResourceBundle;
 
 import org.apache.log4j.Logger;
 
+import com.makina.ecrins.sync.adb.ADBCommand.Prop;
 import com.makina.ecrins.sync.service.Status;
 
 /**
@@ -43,7 +46,31 @@ public class CheckDeviceRunnable extends Observable implements Runnable
 		{
 			this.status = status;
 			setChanged();
-			notifyObservers(getStatus());
+			notifyObservers(this.status);
+			
+			switch (this.status)
+			{
+				case CONNECTED :
+					try
+					{
+						LOG.info(
+								MessageFormat.format(
+										ResourceBundle.getBundle("messages").getString("MainWindow.shell.device.found.text"),
+										ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_MANUFACTURER),
+										ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_MODEL),
+										ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_NAME),
+										ADBCommand.getInstance().getProp(Prop.RO_BUILD_VERSION_RELEASE),
+										ADBCommand.getInstance().getProp(Prop.RO_BUILD_VERSION_SDK)));
+					}
+					catch (ADBCommandException ace)
+					{
+						LOG.warn(ace.getMessage(), ace);
+					}
+					
+					break;
+				default :
+					break;
+			}
 		}
 	}
 	

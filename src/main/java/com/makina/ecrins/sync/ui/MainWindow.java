@@ -34,7 +34,7 @@ import com.makina.ecrins.sync.logger.ConsoleLogAppender;
 import com.makina.ecrins.sync.server.CheckServerRunnable;
 import com.makina.ecrins.sync.service.Status;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
-import com.makina.ecrins.sync.settings.SyncSettings;
+import com.makina.ecrins.sync.settings.Settings;
 import com.makina.ecrins.sync.tasks.ImportInputsFromDeviceTaskRunnable;
 import com.makina.ecrins.sync.tasks.TaskManager;
 import com.makina.ecrins.sync.tasks.UpdateApplicationDataFromServerTaskRunnable;
@@ -74,7 +74,11 @@ public class MainWindow implements Observer
 		
 		configureLogger();
 		
-		LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.startup.text"), ResourceBundle.getBundle("messages").getString("MainWindow.shell.text"), ResourceBundle.getBundle("messages").getString("version")));
+		LOG.info(
+				MessageFormat.format(
+						ResourceBundle.getBundle("messages").getString("MainWindow.shell.startup.text"),
+						ResourceBundle.getBundle("messages").getString("MainWindow.shell.text"),
+						ResourceBundle.getBundle("messages").getString("version")));
 		
 		final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
 		final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
@@ -119,14 +123,14 @@ public class MainWindow implements Observer
 				@Override
 				public void run()
 				{
-					CompletionService<SyncSettings> completionService = new ExecutorCompletionService<SyncSettings>(Executors.newSingleThreadExecutor());
-					Future<SyncSettings> future = completionService.submit(LoadSettingsCallable.getInstance());
+					CompletionService<Settings> completionService = new ExecutorCompletionService<Settings>(Executors.newSingleThreadExecutor());
+					Future<Settings> future = completionService.submit(LoadSettingsCallable.getInstance());
 					
 					try
 					{
-						SyncSettings syncSettings = completionService.take().get();
+						Settings settings = completionService.take().get();
 						
-						if (syncSettings != null)
+						if (settings != null)
 						{
 							CheckDeviceRunnable checkDeviceRunnable = new CheckDeviceRunnable();
 							checkDeviceRunnable.addObserver(smartphoneStatusWidget);
@@ -146,7 +150,10 @@ public class MainWindow implements Observer
 					catch (ExecutionException ee)
 					{
 						LOG.error(ee.getLocalizedMessage(), ee);
-						LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.load.failed.text"), LoadSettingsCallable.SETTINGS_FILE));
+						LOG.error(
+								MessageFormat.format(
+										ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.load.failed.text"),
+										LoadSettingsCallable.SETTINGS_FILE));
 					}
 					finally
 					{
@@ -196,47 +203,63 @@ public class MainWindow implements Observer
 	{
 		shell = new Shell(display, SWT.CLOSE | SWT.TITLE | SWT.MIN);
 		shell.setSize(480, 505);
-		shell.setText(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.shell.text.full"), ResourceBundle.getBundle("messages").getString("MainWindow.shell.text"), ResourceBundle.getBundle("messages").getString("version")));
-		FormLayout flShell = new FormLayout();
+		shell.setText(
+				MessageFormat.format(
+						ResourceBundle.getBundle("messages").getString("MainWindow.shell.text.full"),
+						ResourceBundle.getBundle("messages").getString("MainWindow.shell.text"),
+						ResourceBundle.getBundle("messages").getString("version")));
+		
+		final FormLayout flShell = new FormLayout();
 		flShell.marginLeft = 1;
 		flShell.marginRight = 1;
 		flShell.marginTop = 1;
 		flShell.marginBottom = 1;
+		
 		shell.setLayout(flShell);
+		shell.setImages(
+				new Image[]
+				{
+						UIResourceManager.getImage("icon_32.png"),
+						UIResourceManager.getImage("icon_48.png")
+				}
+		);
 		
-		shell.setImages(new Image[]{UIResourceManager.getImage("icon_32.png"), UIResourceManager.getImage("icon_48.png")});
-		
-		Composite composite = new Composite(shell, SWT.BORDER);
+		final Composite composite = new Composite(shell, SWT.BORDER);
 		composite.setLayout(new FormLayout());
-		FormData fdComposite = new FormData();
+		
+		final FormData fdComposite = new FormData();
 		fdComposite.left = new FormAttachment(0);
 		fdComposite.right = new FormAttachment(100);
 		fdComposite.top = new FormAttachment(0);
 		fdComposite.bottom = new FormAttachment(100);
+		
 		composite.setLayoutData(fdComposite);
 		
-		Group groupStatuses = new Group(composite, SWT.NONE);
+		final Group groupStatuses = new Group(composite, SWT.NONE);
 		groupStatuses.setFont(UIResourceManager.getFont("Lucida Grande", 11, SWT.BOLD));
 		groupStatuses.setBackground(UIResourceManager.getColor(SWT.COLOR_WIDGET_BACKGROUND));
 		groupStatuses.setText(ResourceBundle.getBundle("messages").getString("MainWindow.groupStatuses.text"));
 		groupStatuses.setLayout(new FormLayout());
-		FormData fdGroupStatuses = new FormData();
+		
+		final FormData fdGroupStatuses = new FormData();
 		fdGroupStatuses.top = new FormAttachment(0);
 		fdGroupStatuses.left = new FormAttachment(0, 5);
 		fdGroupStatuses.right = new FormAttachment(100, -5);
 		fdGroupStatuses.height = 70;
+		
 		groupStatuses.setLayoutData(fdGroupStatuses);
 		
 		smartphoneStatusWidget = new SmartphoneStatusWidget(display, groupStatuses);
 		serverStatusWidget = new ServerStatusWidget(display, groupStatuses);
 		
-		Button buttonQuit = new Button(composite, SWT.NONE);
-		FormData fdButtonValidate = new FormData();
+		final Button buttonQuit = new Button(composite, SWT.NONE);
+		
+		final FormData fdButtonValidate = new FormData();
 		fdButtonValidate.right = new FormAttachment(100, -5);
 		fdButtonValidate.bottom = new FormAttachment(100);
+		
 		buttonQuit.setLayoutData(fdButtonValidate);
 		buttonQuit.setText(ResourceBundle.getBundle("messages").getString("MainWindow.buttonQuit.text"));
-		
 		buttonQuit.addListener(SWT.Selection, new Listener()
 		{
 			@Override
@@ -246,16 +269,18 @@ public class MainWindow implements Observer
 			}
 		});
 		
-		Group groupUpdate = new Group(composite, SWT.NONE);
+		final Group groupUpdate = new Group(composite, SWT.NONE);
 		groupUpdate.setFont(UIResourceManager.getFont("Lucida Grande", 11, SWT.BOLD));
 		groupUpdate.setBackground(UIResourceManager.getColor(SWT.COLOR_WIDGET_BACKGROUND));
 		groupUpdate.setText(ResourceBundle.getBundle("messages").getString("MainWindow.groupUpdate.text"));
 		groupUpdate.setLayout(new FormLayout());
-		FormData fdGroupUpdate = new FormData();
+		
+		final FormData fdGroupUpdate = new FormData();
 		fdGroupUpdate.top = new FormAttachment(groupStatuses);
 		fdGroupUpdate.left = new FormAttachment(0, 5);
 		fdGroupUpdate.right = new FormAttachment(100, -5);
 		fdGroupUpdate.height = 300;
+		
 		groupUpdate.setLayoutData(fdGroupUpdate);
 		
 		appUpdateFromServerComposite = new DataUpdateComposite(groupUpdate, SWT.NONE, DataUpdateComposite.Layout.SERVER_DEVICE);
@@ -265,11 +290,13 @@ public class MainWindow implements Observer
 		((FormData) dataUpdateFromServerComposite.getLayoutData()).top = new FormAttachment(dataUpdateFromDeviceComposite);
 		
 		consoleLogComposite = new ConsoleLogComposite(composite, SWT.NONE);
-		FormData fdConsoleLogComposite = new FormData();
+		
+		final FormData fdConsoleLogComposite = new FormData();
 		fdConsoleLogComposite.top = new FormAttachment(groupUpdate);
 		fdConsoleLogComposite.left = new FormAttachment(0, 5);
 		fdConsoleLogComposite.right = new FormAttachment(100, -5);
 		fdConsoleLogComposite.bottom = new FormAttachment(buttonQuit);
+		
 		consoleLogComposite.setLayoutData(fdConsoleLogComposite);
 	}
 	

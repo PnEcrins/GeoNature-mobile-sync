@@ -68,11 +68,11 @@ public class CheckServerRunnable extends Observable implements Runnable
 			setStatus(Status.PENDING);
 		}
 		
-		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSyncSettings().getServerTimeout());
+		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
 		WebAPIClientUtils.httpPost(httpClient,
-				LoadSettingsCallable.getInstance().getSyncSettings().getServerUrl() +
-				LoadSettingsCallable.getInstance().getSyncSettings().getStatusUrl(),
-				LoadSettingsCallable.getInstance().getSyncSettings().getServerToken(),
+				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
+				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getStatusUrl(),
+				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
 				new HTTPCallback()
 				{
 					@Override
