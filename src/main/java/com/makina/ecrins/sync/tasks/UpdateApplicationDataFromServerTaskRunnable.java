@@ -101,6 +101,8 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 							new AndroidSettings(
 									ADBCommand.getInstance().getProp(Prop.RO_BUILD_VERSION_RELEASE),
 									ADBCommand.getInstance().getBuildVersion())));
+			
+			LOG.debug("loadDeviceSettings: " + deviceSettings);
 		}
 		catch (ADBCommandException ace)
 		{
@@ -278,13 +280,14 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 	{
 		LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.copytodevice.text"), localFile.getName()));
 		
-		if ((ADBCommand.getInstance().getBuildVersion() > 15) || DeviceUtils.getExternalStorageDirectory(deviceSettings).equals(DeviceUtils.getDefaultExternalStorageDirectory(deviceSettings)))
+		if (DeviceUtils.getExternalStorageDirectory(deviceSettings).equals(DeviceUtils.getDefaultExternalStorageDirectory(deviceSettings)))
 		{
 			ADBCommand.getInstance().push(localFile.getAbsolutePath(), getDeviceFilePath(remoteName, false));
 		}
 		else
 		{
 			// uses specific service from mobile application to move the given file to the right place (use the external storage path)
+			// The direct copy to the external storage path may fail for some devices (i.e. Permission denied) 
 			ADBCommand.getInstance().push(localFile.getAbsolutePath(), getDeviceFilePath(remoteName, true));
 			ADBCommand.getInstance().executeCommand("am broadcast -a " + apkInfo.getPackageName() + ".INTENT_MOVE_FILE_TO_EXTERNAL_STORAGE -e " + apkInfo.getPackageName() + ".file " + remoteName + " -f 32");
 		}

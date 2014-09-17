@@ -158,7 +158,7 @@ public final class ADBCommand
 			
 			ExecuteWatchdog watchdog = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
 			Executor executor = new DefaultExecutor();
-			executor.setExitValue(1);
+			executor.setExitValue(0);
 			executor.setWatchdog(watchdog);
 			
 			executor.execute(cmdLine, resultHandler);
@@ -204,7 +204,7 @@ public final class ADBCommand
 			
 			ExecuteWatchdog watchdog = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
 			Executor executor = new DefaultExecutor();
-			executor.setExitValue(1);
+			executor.setExitValue(0);
 			executor.setWatchdog(watchdog);
 			executor.setStreamHandler(streamHandler);
 			
@@ -381,6 +381,8 @@ public final class ADBCommand
 			return output.get(0).trim();
 		}
 		
+		LOG.warn("getProp, Property not found: " + property);
+		
 		return null;
 	}
 	
@@ -414,29 +416,29 @@ public final class ADBCommand
 	 */
 	public boolean install(String apkPath, boolean keepData) throws ADBCommandException
 	{
+		final CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
+		cmdLine.addArgument("install");
+		
+		if (keepData)
+		{
+			cmdLine.addArgument("-r");
+		}
+		
+		cmdLine.addArgument(apkPath);
+		
+		LOG.debug("install: " + cmdLine.toString());
+		
+		final Executor executor = new DefaultExecutor();
+		executor.setExitValue(0);
+		
 		try
 		{
-			boolean result = false;
-			
-			ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "install", (keepData)?"-r":"", apkPath);
-			LOG.debug("install : " + pb.command().toString());
-			
-			Process p = pb.start();
-			
-			for (String line : IOUtils.readLines(p.getInputStream()))
-			{
-				LOG.debug(line);
-				
-				if (!result)
-				{
-					result = line.startsWith("Success");
-				}
-			}
-			
-			return result;
+			return executor.execute(cmdLine) == 0;
 		}
-		catch (IOException ioe)
-		{
+		catch (ExecuteException ee) {
+			throw new ADBCommandException(ee.getMessage(), ee);
+		}
+		catch (IOException ioe) {
 			throw new ADBCommandException(ioe.getMessage(), ioe);
 		}
 	}
@@ -450,29 +452,23 @@ public final class ADBCommand
 	 */
 	public boolean uninstall(String packageName) throws ADBCommandException
 	{
+		final CommandLine cmdLine = new CommandLine(adbCommandFile.getAbsolutePath());
+		cmdLine.addArgument("uninstall");
+		cmdLine.addArgument(packageName);
+		
+		LOG.debug("uninstall: " + cmdLine.toString());
+		
+		final Executor executor = new DefaultExecutor();
+		executor.setExitValue(0);
+		
 		try
 		{
-			boolean result = false;
-			
-			ProcessBuilder pb = new ProcessBuilder(adbCommandFile.getAbsolutePath(), "uninstall", packageName);
-			LOG.debug("uninstall : " + pb.command().toString());
-			
-			Process p = pb.start();
-			
-			for (String line : IOUtils.readLines(p.getInputStream()))
-			{
-				LOG.debug(line);
-				
-				if (!result)
-				{
-					result = line.startsWith("Success");
-				}
-			}
-			
-			return result;
+			return executor.execute(cmdLine) == 0;
 		}
-		catch (IOException ioe)
-		{
+		catch (ExecuteException ee) {
+			throw new ADBCommandException(ee.getMessage(), ee);
+		}
+		catch (IOException ioe) {
 			throw new ADBCommandException(ioe.getMessage(), ioe);
 		}
 	}
@@ -534,7 +530,7 @@ public final class ADBCommand
 		
 		ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
 		Executor executor = new DefaultExecutor();
-		executor.setExitValue(1);
+		executor.setExitValue(0);
 		executor.setWatchdog(watchdog);
 		executor.setStreamHandler(streamHandler);
 		
@@ -579,7 +575,7 @@ public final class ADBCommand
 		
 		ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
 		Executor executor = new DefaultExecutor();
-		executor.setExitValue(1);
+		executor.setExitValue(0);
 		executor.setWatchdog(watchdog);
 		executor.setStreamHandler(streamHandler);
 		
@@ -691,7 +687,7 @@ public final class ADBCommand
 			
 			ExecuteWatchdog watchdog = new ExecuteWatchdog(10 * 1000);
 			Executor executor = new DefaultExecutor();
-			executor.setExitValue(1);
+			executor.setExitValue(0);
 			executor.setWatchdog(watchdog);
 			executor.setStreamHandler(streamHandler);
 			

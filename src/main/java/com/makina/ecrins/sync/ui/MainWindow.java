@@ -69,6 +69,9 @@ public class MainWindow implements Observer
 		serverStatus = Status.NONE;
 		deviceStatus = Status.NONE;
 		
+		Display.setAppName(getAppTitle(false));
+		Display.setAppVersion(ResourceBundle.getBundle("messages").getString("version"));
+		
 		final Display display = Display.getDefault();
 		createContents(display);
 		
@@ -203,11 +206,7 @@ public class MainWindow implements Observer
 	{
 		shell = new Shell(display, SWT.CLOSE | SWT.TITLE | SWT.MIN);
 		shell.setSize(480, 505);
-		shell.setText(
-				MessageFormat.format(
-						ResourceBundle.getBundle("messages").getString("MainWindow.shell.text.full"),
-						ResourceBundle.getBundle("messages").getString("MainWindow.shell.text"),
-						ResourceBundle.getBundle("messages").getString("version")));
+		shell.setText(getAppTitle(true));
 		
 		final FormLayout flShell = new FormLayout();
 		flShell.marginLeft = 1;
@@ -220,7 +219,10 @@ public class MainWindow implements Observer
 				new Image[]
 				{
 						UIResourceManager.getImage("icon_32.png"),
-						UIResourceManager.getImage("icon_48.png")
+						UIResourceManager.getImage("icon_64.png"),
+						UIResourceManager.getImage("icon_128.png"),
+						UIResourceManager.getImage("icon_256.png"),
+						UIResourceManager.getImage("icon_512.png")
 				}
 		);
 		
@@ -311,6 +313,21 @@ public class MainWindow implements Observer
 	private void configureLogger()
 	{
 		((ConsoleLogAppender) Logger.getRootLogger().getAppender("UI")).addObserver(consoleLogComposite);
+	}
+	
+	private String getAppTitle(boolean showAppVersion)
+	{
+		if (showAppVersion)
+		{
+			return MessageFormat.format(
+					ResourceBundle.getBundle("messages").getString("MainWindow.shell.text.full"),
+					ResourceBundle.getBundle("messages").getString("MainWindow.shell.text"),
+					ResourceBundle.getBundle("messages").getString("version"));
+		}
+		else
+		{
+			return ResourceBundle.getBundle("messages").getString("MainWindow.shell.text");
+		}
 	}
 	
 	@Override

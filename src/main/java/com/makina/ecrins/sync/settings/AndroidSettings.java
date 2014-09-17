@@ -41,6 +41,12 @@ public class AndroidSettings
 	}
 
 	@Override
+	public String toString()
+	{
+		return "AndroidSettings [release=" + release + ", sdk=" + sdk + "]";
+	}
+
+	@Override
 	public int hashCode()
 	{
 		final int prime = 31;

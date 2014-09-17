@@ -60,7 +60,7 @@ public class CheckDeviceRunnable extends Observable implements Runnable
 										ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_MODEL),
 										ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_NAME),
 										ADBCommand.getInstance().getProp(Prop.RO_BUILD_VERSION_RELEASE),
-										ADBCommand.getInstance().getProp(Prop.RO_BUILD_VERSION_SDK)));
+										ADBCommand.getInstance().getBuildVersion()));
 					}
 					catch (ADBCommandException ace)
 					{

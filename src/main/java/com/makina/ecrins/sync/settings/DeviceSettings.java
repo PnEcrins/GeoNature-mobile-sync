@@ -68,6 +68,14 @@ public class DeviceSettings
 	}
 
 	@Override
+	public String toString()
+	{
+		return "DeviceSettings [manufacturer=" + manufacturer + ", model="
+				+ model + ", name=" + name + ", androidSettings="
+				+ androidSettings + ", mountsSettings=" + mountsSettings + "]";
+	}
+
+	@Override
 	public int hashCode()
 	{
 		final int prime = 31;

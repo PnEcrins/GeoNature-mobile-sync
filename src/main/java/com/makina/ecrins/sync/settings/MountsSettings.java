@@ -39,4 +39,11 @@ public class MountsSettings
 	{
 		return externalMountPoint;
 	}
+
+	@Override
+	public String toString()
+	{
+		return "MountsSettings [defaultMountPoint=" + defaultMountPoint
+				+ ", externalMountPoint=" + externalMountPoint + "]";
+	}
 }

@@ -99,6 +99,8 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 							new AndroidSettings(
 									ADBCommand.getInstance().getProp(Prop.RO_BUILD_VERSION_RELEASE),
 									ADBCommand.getInstance().getBuildVersion())));
+			
+			LOG.debug("loadDeviceSettings: " + deviceSettings);
 		}
 		catch (ADBCommandException ace)
 		{
@@ -326,7 +328,7 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 			httpClient.getConnectionManager().shutdown();
 		}
 		
-		LOG.debug("uploadInputs : finish");
+		LOG.debug("uploadInputs: finish");
 		
 		return result;
 	}

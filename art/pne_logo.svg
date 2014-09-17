@@ -17,9 +17,9 @@
    version="1.0"
    sodipodi:docname="pne_logo.svg"
    inkscape:output_extension="org.inkscape.output.svg.inkscape"
-   inkscape:export-filename="/Users/sgrimault/Desktop/pne_logo.png"
-   inkscape:export-xdpi="5.6199999"
-   inkscape:export-ydpi="5.6199999">
+   inkscape:export-filename="/Users/sgrimault/Desktop/icon_512.png"
+   inkscape:export-xdpi="90"
+   inkscape:export-ydpi="90">
   <defs
      id="defs4">
     <inkscape:perspective
@@ -58,9 +58,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.98994949"
+     inkscape:zoom="1.14"
      inkscape:cx="106.54415"
-     inkscape:cy="275.63001"
+     inkscape:cy="313.36586"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"

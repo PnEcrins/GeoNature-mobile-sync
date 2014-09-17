@@ -173,6 +173,8 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 							new AndroidSettings(
 									ADBCommand.getInstance().getProp(Prop.RO_BUILD_VERSION_RELEASE),
 									ADBCommand.getInstance().getBuildVersion())));
+			
+			LOG.debug("loadDeviceSettings: " + deviceSettings);
 		}
 		catch (ADBCommandException ace)
 		{
