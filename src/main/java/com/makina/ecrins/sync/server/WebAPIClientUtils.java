@@ -8,13 +8,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.HttpClientUtils;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.params.HttpConnectionParams;
 import org.apache.log4j.Logger;
 
 /**
@@ -39,23 +39,76 @@ public final class WebAPIClientUtils
 	
 	public static HttpClient getHttpClient(int timeout)
 	{
-		final HttpClient httpClient = new DefaultHttpClient();
-		HttpConnectionParams.setConnectionTimeout(httpClient.getParams(), timeout);
+		return HttpClientBuilder
+				.create()
+				.setDefaultRequestConfig(
+						RequestConfig
+							.custom()
+							.setConnectTimeout(timeout)
+							.setConnectionRequestTimeout(timeout)
+							.build()
+				)
+				.build();
+	}
+	
+	public static HttpPost httpPost(
+			HttpClient httpClient,
+			String url,
+			String token,
+			String data) throws UnsupportedEncodingException
+	{
+		LOG.debug("httpPost '" + url + "'");
 		
-		return httpClient;
+		String sanitizeData = data;
+		
+		if (StringUtils.isBlank(data))
+		{
+			sanitizeData = "{}";
+		}
+		
+		HttpPost httpPost = new HttpPost(url);
+		
+		httpPost.setHeader("Cache-Control", "no-cache");
+		httpPost.setHeader("ContentType", "application/x-force-download");
+		
+		try
+		{
+			httpPost.setEntity(
+					new UrlEncodedFormEntity(
+							Arrays.asList(
+									new BasicNameValuePair(PARAM_TOKEN, token),
+									new BasicNameValuePair(PARAM_DATA, sanitizeData)
+							)
+					)
+			);
+			
+			return httpPost;
+		}
+		catch (UnsupportedEncodingException uee)
+		{
+			httpPost.abort();
+			
+			throw new UnsupportedEncodingException(uee.getMessage());
+		}
 	}
 	
-	public static void shutdownHttpClient(HttpClient httpClient)
+	public static void httpPost(
+			HttpClient httpClient,
+			String url,
+			String token,
+			boolean closeHttpClient,
+			HTTPCallback callback)
 	{
-		httpClient.getConnectionManager().shutdown();
+		httpPost(httpClient, url, token, null, closeHttpClient, callback);
 	}
 	
-	public static void httpPost(HttpClient httpClient, String url, String token, HTTPCallback callback)
-	{
-		httpPost(httpClient, url, token, null, callback);
-	}
-	
-	public static void httpPost(HttpClient httpClient, String url, String token, String data, HTTPCallback callback)
+	public static void httpPost(
+			HttpClient httpClient,
+			String url,
+			String token,
+			String data,
+			boolean closeHttpClient,
+			HTTPCallback callback)
 	{
 		LOG.debug("httpPost '" + url + "'");
 		
@@ -73,7 +126,14 @@ public final class WebAPIClientUtils
 		{
 			httpPost.setHeader("Cache-Control", "no-cache");
 			httpPost.setHeader("ContentType", "application/x-force-download");
-			httpPost.setEntity(new UrlEncodedFormEntity(Arrays.asList(new BasicNameValuePair(PARAM_TOKEN, token), new BasicNameValuePair(PARAM_DATA, sanitizeData))));
+			httpPost.setEntity(
+					new UrlEncodedFormEntity(
+							Arrays.asList(
+									new BasicNameValuePair(PARAM_TOKEN, token),
+									new BasicNameValuePair(PARAM_DATA, sanitizeData)
+							)
+					)
+			);
 			httpResponse = httpClient.execute(httpPost);
 			
 			callback.onResponse(httpPost, httpResponse);
@@ -81,24 +141,26 @@ public final class WebAPIClientUtils
 		catch (UnsupportedEncodingException uee)
 		{
 			httpPost.abort();
-			HttpClientUtils.closeQuietly(httpResponse);
 			callback.onError(uee);
 		}
 		catch (ClientProtocolException cpe)
 		{
 			httpPost.abort();
-			HttpClientUtils.closeQuietly(httpResponse);
 			callback.onError(cpe);
 		}
 		catch (IOException ioe)
 		{
 			httpPost.abort();
-			HttpClientUtils.closeQuietly(httpResponse);
 			callback.onError(ioe);
 		}
 		finally
 		{
 			HttpClientUtils.closeQuietly(httpResponse);
+			
+			if (closeHttpClient)
+			{
+				HttpClientUtils.closeQuietly(httpClient);
+			}
 		}
 	}
 	

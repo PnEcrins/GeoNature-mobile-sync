@@ -39,6 +39,7 @@ public class WebAPIClientUtilsTest
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getStatusUrl(),
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
+				true,
 				new HTTPCallback()
 				{
 					@Override
@@ -87,8 +88,6 @@ public class WebAPIClientUtilsTest
 						Assert.fail(e.getMessage());
 					}
 				});
-		
-		WebAPIClientUtils.shutdownHttpClient(httpClient);
 	}
 	
 	@Test()
@@ -99,6 +98,7 @@ public class WebAPIClientUtilsTest
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getAppUpdateSettings().getVersionUrl(),
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
+				true,
 				new HTTPCallback()
 				{
 					@Override
@@ -125,8 +125,6 @@ public class WebAPIClientUtilsTest
 						Assert.fail(e.getMessage());
 					}
 				});
-		
-		WebAPIClientUtils.shutdownHttpClient(httpClient);
 	}
 	
 	@Test
@@ -142,6 +140,7 @@ public class WebAPIClientUtilsTest
 					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
 					exportSettings.getExportUrl(),
 					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
+					true,
 					new HTTPCallback()
 					{
 						@Override
@@ -169,7 +168,5 @@ public class WebAPIClientUtilsTest
 						}
 					});
 		}
-		
-		WebAPIClientUtils.shutdownHttpClient(httpClient);
 	}
 }

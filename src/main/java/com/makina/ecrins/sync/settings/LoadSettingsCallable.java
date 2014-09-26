@@ -16,6 +16,7 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -96,6 +97,7 @@ public class LoadSettingsCallable implements Callable<Settings>
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getSettingsUrl(),
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
+				true,
 				new HTTPCallback()
 				{
 					@Override
@@ -106,11 +108,11 @@ public class LoadSettingsCallable implements Callable<Settings>
 						
 						if (status.getStatusCode() == HttpStatus.SC_OK)
 						{
-							// pulls content stream from response
-							final HttpEntity entity = httpResponse.getEntity();
-							
 							try
 							{
+								// pulls content stream from response
+								final HttpEntity entity = httpResponse.getEntity();
+								
 								FileUtils.copyInputStreamToFile(entity.getContent(), new File(tempDir, "settings.json"));
 								
 								// do nothing if we have the same file
@@ -130,6 +132,9 @@ public class LoadSettingsCallable implements Callable<Settings>
 													ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.update.success.text"),
 													SETTINGS_FILE));
 								}
+								
+								// ensure that the response body is fully consumed
+								EntityUtils.consume(entity);
 							}
 							catch (IOException ioe)
 							{
@@ -147,8 +152,6 @@ public class LoadSettingsCallable implements Callable<Settings>
 											SETTINGS_FILE) + " (" + status.getStatusCode() + ")");
 						}
 						
-						WebAPIClientUtils.shutdownHttpClient(httpClient);
-						
 						if (tempDir != null)
 						{
 							FileDeleteStrategy.FORCE.deleteQuietly(tempDir);
@@ -162,8 +165,6 @@ public class LoadSettingsCallable implements Callable<Settings>
 								MessageFormat.format(
 										ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.update.failed.text"),
 										SETTINGS_FILE) + ": " + e.getMessage());
-						
-						WebAPIClientUtils.shutdownHttpClient(httpClient);
 						
 						if (tempDir != null)
 						{

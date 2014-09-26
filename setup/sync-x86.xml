@@ -15,7 +15,7 @@
 	<icon>..\art\sync.ico</icon>
 	<classPath>
 		<mainClass>com.makina.ecrins.sync.ui.MainWindow</mainClass>
-		<cp>sync-0.2.6-win32-x86.jar</cp>
+		<cp>sync-0.2.7-win32-x86.jar</cp>
 	</classPath>
 	<jre>
 		<path></path>
@@ -24,12 +24,12 @@
 		<jdkPreference>preferJre</jdkPreference>
 	</jre>
 	<versionInfo>
-		<fileVersion>0.2.6.0</fileVersion>
-		<txtFileVersion>0.2.6</txtFileVersion>
+		<fileVersion>0.2.7.0</fileVersion>
+		<txtFileVersion>0.2.7</txtFileVersion>
 		<fileDescription>Sync</fileDescription>
 		<copyright>Copyright (c) 2012 - 2014 Makina Corpus</copyright>
-		<productVersion>0.2.6.0</productVersion>
-		<txtProductVersion>0.2.6</txtProductVersion>
+		<productVersion>0.2.7.0</productVersion>
+		<txtProductVersion>0.2.7</txtProductVersion>
 		<productName>Sync</productName>
 		<companyName>Makina Corpus</companyName>
 		<internalName>sync</internalName>

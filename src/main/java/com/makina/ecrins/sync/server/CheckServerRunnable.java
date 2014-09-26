@@ -12,6 +12,7 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -68,11 +69,12 @@ public class CheckServerRunnable extends Observable implements Runnable
 			setStatus(Status.PENDING);
 		}
 		
-		HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
+		final HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
 		WebAPIClientUtils.httpPost(httpClient,
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getStatusUrl(),
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
+				true,
 				new HTTPCallback()
 				{
 					@Override
@@ -83,10 +85,11 @@ public class CheckServerRunnable extends Observable implements Runnable
 						
 						if (status.getStatusCode() == HttpStatus.SC_OK)
 						{
-							HttpEntity entity = httpResponse.getEntity();
-							
 							try
 							{
+								// pulls content stream from response
+								final HttpEntity entity = httpResponse.getEntity();
+								
 								InputStream is = entity.getContent();
 								JSONObject jsonResponse = new JSONObject(IOUtils.toString(is));
 								
@@ -101,6 +104,9 @@ public class CheckServerRunnable extends Observable implements Runnable
 								{
 									setStatus(Status.FAILED);
 								}
+								
+								// ensure that the response body is fully consumed
+								EntityUtils.consume(entity);
 							}
 							catch (IllegalStateException ise)
 							{
@@ -132,7 +138,5 @@ public class CheckServerRunnable extends Observable implements Runnable
 						setStatus(Status.FAILED);
 					}
 				});
-				
-		WebAPIClientUtils.shutdownHttpClient(httpClient);
 	}
 }

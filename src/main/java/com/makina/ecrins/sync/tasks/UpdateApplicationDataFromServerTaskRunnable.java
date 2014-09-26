@@ -21,13 +21,13 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.impl.cookie.DateParseException;
-import org.apache.http.impl.cookie.DateUtils;
+import org.apache.http.client.utils.DateUtils;
+import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
-import com.makina.ecrins.sync.adb.ADBCommandException;
 import com.makina.ecrins.sync.adb.ADBCommand.Prop;
+import com.makina.ecrins.sync.adb.ADBCommandException;
 import com.makina.ecrins.sync.server.WebAPIClientUtils;
 import com.makina.ecrins.sync.server.WebAPIClientUtils.HTTPCallback;
 import com.makina.ecrins.sync.service.Status;
@@ -120,16 +120,12 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 		{
 			try
 			{
-				Date remoteLastModified = DateUtils.parseDate(headerLastModified);
-				Date localFileLastModified = ADBCommand.getInstance().getFileLastModified(getDeviceFilePath(remoteName, false));
+				final Date remoteLastModified = DateUtils.parseDate(headerLastModified);
+				final Date localFileLastModified = ADBCommand.getInstance().getFileLastModified(getDeviceFilePath(remoteName, false));
 				
-				LOG.debug("remoteName : " + remoteName + ", localFileLastModified : " + localFileLastModified.toString() + ", remoteLastModified : " + remoteLastModified.toString());
+				LOG.debug("remoteName: " + remoteName + ", localFileLastModified: " + localFileLastModified + ", remoteLastModified: " + remoteLastModified);
 				
-				check = !remoteLastModified.after(localFileLastModified);
-			}
-			catch (DateParseException dpe)
-			{
-				LOG.debug(dpe.getMessage());
+				check = (remoteLastModified == null) || (!remoteLastModified.after(localFileLastModified));
 			}
 			catch (ADBCommandException ace)
 			{
@@ -158,6 +154,7 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
 					exportSettings.getExportUrl(),
 					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
+					true,
 					new HTTPCallback()
 					{
 						@Override
@@ -199,6 +196,9 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 											LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.fail.text"), exportSettings.getExportFile()));
 											result.set(false);
 										}
+										
+										// ensure that the response body is fully consumed
+										EntityUtils.consume(entity);
 									}
 								}
 								catch (NumberFormatException nfe)
@@ -258,8 +258,6 @@ public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRun
 			
 			increment.addAndGet(1);
 		}
-		
-		WebAPIClientUtils.shutdownHttpClient(httpClient);
 		
 		return result.get();
 	}

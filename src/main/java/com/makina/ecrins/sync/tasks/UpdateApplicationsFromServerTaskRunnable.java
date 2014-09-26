@@ -19,24 +19,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.HttpClientUtils;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
+import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
-import com.makina.ecrins.sync.adb.ADBCommandException;
 import com.makina.ecrins.sync.adb.ADBCommand.Prop;
+import com.makina.ecrins.sync.adb.ADBCommandException;
 import com.makina.ecrins.sync.server.WebAPIClientUtils;
 import com.makina.ecrins.sync.server.WebAPIClientUtils.HTTPCallback;
 import com.makina.ecrins.sync.service.Status;
@@ -192,6 +187,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getAppUpdateSettings().getVersionUrl(),
 				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
+				true,
 				new HTTPCallback()
 				{
 					@Override
@@ -222,7 +218,9 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 									}
 								});
 								
-								inputStream.close();
+								// ensure that the response body is fully consumed
+								EntityUtils.consume(entity);
+								
 								fos.close();
 								
 								apks.addAll(ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json")));
@@ -267,8 +265,6 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
 					}
 				});
-		
-		WebAPIClientUtils.shutdownHttpClient(httpClient);
 		
 		return !apks.isEmpty();
 	}
@@ -394,81 +390,72 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 	{
 		boolean result = true;
 		
-		final DefaultHttpClient httpClient = new DefaultHttpClient();
-		final HttpParams httpParameters = httpClient.getParams();
-		HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
-		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
+		final HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
 		
-		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(1);
-		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken()));
+		HttpResponse httpResponse = null;
 		
 		try
 		{
-			HttpPost httpPost = new HttpPost(
+			final HttpPost httpPost = WebAPIClientUtils.httpPost(
+					httpClient,
 					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
-					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getAppUpdateSettings().getDownloadUrl() +
-					"/" + apkInfo.getApkName() + "/");
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getAppUpdateSettings().getDownloadUrl() + "/" + apkInfo.getApkName() + "/",
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
+					null);
 			
-			HttpResponse httpResponse = null;
-			
-			try
-			{
-				httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-				httpResponse = httpClient.execute(httpPost);
+			httpResponse = httpClient.execute(httpPost);
 
-				// checks if server response is valid
-				StatusLine status = httpResponse.getStatusLine();
-				
-				if (status.getStatusCode() == HttpStatus.SC_OK)
-				{
-					// pulls content stream from response
-					final HttpEntity entity = httpResponse.getEntity();
-					
-					InputStream inputStream = entity.getContent();
-					FileOutputStream fos = new FileOutputStream(new File(TaskManager.getInstance().getTemporaryDirectory(), apkInfo.getApkName()));
-					
-					IOUtils.copy(inputStream, new CountingOutputStream(fos)
-					{
-						@Override
-						protected void afterWrite(int n) throws IOException
-						{
-							super.afterWrite(n);
-							
-							progress = computeProgress(apkIndex, apks.size(), getCount(), entity.getContentLength(), ratio, factor, offset);
-							setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.PENDING));
-						}
-					});
-					
-					inputStream.close();
-					fos.close();
-				}
-				else
-				{
-					LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.failed.text"), apkInfo.getApkName()) + " (URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
-					
-					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-					setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.FAILED));
-					this.result.set(false);
-					result = false;
-				}
-			}
-			catch (IOException ioe)
+			// checks if server response is valid
+			StatusLine status = httpResponse.getStatusLine();
+			
+			if (status.getStatusCode() == HttpStatus.SC_OK)
 			{
-				LOG.error(ioe.getMessage(), ioe);
+				// pulls content stream from response
+				final HttpEntity entity = httpResponse.getEntity();
+				
+				InputStream inputStream = entity.getContent();
+				FileOutputStream fos = new FileOutputStream(new File(TaskManager.getInstance().getTemporaryDirectory(), apkInfo.getApkName()));
+				
+				IOUtils.copy(inputStream, new CountingOutputStream(fos)
+				{
+					@Override
+					protected void afterWrite(int n) throws IOException
+					{
+						super.afterWrite(n);
+						
+						progress = computeProgress(apkIndex, apks.size(), getCount(), entity.getContentLength(), ratio, factor, offset);
+						setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.PENDING));
+					}
+				});
+				
+				// ensure that the response body is fully consumed
+				EntityUtils.consume(entity);
+				
+				fos.close();
+			}
+			else
+			{
+				LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.failed.text"), apkInfo.getApkName()) + " (URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
 				
 				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
 				setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.FAILED));
 				this.result.set(false);
 				result = false;
 			}
-			finally
-			{
-				HttpClientUtils.closeQuietly(httpResponse);
-			}
+		}
+		catch (IOException ioe)
+		{
+			LOG.error(ioe.getMessage(), ioe);
+			
+			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
+			setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.FAILED));
+			this.result.set(false);
+			result = false;
 		}
 		finally
 		{
-			httpClient.getConnectionManager().shutdown();
+			HttpClientUtils.closeQuietly(httpResponse);
+			HttpClientUtils.closeQuietly(httpClient);
 		}
 		
 		return result;

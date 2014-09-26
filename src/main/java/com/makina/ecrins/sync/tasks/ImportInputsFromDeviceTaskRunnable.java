@@ -20,15 +20,11 @@ import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.HttpClientUtils;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
+import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -36,6 +32,7 @@ import org.json.JSONObject;
 import com.makina.ecrins.sync.adb.ADBCommand;
 import com.makina.ecrins.sync.adb.ADBCommand.Prop;
 import com.makina.ecrins.sync.adb.ADBCommandException;
+import com.makina.ecrins.sync.server.WebAPIClientUtils;
 import com.makina.ecrins.sync.service.Status;
 import com.makina.ecrins.sync.settings.AndroidSettings;
 import com.makina.ecrins.sync.settings.DeviceSettings;
@@ -60,7 +57,11 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	@Override
 	public void run()
 	{
-		setTaskStatus(new TaskStatus(-1, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.PENDING));
+		setTaskStatus(
+				new TaskStatus(
+						-1,
+						ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"),
+						Status.PENDING));
 		
 		try
 		{
@@ -69,17 +70,29 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 			
 			if (uploadInputs())
 			{
-				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.FINISH));
+				setTaskStatus(
+						new TaskStatus(
+								100,
+								ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"),
+								Status.FINISH));
 			}
 			else
 			{
-				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.FAILED));
+				setTaskStatus(
+						new TaskStatus(
+								100,
+								ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"),
+								Status.FAILED));
 			}
 		}
 		catch (ADBCommandException ace)
 		{
 			LOG.error(ace.getMessage(), ace);
-			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.FAILED));
+			setTaskStatus(
+					new TaskStatus(
+							100,
+							ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"),
+							Status.FAILED));
 		}
 		finally
 		{
@@ -115,7 +128,10 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		this.inputsTempDir = new File(TaskManager.getInstance().getTemporaryDirectory(), "inputs");
 		this.inputsTempDir.mkdir();
 		
-		apks = ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json"));
+		apks = ApkUtils.getApkInfosFromJson(
+				new File(
+						TaskManager.getInstance().getTemporaryDirectory(),
+						"versions.json"));
 		
 		if (apks.isEmpty())
 		{
@@ -125,13 +141,16 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		{
 			ADBCommand.getInstance().pull(DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apks.get(0)) + "inputs/", this.inputsTempDir.getAbsolutePath());
 			
-			return FileUtils.listFiles(this.inputsTempDir, new RegexFileFilter("^input_\\d+.json$"), new PrefixFileFilter(apks.get(0).getSharedUserId())).size() > 0;
+			return FileUtils.listFiles(
+					this.inputsTempDir,
+					new RegexFileFilter("^input_\\d+.json$"),
+					new PrefixFileFilter(apks.get(0).getSharedUserId())).size() > 0;
 		}
 	}
 	
 	private void deleteInputFromDevice(File inputJson) throws ADBCommandException
 	{
-		if (ADBCommand.getInstance().getBuildVersion() > 15)
+		if (DeviceUtils.getExternalStorageDirectory(deviceSettings).equals(DeviceUtils.getDefaultExternalStorageDirectory(deviceSettings)))
 		{
 			ADBCommand.getInstance().executeCommand("rm " + DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apks.get(0)) + "inputs/" + inputJson.getParentFile().getName() + "/" + inputJson.getName());
 		}
@@ -148,8 +167,13 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 		{
 			try
 			{
-				Input input = InputUtils.getInputFromJson(inputJson);
-				File inputFile = FileUtils.getFile(TaskManager.getInstance().getUserDir(), inputJson.getParentFile().getParentFile().getName(), inputJson.getParentFile().getName(), dateFormat.format(input.getDate()), ((isSynchronized)?"ok_":"ko_") + inputJson.getName());
+				final Input input = InputUtils.getInputFromJson(inputJson);
+				File inputFile = FileUtils.getFile(
+						TaskManager.getInstance().getUserDir(),
+						inputJson.getParentFile().getParentFile().getName(),
+						inputJson.getParentFile().getName(),
+						dateFormat.format(input.getDate()),
+						((isSynchronized)?"ok_":"ko_") + inputJson.getName());
 				FileUtils.copyFile(inputJson, inputFile);
 				
 				if (isSynchronized)
@@ -184,115 +208,140 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 	{
 		boolean result = true;
 		
-		LOG.debug("uploadInputs : start");
+		LOG.debug("uploadInputs: start");
 		
-		final DefaultHttpClient httpClient = new DefaultHttpClient();
-		final HttpParams httpParameters = httpClient.getParams();
-		HttpConnectionParams.setConnectionTimeout(httpParameters, LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
-		//HttpConnectionParams.setSoTimeout(httpParameters, 5000);
-		
-		List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
-		nameValuePairs.add(new BasicNameValuePair("token", LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken()));
-		nameValuePairs.add(new BasicNameValuePair("data", "{}"));
-		
-		String urlImport = 	LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
-				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getImportUrl();
-		
-		HttpPost httpPost = new HttpPost(urlImport);
+		final HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
+		HttpPost httpPost = null;
 		HttpResponse httpResponse = null;
 		
-		try
+		int currentInput = 0;
+		
+		final List<String> packageNames = new ArrayList<String>();
+		
+		for (ApkInfo apkInfo : apks)
 		{
-			int currentInput = 0;
+			packageNames.add(apkInfo.getPackageName());
+		}
+		
+		// finds all inputs as json file
+		final Collection<File> inputFiles = FileUtils.listFiles(
+				this.inputsTempDir,
+				new RegexFileFilter("^input_\\d+.json$"),
+				new NameFileFilter(packageNames));
+		
+		int inputsSynchronized = 0;
+		int inputsFailed = 0;
 			
-			List<String> packageNames = new ArrayList<String>();
+		for (File inputFile : inputFiles)
+		{
+			setTaskStatus(
+					new TaskStatus(
+							(int) (((double) currentInput / (double) inputFiles.size()) * 100),
+							MessageFormat.format(
+									ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"),
+									inputFile.getName()),
+									Status.PENDING));
 			
-			for (ApkInfo apkInfo : apks)
+			LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()));
+			
+			try
 			{
-				packageNames.add(apkInfo.getPackageName());
-			}
-			
-			// finds all inputs as json file
-			Collection<File> inputFiles = FileUtils.listFiles(this.inputsTempDir, new RegexFileFilter("^input_\\d+.json$"), new NameFileFilter(packageNames));
-			int inputsSynchronized = 0;
-			int inputsFailed = 0;
-			
-			for (File inputFile : inputFiles)
-			{
-				setTaskStatus(new TaskStatus((int) (((double) currentInput / (double) inputFiles.size()) * 100), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.PENDING));
-				LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()));
+				httpPost = WebAPIClientUtils.httpPost(
+						httpClient,
+						LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
+						LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getImportUrl(),
+						LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
+						FileUtils.readFileToString(inputFile));
 				
-				try
+				httpResponse = httpClient.execute(httpPost);
+				
+				// checks if server response is valid
+				final StatusLine status = httpResponse.getStatusLine();
+				
+				if (status.getStatusCode() == HttpStatus.SC_OK)
 				{
-					// reads input as JSON file
-					nameValuePairs.set(1, new BasicNameValuePair("data", FileUtils.readFileToString(inputFile)));
+					// pulls content stream from response
+					HttpEntity entity = httpResponse.getEntity();
+					InputStream inputStream = entity.getContent();
 					
-					httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-					httpResponse = httpClient.execute(httpPost);
+					boolean isSynchronized = readInputStreamAsJson(inputFile.getName(), inputStream, entity.getContentLength(), currentInput, inputFiles.size());
 					
-					// checks if server response is valid
-					StatusLine status = httpResponse.getStatusLine();
-					
-					if (status.getStatusCode() == HttpStatus.SC_OK)
+					if (isSynchronized)
 					{
-						// pulls content stream from response
-						HttpEntity entity = httpResponse.getEntity();
-						InputStream inputStream = entity.getContent();
-						
-						boolean isSynchronized = readInputStreamAsJson(inputFile.getName(), inputStream, entity.getContentLength(), currentInput, inputFiles.size());
-						
-						if (isSynchronized)
-						{
-							setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.finish.text"), inputFile.getName()), Status.PENDING));
-							inputsSynchronized++;
-						}
-						else
-						{
-							setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.FAILED));
-							result = false;
-							inputsFailed++;
-						}
-						
-						deleteInputFromDevice(inputFile);
-						copyInputToUserDir(inputFile, isSynchronized);
+						setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.finish.text"), inputFile.getName()), Status.PENDING));
+						inputsSynchronized++;
 					}
 					else
 					{
-						LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.failed.text"), inputFile.getName()) + " (URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
-						
-						// pulls content stream from response
-						HttpEntity entity = httpResponse.getEntity();
-						InputStream inputStream = entity.getContent();
-						readInputStreamAsJson(inputFile.getName(), inputStream, entity.getContentLength(), currentInput, inputFiles.size());
-						
 						setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.FAILED));
 						result = false;
 						inputsFailed++;
 					}
-				}
-				catch (IOException ioe)
-				{
-					LOG.error(ioe.getLocalizedMessage());
 					
-					httpPost.abort();
-					result = false;
-					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.FAILED));
-				}
-				catch (ADBCommandException ace)
-				{
-					LOG.error(ace.getLocalizedMessage());
+					deleteInputFromDevice(inputFile);
+					copyInputToUserDir(inputFile, isSynchronized);
 					
-					httpPost.abort();
-					result = false;
-					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.FAILED));
+					// ensure that the response body is fully consumed
+					EntityUtils.consume(entity);
 				}
-				finally
+				else
 				{
-					HttpClientUtils.closeQuietly(httpResponse);
+					LOG.error(
+							MessageFormat.format(
+									ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.failed.text"),
+									inputFile.getName()
+							) +
+							" (URL '" +
+							httpPost.getURI().toString() +
+							"', HTTP status : " +
+							status.getStatusCode() +
+							")"
+					);
+					
+					// pulls content stream from response
+					HttpEntity entity = httpResponse.getEntity();
+					InputStream inputStream = entity.getContent();
+					readInputStreamAsJson(inputFile.getName(), inputStream, entity.getContentLength(), currentInput, inputFiles.size());
+					
+					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"), inputFile.getName()), Status.FAILED));
+					result = false;
+					inputsFailed++;
+					
+					// ensure that the response body is fully consumed
+					EntityUtils.consume(entity);
 				}
-				
-				currentInput++;
 			}
+			catch (IOException ioe)
+			{
+				LOG.error(ioe.getLocalizedMessage());
+				
+				result = false;
+				setTaskStatus(
+						new TaskStatus(
+								MessageFormat.format(
+										ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"),
+										inputFile.getName()),
+										Status.FAILED));
+			}
+			catch (ADBCommandException ace)
+			{
+				LOG.error(ace.getLocalizedMessage());
+				
+				httpPost.abort();
+				result = false;
+				setTaskStatus(
+						new TaskStatus(
+								MessageFormat.format(
+										ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.text"),
+										inputFile.getName()),
+										Status.FAILED));
+			}
+			finally
+			{
+				HttpClientUtils.closeQuietly(httpResponse);
+			}
+			
+			currentInput++;
 			
 			if (inputFiles.size() > 0)
 			{
@@ -323,10 +372,8 @@ public class ImportInputsFromDeviceTaskRunnable extends AbstractTaskRunnable
 				LOG.info(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.upload.size.none.text"));
 			}
 		}
-		finally
-		{
-			httpClient.getConnectionManager().shutdown();
-		}
+		
+		HttpClientUtils.closeQuietly(httpClient);
 		
 		LOG.debug("uploadInputs: finish");
 		
