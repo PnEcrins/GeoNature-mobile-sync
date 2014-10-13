@@ -22,7 +22,6 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
@@ -33,7 +32,6 @@ import com.makina.ecrins.sync.adb.ADBCommand;
 import com.makina.ecrins.sync.adb.ADBCommand.Prop;
 import com.makina.ecrins.sync.adb.ADBCommandException;
 import com.makina.ecrins.sync.server.WebAPIClientUtils;
-import com.makina.ecrins.sync.server.WebAPIClientUtils.HTTPCallback;
 import com.makina.ecrins.sync.service.Status;
 import com.makina.ecrins.sync.settings.AndroidSettings;
 import com.makina.ecrins.sync.settings.DeviceSettings;
@@ -182,89 +180,79 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 	private boolean fetchLastAppsVersionsFromServer(final int factor)
 	{
 		final HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
-		WebAPIClientUtils.httpPost(
-				httpClient,
-				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
-				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getAppUpdateSettings().getVersionUrl(),
-				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
-				true,
-				new HTTPCallback()
+		HttpResponse httpResponse = null;
+		
+		try
+		{
+			final HttpPost httpPost = WebAPIClientUtils.httpPost(
+					httpClient,
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getAppUpdateSettings().getVersionUrl(),
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken());
+			
+			httpResponse = httpClient.execute(httpPost);
+			
+			// checks if server response is valid
+			StatusLine status = httpResponse.getStatusLine();
+			
+			if (status.getStatusCode() == HttpStatus.SC_OK)
+			{
+				// pulls content stream from response
+				final HttpEntity entity = httpResponse.getEntity();
+				
+				InputStream inputStream = entity.getContent();
+				FileOutputStream fos = new FileOutputStream(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json"));
+				
+				IOUtils.copy(inputStream, new CountingOutputStream(fos)
 				{
 					@Override
-					public void onResponse(HttpRequestBase httpRequestBase, HttpResponse httpResponse)
+					protected void afterWrite(int n) throws IOException
 					{
-						// checks if server response is valid
-						StatusLine status = httpResponse.getStatusLine();
+						super.afterWrite(n);
 						
-						if (status.getStatusCode() == HttpStatus.SC_OK)
-						{
-							// pulls content stream from response
-							final HttpEntity entity = httpResponse.getEntity();
-							
-							try
-							{
-								InputStream inputStream = entity.getContent();
-								FileOutputStream fos = new FileOutputStream(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json"));
-								
-								IOUtils.copy(inputStream, new CountingOutputStream(fos)
-								{
-									@Override
-									protected void afterWrite(int n) throws IOException
-									{
-										super.afterWrite(n);
-										
-										progress = computeProgress(0, 1, getCount(), entity.getContentLength(), 100, factor, 0);
-										setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
-									}
-								});
-								
-								// ensure that the response body is fully consumed
-								EntityUtils.consume(entity);
-								
-								fos.close();
-								
-								apks.addAll(ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json")));
-								
-								progress = factor;
-								setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
-							}
-							catch (IllegalStateException ise)
-							{
-								LOG.error(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.downloadversion.failed.text") + " (URL '" + httpRequestBase.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
-								
-								progress = 100;
-								result.set(false);
-								setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
-							}
-							catch (IOException ioe)
-							{
-								LOG.error(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.downloadversion.failed.text") + " (URL '" + httpRequestBase.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
-								
-								progress = 100;
-								result.set(false);
-								setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
-							}
-						}
-						else
-						{
-							LOG.error(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.downloadversion.failed.text") + " (URL '" + httpRequestBase.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
-							
-							progress = 100;
-							result.set(false);
-							setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
-						}
-					}
-					
-					@Override
-					public void onError(Exception e)
-					{
-						LOG.error(e.getMessage(), e);
-						
-						progress = 100;
-						result.set(false);
-						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
+						progress = computeProgress(0, 1, getCount(), entity.getContentLength(), 100, factor, 0);
+						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
 					}
 				});
+				
+				// ensure that the response body is fully consumed
+				EntityUtils.consume(entity);
+				
+				fos.close();
+				
+				apks.addAll(ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json")));
+				
+				progress = factor;
+				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
+			}
+			else
+			{
+				LOG.error(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.downloadversion.failed.text") + " (URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
+				
+				progress = 100;
+				result.set(false);
+				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
+			}
+		}
+		catch (IOException ioe)
+		{
+			LOG.error(ioe.getMessage(), ioe);
+			
+			progress = 100;
+			result.set(false);
+			setTaskStatus(
+					new TaskStatus(
+							progress,
+							ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"),
+							Status.FAILED
+					)
+			);
+		}
+		finally
+		{
+			HttpClientUtils.closeQuietly(httpResponse);
+			HttpClientUtils.closeQuietly(httpClient);
+		}
 		
 		return !apks.isEmpty();
 	}
@@ -400,8 +388,7 @@ public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnab
 					httpClient,
 					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
 					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getAppUpdateSettings().getDownloadUrl() + "/" + apkInfo.getApkName() + "/",
-					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
-					null);
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken());
 			
 			httpResponse = httpClient.execute(httpPost);
 

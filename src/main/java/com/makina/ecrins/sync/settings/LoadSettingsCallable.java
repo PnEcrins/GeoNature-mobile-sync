@@ -15,14 +15,14 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.makina.ecrins.sync.server.WebAPIClientUtils;
-import com.makina.ecrins.sync.server.WebAPIClientUtils.HTTPCallback;
 
 /**
  * <code>Callable</code> implementation for loading application global settings as {@link SyncSettings}.
@@ -92,86 +92,77 @@ public class LoadSettingsCallable implements Callable<Settings>
 		tempDir.mkdir();
 		
 		final HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
-		WebAPIClientUtils.httpPost(
-				httpClient,
-				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
-				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getSettingsUrl(),
-				LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken(),
-				true,
-				new HTTPCallback()
+		
+		HttpResponse httpResponse = null;
+		
+		try
+		{
+			final HttpPost httpPost = WebAPIClientUtils.httpPost(
+					httpClient,
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getSettingsUrl(),
+					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken());
+			
+			httpResponse = httpClient.execute(httpPost);
+			
+			// checks if server response is valid
+			final StatusLine status = httpResponse.getStatusLine();
+			
+			if (status.getStatusCode() == HttpStatus.SC_OK)
+			{
+				// pulls content stream from response
+				final HttpEntity entity = httpResponse.getEntity();
+				
+				FileUtils.copyInputStreamToFile(entity.getContent(), new File(tempDir, "settings.json"));
+				
+				// do nothing if we have the same file
+				if (FileUtils.contentEquals(new File(tempDir, "settings.json"), jsonSettingsFile))
 				{
-					@Override
-					public void onResponse(HttpRequestBase httpRequestBase, HttpResponse httpResponse)
-					{
-						// checks if server response is valid
-						final StatusLine status = httpResponse.getStatusLine();
-						
-						if (status.getStatusCode() == HttpStatus.SC_OK)
-						{
-							try
-							{
-								// pulls content stream from response
-								final HttpEntity entity = httpResponse.getEntity();
-								
-								FileUtils.copyInputStreamToFile(entity.getContent(), new File(tempDir, "settings.json"));
-								
-								// do nothing if we have the same file
-								if (FileUtils.contentEquals(new File(tempDir, "settings.json"), jsonSettingsFile))
-								{
-									LOG.info(
-											MessageFormat.format(
-													ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.update.uptodate.text"),
-													SETTINGS_FILE));
-								}
-								else
-								{
-									FileUtils.copyFile(new File(tempDir, "settings.json"), jsonSettingsFile);
-									
-									LOG.info(
-											MessageFormat.format(
-													ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.update.success.text"),
-													SETTINGS_FILE));
-								}
-								
-								// ensure that the response body is fully consumed
-								EntityUtils.consume(entity);
-							}
-							catch (IOException ioe)
-							{
-								LOG.error(
-										MessageFormat.format(
-												ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.update.failed.text"),
-												SETTINGS_FILE) + ": " + ioe.getMessage());
-							}
-						}
-						else
-						{
-							LOG.error(
-									MessageFormat.format(
-											ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.update.failed.text"),
-											SETTINGS_FILE) + " (" + status.getStatusCode() + ")");
-						}
-						
-						if (tempDir != null)
-						{
-							FileDeleteStrategy.FORCE.deleteQuietly(tempDir);
-						}
-					}
+					LOG.info(
+							MessageFormat.format(
+									ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.update.uptodate.text"),
+									SETTINGS_FILE));
+				}
+				else
+				{
+					FileUtils.copyFile(new File(tempDir, "settings.json"), jsonSettingsFile);
 					
-					@Override
-					public void onError(Exception e)
-					{
-						LOG.error(
-								MessageFormat.format(
-										ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.update.failed.text"),
-										SETTINGS_FILE) + ": " + e.getMessage());
-						
-						if (tempDir != null)
-						{
-							FileDeleteStrategy.FORCE.deleteQuietly(tempDir);
-						}
-					}
-				});
+					LOG.info(
+							MessageFormat.format(
+									ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.update.success.text"),
+									SETTINGS_FILE));
+				}
+				
+				// ensure that the response body is fully consumed
+				EntityUtils.consume(entity);
+			}
+			else
+			{
+				LOG.error(
+						MessageFormat.format(
+								ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.update.failed.text"),
+								SETTINGS_FILE) + " (" + status.getStatusCode() + ")");
+			}
+		}
+		catch (IOException ioe)
+		{
+			LOG.error(
+					MessageFormat.format(
+							ResourceBundle.getBundle("messages").getString("MainWindow.shell.settings.update.failed.text"),
+							SETTINGS_FILE
+					) + ": " + ioe.getMessage()
+			);
+		}
+		finally
+		{
+			HttpClientUtils.closeQuietly(httpResponse);
+			HttpClientUtils.closeQuietly(httpClient);
+		}
+		
+		if (tempDir != null)
+		{
+			FileDeleteStrategy.FORCE.deleteQuietly(tempDir);
+		}
 	}
 	
 	private void loadJsonSettings(File jsonSettingsFile) throws IOException, JSONException

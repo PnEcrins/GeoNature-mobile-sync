@@ -14,6 +14,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.log4j.Logger;
 
@@ -37,10 +38,17 @@ public final class WebAPIClientUtils
 		
 	}
 	
+	/**
+	 * Builds and instance of {@code HttpClient} using {@code HttpClientBuilder}.
+	 * 
+	 * @param timeout the default timeout of this {@code HttpClient}
+	 * @return instance of {@code HttpClient}
+	 */
 	public static HttpClient getHttpClient(int timeout)
 	{
 		return HttpClientBuilder
 				.create()
+				.setConnectionManager(new BasicHttpClientConnectionManager())
 				.setDefaultRequestConfig(
 						RequestConfig
 							.custom()
@@ -51,6 +59,34 @@ public final class WebAPIClientUtils
 				.build();
 	}
 	
+	/**
+	 * Build an instance of {@code HttpPost} to make synchronous calls.
+	 * 
+	 * @param httpClient the {@code HttpClient} to use
+	 * @param url URL to use
+	 * @param token the authentication token to use
+	 * @return instance of {@code HttpPost}
+	 * @throws UnsupportedEncodingException
+	 * @see {@link httpPost(HttpClient, String, String, String)}
+	 */
+	public static HttpPost httpPost(
+			HttpClient httpClient,
+			String url,
+			String token) throws UnsupportedEncodingException
+	{
+		return httpPost(httpClient, url, token, null);
+	}
+	
+	/**
+	 * Build an instance of {@code HttpPost} to make synchronous calls.
+	 * 
+	 * @param httpClient the {@code HttpClient} to use
+	 * @param url URL to use
+	 * @param token the authentication token to use
+	 * @param data the data to send as JSON string
+	 * @return instance of {@code HttpPost}
+	 * @throws UnsupportedEncodingException
+	 */
 	public static HttpPost httpPost(
 			HttpClient httpClient,
 			String url,
