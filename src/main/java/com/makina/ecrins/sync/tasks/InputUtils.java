@@ -10,29 +10,35 @@ import org.json.JSONObject;
 
 /**
  * Helpers for {@link Input} instances.
- * 
+ *
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
 public final class InputUtils
 {
-	/**
-	 * {@link InputUtils} instances should NOT be constructed in standard programming.
-	 */
-	private InputUtils()
-	{
-		
-	}
-	
-	/**
-	 * Creates a new instance of {@link Input} from a given JSON file
-	 * @param jsonFile JSON file to parse
-	 * @return instance of {@link Input}
-	 * @throws JSONException
-	 * @throws ParseException
-	 * @throws IOException
-	 */
-	public static Input getInputFromJson(File jsonFile) throws JSONException, ParseException, IOException
-	{
-		return new Input(new JSONObject(FileUtils.readFileToString(jsonFile)));
-	}
+    /**
+     * {@link InputUtils} instances should NOT be constructed in standard programming.
+     */
+    private InputUtils()
+    {
+        // nothing to do ...
+    }
+
+    /**
+     * Creates a new instance of {@link Input} from a given JSON file
+     *
+     * @param jsonFile JSON file to parse
+     *
+     * @return instance of {@link Input}
+     *
+     * @throws JSONException
+     * @throws ParseException
+     * @throws IOException
+     */
+    public static Input getInputFromJson(File jsonFile) throws
+                                                        JSONException,
+                                                        ParseException,
+                                                        IOException
+    {
+        return new Input(new JSONObject(FileUtils.readFileToString(jsonFile)));
+    }
 }

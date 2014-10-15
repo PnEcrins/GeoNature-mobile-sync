@@ -44,558 +44,1206 @@ import com.makina.ecrins.sync.settings.LoadSettingsCallable;
  * <li>for each application, check if the mobile application is installed to the connected device</li>
  * <li>for each application, check if mobile application updates are available from the server for the connected device</li>
  * </ul>
- * 
+ *
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
-public class UpdateApplicationsFromServerTaskRunnable extends AbstractTaskRunnable
+public class UpdateApplicationsFromServerTaskRunnable
+        extends AbstractTaskRunnable
 {
-	private static final Logger LOG = Logger.getLogger(UpdateApplicationsFromServerTaskRunnable.class);
-	
-	private final List<ApkInfo> apks = new ArrayList<ApkInfo>();
-	private DeviceSettings deviceSettings;
-	private int apkIndex;
-	private int progress;
-	
-	private final AtomicBoolean result = new AtomicBoolean(true);
-	
-	@Override
-	public void run()
-	{
-		apkIndex = 0;
-		progress = 0;
-		apks.clear();
-		
-		setTaskStatus(new TaskStatus(-1, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
-		
-		loadDeviceSettings();
-		
-		// gets all available applications informations from the server
-		if (fetchLastAppsVersionsFromServer(10))
-		{
-			int ratio = 100 - progress;
-			
-			for (ApkInfo apkinfo : apks)
-			{
-				try
-				{
-					// checks if the mobile application is already installed or not
-					if (checkInstalledAppFromDevice(apkinfo, ratio, 10))
-					{
-						// gets application informations from device
-						if (fetchAppVersionFromDevice(apkinfo, ratio, 10, 10))
-						{
-							// check if a newer version is available or not
-							if (checkInstalledAppVersion(apkinfo, ratio, 10, 20))
-							{
-								if (downloadLastAppFromServer(apkinfo, ratio, 30, 30))
-								{
-									if (installAppToDevice(apkinfo, ratio, 10, 60, true))
-									{
-										// everything is OK, now check if installation was successful
-										if (fetchAppVersionFromDevice(apkinfo, ratio, 10, 70))
-										{
-											if (checkInstalledAppVersion(apkinfo, ratio, 10, 80))
-											{
-												
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-					else
-					{
-						// the mobile application was not found on the connected device, so install it
-						LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.notinstalled.text"), apkinfo.getPackageName()));
-						
-						if (downloadLastAppFromServer(apkinfo, ratio, 50, 10))
-						{
-							if (installAppToDevice(apkinfo, ratio, 10, 60, false))
-							{
-								// everything is OK, now check if installation was successful
-								if (fetchAppVersionFromDevice(apkinfo, ratio, 10, 70))
-								{
-									if (checkInstalledAppVersion(apkinfo, ratio, 10, 80))
-									{
-										
-									}
-								}
-							}
-						}
-					}
-				}
-				catch (TaskException te)
-				{
-					LOG.error(te.getLocalizedMessage(), te);
-					
-					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, 100, 0);
-					this.result.set(false);
-					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
-				}
-				
-				apkIndex++;
-			}
-		}
-		else
-		{
-			LOG.warn("nothing to check");
-		}
-		
-		progress = 100;
-		
-		if (this.result.get())
-		{
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FINISH));
-		}
-		else
-		{
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
-		}
-	}
-	
-	private void loadDeviceSettings()
-	{
-		try
-		{
-			deviceSettings = DeviceUtils.findLoadedDeviceSettings(
-					new DeviceSettings(
-							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_MANUFACTURER),
-							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_MODEL),
-							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_NAME),
-							new AndroidSettings(
-									ADBCommand.getInstance().getProp(Prop.RO_BUILD_VERSION_RELEASE),
-									ADBCommand.getInstance().getBuildVersion())));
-			
-			LOG.debug("loadDeviceSettings: " + deviceSettings);
-		}
-		catch (ADBCommandException ace)
-		{
-			LOG.warn(ace.getMessage());
-			
-			deviceSettings = null;
-		}
-	}
-	
-	private boolean fetchLastAppsVersionsFromServer(final int factor)
-	{
-		final HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
-		HttpResponse httpResponse = null;
-		
-		try
-		{
-			final HttpPost httpPost = WebAPIClientUtils.httpPost(
-					httpClient,
-					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
-					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getAppUpdateSettings().getVersionUrl(),
-					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken());
-			
-			httpResponse = httpClient.execute(httpPost);
-			
-			// checks if server response is valid
-			StatusLine status = httpResponse.getStatusLine();
-			
-			if (status.getStatusCode() == HttpStatus.SC_OK)
-			{
-				// pulls content stream from response
-				final HttpEntity entity = httpResponse.getEntity();
-				
-				InputStream inputStream = entity.getContent();
-				FileOutputStream fos = new FileOutputStream(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json"));
-				
-				IOUtils.copy(inputStream, new CountingOutputStream(fos)
-				{
-					@Override
-					protected void afterWrite(int n) throws IOException
-					{
-						super.afterWrite(n);
-						
-						progress = computeProgress(0, 1, getCount(), entity.getContentLength(), 100, factor, 0);
-						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
-					}
-				});
-				
-				// ensure that the response body is fully consumed
-				EntityUtils.consume(entity);
-				
-				fos.close();
-				
-				apks.addAll(ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json")));
-				
-				progress = factor;
-				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
-			}
-			else
-			{
-				LOG.error(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.downloadversion.failed.text") + " (URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
-				
-				progress = 100;
-				result.set(false);
-				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.FAILED));
-			}
-		}
-		catch (IOException ioe)
-		{
-			LOG.error(ioe.getMessage(), ioe);
-			
-			progress = 100;
-			result.set(false);
-			setTaskStatus(
-					new TaskStatus(
-							progress,
-							ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"),
-							Status.FAILED
-					)
-			);
-		}
-		finally
-		{
-			HttpClientUtils.closeQuietly(httpResponse);
-			HttpClientUtils.closeQuietly(httpClient);
-		}
-		
-		return !apks.isEmpty();
-	}
-	
-	/**
-	 * Returns <code>true</code> if the given {@link ApkInfo#getPackageName()} is currently installed or not.
-	 * @param apkInfo {@link ApkInfo} instance to check
-	 * @param factor factor as percentage to apply for the current progress
-	 * @return <code>true</code> if the given {@link ApkInfo#getPackageName()} is currently installed, <code>false</code> otherwise
-	 * @throws TaskException
-	 */
-	private boolean checkInstalledAppFromDevice(ApkInfo apkInfo, int ratio, int factor) throws TaskException
-	{
-		try
-		{
-			boolean result = false;
-			
-			List<String> results = ADBCommand.getInstance().executeCommand("pm list packages");
-			Iterator<String> iterator = results.iterator();
-			
-			while (!result && iterator.hasNext())
-			{
-				result = StringUtils.substringAfter(iterator.next(), ":").equals(apkInfo.getPackageName());
-			}
-			
-			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, 0);
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
-			
-			return result;
-		}
-		catch (ADBCommandException ace)
-		{
-			throw new TaskException(ace.getLocalizedMessage(), ace);
-		}
-	}
-	
-	private boolean fetchAppVersionFromDevice(ApkInfo apkInfo, int ratio, int factor, int offset) throws TaskException
-	{
-		try
-		{
-			// about flag -f 32, see: http://developer.android.com/reference/android/content/Intent.html#FLAG_INCLUDE_STOPPED_PACKAGES
-			if (!ADBCommand.getInstance().executeCommand("am broadcast -a " + apkInfo.getPackageName() + ".INTENT_PACKAGE_INFO -f 32").isEmpty())
-			{
-				if (ADBCommand.getInstance().pull(DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/Android/data/" + apkInfo.getSharedUserId() + "/version_" + apkInfo.getPackageName() + ".json", TaskManager.getInstance().getTemporaryDirectory().getAbsolutePath()))
-				{
-					JSONObject versionJson = new JSONObject(FileUtils.readFileToString(new File(TaskManager.getInstance().getTemporaryDirectory(), "version_" + apkInfo.getPackageName() + ".json")));
-					
-					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
-					
-					return versionJson.has("package") && versionJson.has("versionCode");
-				}
-				else
-				{
-					return false;
-				}
-			}
-			else
-			{
-				return false;
-			}
-		}
-		catch (ADBCommandException ace)
-		{
-			throw new TaskException(ace.getLocalizedMessage(), ace);
-		}
-		catch (FileNotFoundException fnfe)
-		{
-			throw new TaskException(fnfe.getLocalizedMessage(), fnfe);
-		}
-		catch (IOException ioe)
-		{
-			throw new TaskException(ioe.getLocalizedMessage(), ioe);
-		}
-		catch (JSONException je)
-		{
-			throw new TaskException(je.getLocalizedMessage(), je);
-		}
-	}
-	
-	private boolean checkInstalledAppVersion(ApkInfo apkInfo, int ratio, int factor, int offset) throws TaskException
-	{
-		try
-		{
-			ApkInfo apkInfoFromDevice = new ApkInfo(new JSONObject(FileUtils.readFileToString(new File(TaskManager.getInstance().getTemporaryDirectory(), "version_" + apkInfo.getPackageName() + ".json"))));
-			
-			LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.app.installed.text"), apkInfoFromDevice.getPackageName(), apkInfoFromDevice.getVersionName(), apkInfoFromDevice.getVersionCode()));
-			
-			if (apkInfoFromDevice.getVersionCode() < apkInfo.getVersionCode())
-			{
-				LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.app.new.text"), apkInfoFromDevice.getPackageName()));
-				
-				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
-				
-				return true;
-			}
-			else
-			{
-				LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.app.uptodate.text"), apkInfoFromDevice.getPackageName()));
-				
-				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.check.update.text"), Status.PENDING));
-				
-				return false;
-			}
-		}
-		catch (FileNotFoundException fnfe)
-		{
-			throw new TaskException(fnfe.getLocalizedMessage(), fnfe);
-		}
-		catch (JSONException je)
-		{
-			throw new TaskException(je.getLocalizedMessage(), je);
-		}
-		catch (IOException ioe)
-		{
-			throw new TaskException(ioe.getLocalizedMessage(), ioe);
-		}
-	}
-	
-	private boolean downloadLastAppFromServer(final ApkInfo apkInfo, final int ratio, final int factor, final int offset)
-	{
-		boolean result = true;
-		
-		final HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
-		
-		HttpResponse httpResponse = null;
-		
-		try
-		{
-			final HttpPost httpPost = WebAPIClientUtils.httpPost(
-					httpClient,
-					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
-					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getAppUpdateSettings().getDownloadUrl() + "/" + apkInfo.getApkName() + "/",
-					LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken());
-			
-			httpResponse = httpClient.execute(httpPost);
+    private static final Logger LOG = Logger.getLogger(UpdateApplicationsFromServerTaskRunnable.class);
 
-			// checks if server response is valid
-			StatusLine status = httpResponse.getStatusLine();
-			
-			if (status.getStatusCode() == HttpStatus.SC_OK)
-			{
-				// pulls content stream from response
-				final HttpEntity entity = httpResponse.getEntity();
-				
-				InputStream inputStream = entity.getContent();
-				FileOutputStream fos = new FileOutputStream(new File(TaskManager.getInstance().getTemporaryDirectory(), apkInfo.getApkName()));
-				
-				IOUtils.copy(inputStream, new CountingOutputStream(fos)
-				{
-					@Override
-					protected void afterWrite(int n) throws IOException
-					{
-						super.afterWrite(n);
-						
-						progress = computeProgress(apkIndex, apks.size(), getCount(), entity.getContentLength(), ratio, factor, offset);
-						setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.PENDING));
-					}
-				});
-				
-				// ensure that the response body is fully consumed
-				EntityUtils.consume(entity);
-				
-				fos.close();
-			}
-			else
-			{
-				LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.failed.text"), apkInfo.getApkName()) + " (URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
-				
-				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-				setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.FAILED));
-				this.result.set(false);
-				result = false;
-			}
-		}
-		catch (IOException ioe)
-		{
-			LOG.error(ioe.getMessage(), ioe);
-			
-			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.download.text"), apkInfo.getApkName()), Status.FAILED));
-			this.result.set(false);
-			result = false;
-		}
-		finally
-		{
-			HttpClientUtils.closeQuietly(httpResponse);
-			HttpClientUtils.closeQuietly(httpClient);
-		}
-		
-		return result;
-	}
-	
-	private boolean installAppToDevice(ApkInfo apkInfo, int ratio, int factor, int offset, boolean keepData)
-	{
-		File apkFile = new File(TaskManager.getInstance().getTemporaryDirectory(), apkInfo.getApkName());
-		
-		if (apkFile.exists())
-		{
-			progress = computeProgress(apkIndex, apks.size(), 0, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.PENDING));
-			
-			try
-			{
-				LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.text"), apkInfo.getApkName()));
-				
-				boolean result = ADBCommand.getInstance().install(apkFile.getAbsolutePath(), keepData);
-				
-				if (result)
-				{
-					LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.success.text"), apkInfo.getPackageName()));
-					
-					progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-					setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.PENDING));
-				}
-				else
-				{
-					// something is going wrong : trying to uninstall and reinstall the application package
-					LOG.warn(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.failed.text"), apkInfo.getPackageName()));
-					
-					if (uninstallAllApplications())
-					{
-						progress = computeProgress(apkIndex, apks.size(), 1, 2, ratio, factor, offset);
-						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.PENDING));
-						
-						LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.text"), apkInfo.getApkName()));
-						
-						result = ADBCommand.getInstance().install(apkFile.getAbsolutePath(), false);
-						
-						if (result)
-						{
-							LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.success.text"), apkInfo.getApkName()));
-							
-							progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-							setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.PENDING));
-						}
-						else
-						{
-							LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.install.failed.text"), apkInfo.getPackageName()));
-							
-							progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-							setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.FAILED));
-							this.result.set(false);
-						}
-					}
-					else
-					{
-						LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.uninstall.failed.text"), apkInfo.getPackageName()));
-						
-						progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-						setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.FAILED));
-						this.result.set(false);
-					}
-				}
-				
-				return result;
-			}
-			catch (ADBCommandException ace)
-			{
-				LOG.error(ace.getMessage(), ace);
-				
-				progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-				setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.FAILED));
-				this.result.set(false);
-				
-				return false;
-			}
-		}
-		else
-		{
-			LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.notfound.text"), apkFile.getAbsolutePath()));
-			
-			progress = computeProgress(apkIndex, apks.size(), 1, 1, ratio, factor, offset);
-			setTaskStatus(new TaskStatus(progress, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.text"), Status.FAILED));
-			this.result.set(false);
-			
-			return false;
-		}
-	}
-	
-	/**
-	 * Tries to uninstall all registered mobile applications
-	 * 
-	 * @return <code>true</code> if all registered mobile applications were successfully uninstalled
-	 */
-	private boolean uninstallAllApplications()
-	{
-		boolean result = true;
-		
-		for (ApkInfo apkInfo : apks)
-		{
-			try
-			{
-				LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.uninstall.text"), apkInfo.getPackageName()));
-				
-				if (ADBCommand.getInstance().listPackages(apkInfo.getPackageName()).isEmpty())
-				{
-					LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.notinstalled.text"), apkInfo.getPackageName()));
-				}
-				else
-				{
-					if (ADBCommand.getInstance().uninstall(apkInfo.getPackageName()))
-					{
-						LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.uninstall.success.text"), apkInfo.getPackageName()));
-					}
-					else
-					{
-						LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.update.uninstall.failed.text"), apkInfo.getPackageName()));
-						
-						result = false;
-					}
-				}
-			}
-			catch (ADBCommandException ace)
-			{
-				LOG.error(ace.getMessage(), ace);
-				
-				result = false;
-			}
-		}
-		
-		return result;
-	}
-	
-	/**
-	 * Computes the current progress (as percentage) according to given parameters.
-	 * @param mainProgress
-	 * @param mainProgressSize
-	 * @param currentProgress
-	 * @param currentProgressSize
-	 * @param ratio current ratio to apply for the current progress
-	 * @param factor as percentage for the current progress
-	 * @param offset as percentage for the current progress
-	 * @return the progress as percentage
-	 */
-	private int computeProgress(final int mainProgress, final int mainProgressSize, final long currentProgress, final long currentProgressSize, final int ratio, final int factor, final int offset)
-	{
-		return (int) ((((double) factor / 100) * ((double) ratio / (double) mainProgressSize)) * 
-				(Long.valueOf(currentProgress).doubleValue() / Long.valueOf(currentProgressSize).doubleValue()) +
-				(100 - ratio) +
-				(((double) mainProgress / (double) mainProgressSize) * ratio) +
-				(((double) offset / 100) * ((double) ratio / (double) mainProgressSize)));
-	}
+    private final List<ApkInfo> apks = new ArrayList<ApkInfo>();
+    private DeviceSettings deviceSettings;
+    private int apkIndex;
+    private int progress;
+
+    private final AtomicBoolean result = new AtomicBoolean(true);
+
+    @Override
+    public void run()
+    {
+        apkIndex = 0;
+        progress = 0;
+        apks.clear();
+
+        setTaskStatus(
+                new TaskStatus(
+                        -1,
+                        ResourceBundle.getBundle("messages")
+                                .getString("MainWindow.labelDataUpdate.check.update.text"),
+                        Status.PENDING
+                )
+        );
+
+        loadDeviceSettings();
+
+        // gets all available applications informations from the server
+        if (fetchLastAppsVersionsFromServer(10))
+        {
+            int ratio = 100 - progress;
+
+            for (ApkInfo apkinfo : apks)
+            {
+                try
+                {
+                    // checks if the mobile application is already installed or not
+                    if (checkInstalledAppFromDevice(
+                            apkinfo,
+                            ratio,
+                            10
+                    ))
+                    {
+                        // gets application informations from device
+                        if (fetchAppVersionFromDevice(
+                                apkinfo,
+                                ratio,
+                                10,
+                                10
+                        ))
+                        {
+                            // check if a newer version is available or not
+                            if (checkInstalledAppVersion(
+                                    apkinfo,
+                                    ratio,
+                                    10,
+                                    20
+                            ))
+                            {
+                                if (downloadLastAppFromServer(
+                                        apkinfo,
+                                        ratio,
+                                        30,
+                                        30
+                                ))
+                                {
+                                    if (installAppToDevice(
+                                            apkinfo,
+                                            ratio,
+                                            10,
+                                            60,
+                                            true
+                                    ))
+                                    {
+                                        // everything is OK, now check if installation was successful
+                                        if (fetchAppVersionFromDevice(
+                                                apkinfo,
+                                                ratio,
+                                                10,
+                                                70
+                                        ))
+                                        {
+                                            if (checkInstalledAppVersion(
+                                                    apkinfo,
+                                                    ratio,
+                                                    10,
+                                                    80
+                                            ))
+                                            {
+
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // the mobile application was not found on the connected device, so install it
+                        LOG.info(
+                                MessageFormat.format(
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.labelDataUpdate.update.notinstalled.text"),
+                                        apkinfo.getPackageName()
+                                )
+                        );
+
+                        if (downloadLastAppFromServer(
+                                apkinfo,
+                                ratio,
+                                50,
+                                10
+                        ))
+                        {
+                            if (installAppToDevice(
+                                    apkinfo,
+                                    ratio,
+                                    10,
+                                    60,
+                                    false
+                            ))
+                            {
+                                // everything is OK, now check if installation was successful
+                                if (fetchAppVersionFromDevice(
+                                        apkinfo,
+                                        ratio,
+                                        10,
+                                        70
+                                ))
+                                {
+                                    if (checkInstalledAppVersion(
+                                            apkinfo,
+                                            ratio,
+                                            10,
+                                            80
+                                    ))
+                                    {
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (TaskException te)
+                {
+                    LOG.error(
+                            te.getLocalizedMessage(),
+                            te
+                    );
+
+                    progress = computeProgress(
+                            apkIndex,
+                            apks.size(),
+                            1,
+                            1,
+                            ratio,
+                            100,
+                            0
+                    );
+                    this.result.set(false);
+                    setTaskStatus(
+                            new TaskStatus(
+                                    progress,
+                                    ResourceBundle.getBundle("messages")
+                                            .getString("MainWindow.labelDataUpdate.check.update.text"),
+                                    Status.FAILED
+                            )
+                    );
+                }
+
+                apkIndex++;
+            }
+        }
+        else
+        {
+            LOG.warn("nothing to check");
+        }
+
+        progress = 100;
+
+        if (this.result.get())
+        {
+            setTaskStatus(
+                    new TaskStatus(
+                            progress,
+                            ResourceBundle.getBundle("messages")
+                                    .getString("MainWindow.labelDataUpdate.check.update.text"),
+                            Status.FINISH
+                    )
+            );
+        }
+        else
+        {
+            setTaskStatus(
+                    new TaskStatus(
+                            progress,
+                            ResourceBundle.getBundle("messages")
+                                    .getString("MainWindow.labelDataUpdate.check.update.text"),
+                            Status.FAILED
+                    )
+            );
+        }
+    }
+
+    private void loadDeviceSettings()
+    {
+        try
+        {
+            deviceSettings = DeviceUtils.findLoadedDeviceSettings(
+                    new DeviceSettings(
+                            ADBCommand.getInstance()
+                                    .getProp(Prop.RO_PRODUCT_MANUFACTURER),
+                            ADBCommand.getInstance()
+                                    .getProp(Prop.RO_PRODUCT_MODEL),
+                            ADBCommand.getInstance()
+                                    .getProp(Prop.RO_PRODUCT_NAME),
+                            new AndroidSettings(
+                                    ADBCommand.getInstance()
+                                            .getProp(Prop.RO_BUILD_VERSION_RELEASE),
+                                    ADBCommand.getInstance()
+                                            .getBuildVersion()
+                            )
+                    )
+            );
+
+            LOG.debug("loadDeviceSettings: " + deviceSettings);
+        }
+        catch (ADBCommandException ace)
+        {
+            LOG.warn(ace.getMessage());
+
+            deviceSettings = null;
+        }
+    }
+
+    private boolean fetchLastAppsVersionsFromServer(final int factor)
+    {
+        final HttpClient httpClient = WebAPIClientUtils.getHttpClient(
+                LoadSettingsCallable.getInstance()
+                        .getSettings()
+                        .getSyncSettings()
+                        .getServerTimeout()
+        );
+        HttpResponse httpResponse = null;
+
+        try
+        {
+            final HttpPost httpPost = WebAPIClientUtils.httpPost(
+                    httpClient,
+                    LoadSettingsCallable.getInstance()
+                            .getSettings()
+                            .getSyncSettings()
+                            .getServerUrl() + LoadSettingsCallable.getInstance()
+                            .getSettings()
+                            .getSyncSettings()
+                            .getAppUpdateSettings()
+                            .getVersionUrl(),
+                    LoadSettingsCallable.getInstance()
+                            .getSettings()
+                            .getSyncSettings()
+                            .getServerToken()
+            );
+
+            httpResponse = httpClient.execute(httpPost);
+
+            // checks if server response is valid
+            StatusLine status = httpResponse.getStatusLine();
+
+            if (status.getStatusCode() == HttpStatus.SC_OK)
+            {
+                // pulls content stream from response
+                final HttpEntity entity = httpResponse.getEntity();
+
+                InputStream inputStream = entity.getContent();
+                FileOutputStream fos = new FileOutputStream(
+                        new File(
+                                TaskManager.getInstance()
+                                        .getTemporaryDirectory(),
+                                "versions.json"
+                        )
+                );
+
+                IOUtils.copy(
+                        inputStream,
+                        new CountingOutputStream(fos)
+                        {
+                            @Override
+                            protected void afterWrite(int n) throws
+                                                             IOException
+                            {
+                                super.afterWrite(n);
+
+                                progress = computeProgress(
+                                        0,
+                                        1,
+                                        getCount(),
+                                        entity.getContentLength(),
+                                        100,
+                                        factor,
+                                        0
+                                );
+                                setTaskStatus(
+                                        new TaskStatus(
+                                                progress,
+                                                ResourceBundle.getBundle("messages")
+                                                        .getString("MainWindow.labelDataUpdate.check.update.text"),
+                                                Status.PENDING
+                                        )
+                                );
+                            }
+                        }
+                );
+
+                // ensure that the response body is fully consumed
+                EntityUtils.consume(entity);
+
+                fos.close();
+
+                apks.addAll(
+                        ApkUtils.getApkInfosFromJson(
+                                new File(
+                                        TaskManager.getInstance()
+                                                .getTemporaryDirectory(),
+                                        "versions.json"
+                                )
+                        )
+                );
+
+                progress = factor;
+                setTaskStatus(
+                        new TaskStatus(
+                                progress,
+                                ResourceBundle.getBundle("messages")
+                                        .getString("MainWindow.labelDataUpdate.check.update.text"),
+                                Status.PENDING
+                        )
+                );
+            }
+            else
+            {
+                LOG.error(
+                        ResourceBundle.getBundle("messages")
+                                .getString("MainWindow.labelDataUpdate.update.downloadversion.failed.text") + " (URL '" + httpPost.getURI()
+                                .toString() + "', HTTP status : " + status.getStatusCode() + ")"
+                );
+
+                progress = 100;
+                result.set(false);
+                setTaskStatus(
+                        new TaskStatus(
+                                progress,
+                                ResourceBundle.getBundle("messages")
+                                        .getString("MainWindow.labelDataUpdate.check.update.text"),
+                                Status.FAILED
+                        )
+                );
+            }
+        }
+        catch (IOException ioe)
+        {
+            LOG.error(
+                    ioe.getMessage(),
+                    ioe
+            );
+
+            progress = 100;
+            result.set(false);
+            setTaskStatus(
+                    new TaskStatus(
+                            progress,
+                            ResourceBundle.getBundle("messages")
+                                    .getString("MainWindow.labelDataUpdate.check.update.text"),
+                            Status.FAILED
+                    )
+            );
+        }
+        finally
+        {
+            HttpClientUtils.closeQuietly(httpResponse);
+            HttpClientUtils.closeQuietly(httpClient);
+        }
+
+        return !apks.isEmpty();
+    }
+
+    /**
+     * Returns <code>true</code> if the given {@link ApkInfo#getPackageName()} is currently installed or not.
+     *
+     * @param apkInfo {@link ApkInfo} instance to check
+     * @param factor  factor as percentage to apply for the current progress
+     *
+     * @return <code>true</code> if the given {@link ApkInfo#getPackageName()} is currently installed, <code>false</code> otherwise
+     *
+     * @throws TaskException
+     */
+    private boolean checkInstalledAppFromDevice(ApkInfo apkInfo,
+                                                int ratio,
+                                                int factor) throws
+                                                            TaskException
+    {
+        try
+        {
+            boolean result = false;
+
+            List<String> results = ADBCommand.getInstance()
+                    .executeCommand("pm list packages");
+            Iterator<String> iterator = results.iterator();
+
+            while (!result && iterator.hasNext())
+            {
+                result = StringUtils.substringAfter(
+                        iterator.next(),
+                        ":"
+                )
+                        .equals(apkInfo.getPackageName());
+            }
+
+            progress = computeProgress(
+                    apkIndex,
+                    apks.size(),
+                    1,
+                    1,
+                    ratio,
+                    factor,
+                    0
+            );
+            setTaskStatus(
+                    new TaskStatus(
+                            progress,
+                            ResourceBundle.getBundle("messages")
+                                    .getString("MainWindow.labelDataUpdate.check.update.text"),
+                            Status.PENDING
+                    )
+            );
+
+            return result;
+        }
+        catch (ADBCommandException ace)
+        {
+            throw new TaskException(
+                    ace.getLocalizedMessage(),
+                    ace
+            );
+        }
+    }
+
+    private boolean fetchAppVersionFromDevice(ApkInfo apkInfo,
+                                              int ratio,
+                                              int factor,
+                                              int offset) throws
+                                                          TaskException
+    {
+        try
+        {
+            // about flag -f 32, see: http://developer.android.com/reference/android/content/Intent.html#FLAG_INCLUDE_STOPPED_PACKAGES
+            if (!ADBCommand.getInstance()
+                    .executeCommand("am broadcast -a " + apkInfo.getPackageName() + ".INTENT_PACKAGE_INFO -f 32")
+                    .isEmpty())
+            {
+                if (ADBCommand.getInstance()
+                        .pull(
+                                DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/Android/data/" + apkInfo.getSharedUserId() + "/version_" + apkInfo.getPackageName() + ".json",
+                                TaskManager.getInstance()
+                                        .getTemporaryDirectory()
+                                        .getAbsolutePath()
+                        ))
+                {
+                    JSONObject versionJson = new JSONObject(
+                            FileUtils.readFileToString(
+                                    new File(
+                                            TaskManager.getInstance()
+                                                    .getTemporaryDirectory(),
+                                            "version_" + apkInfo.getPackageName() + ".json"
+                                    )
+                            )
+                    );
+
+                    progress = computeProgress(
+                            apkIndex,
+                            apks.size(),
+                            1,
+                            1,
+                            ratio,
+                            factor,
+                            offset
+                    );
+                    setTaskStatus(
+                            new TaskStatus(
+                                    progress,
+                                    ResourceBundle.getBundle("messages")
+                                            .getString("MainWindow.labelDataUpdate.check.update.text"),
+                                    Status.PENDING
+                            )
+                    );
+
+                    return versionJson.has("package") && versionJson.has("versionCode");
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+        catch (ADBCommandException ace)
+        {
+            throw new TaskException(
+                    ace.getLocalizedMessage(),
+                    ace
+            );
+        }
+        catch (FileNotFoundException fnfe)
+        {
+            throw new TaskException(
+                    fnfe.getLocalizedMessage(),
+                    fnfe
+            );
+        }
+        catch (IOException ioe)
+        {
+            throw new TaskException(
+                    ioe.getLocalizedMessage(),
+                    ioe
+            );
+        }
+        catch (JSONException je)
+        {
+            throw new TaskException(
+                    je.getLocalizedMessage(),
+                    je
+            );
+        }
+    }
+
+    private boolean checkInstalledAppVersion(ApkInfo apkInfo,
+                                             int ratio,
+                                             int factor,
+                                             int offset) throws
+                                                         TaskException
+    {
+        try
+        {
+            ApkInfo apkInfoFromDevice = new ApkInfo(
+                    new JSONObject(
+                            FileUtils.readFileToString(
+                                    new File(
+                                            TaskManager.getInstance()
+                                                    .getTemporaryDirectory(),
+                                            "version_" + apkInfo.getPackageName() + ".json"
+                                    )
+                            )
+                    )
+            );
+
+            LOG.info(
+                    MessageFormat.format(
+                            ResourceBundle.getBundle("messages")
+                                    .getString("MainWindow.labelDataUpdate.update.app.installed.text"),
+                            apkInfoFromDevice.getPackageName(),
+                            apkInfoFromDevice.getVersionName(),
+                            apkInfoFromDevice.getVersionCode()
+                    )
+            );
+
+            if (apkInfoFromDevice.getVersionCode() < apkInfo.getVersionCode())
+            {
+                LOG.info(
+                        MessageFormat.format(
+                                ResourceBundle.getBundle("messages")
+                                        .getString("MainWindow.labelDataUpdate.update.app.new.text"),
+                                apkInfoFromDevice.getPackageName()
+                        )
+                );
+
+                progress = computeProgress(
+                        apkIndex,
+                        apks.size(),
+                        1,
+                        1,
+                        ratio,
+                        factor,
+                        offset
+                );
+                setTaskStatus(
+                        new TaskStatus(
+                                progress,
+                                ResourceBundle.getBundle("messages")
+                                        .getString("MainWindow.labelDataUpdate.check.update.text"),
+                                Status.PENDING
+                        )
+                );
+
+                return true;
+            }
+            else
+            {
+                LOG.info(
+                        MessageFormat.format(
+                                ResourceBundle.getBundle("messages")
+                                        .getString("MainWindow.labelDataUpdate.update.app.uptodate.text"),
+                                apkInfoFromDevice.getPackageName()
+                        )
+                );
+
+                progress = computeProgress(
+                        apkIndex,
+                        apks.size(),
+                        1,
+                        1,
+                        ratio,
+                        factor,
+                        offset
+                );
+                setTaskStatus(
+                        new TaskStatus(
+                                progress,
+                                ResourceBundle.getBundle("messages")
+                                        .getString("MainWindow.labelDataUpdate.check.update.text"),
+                                Status.PENDING
+                        )
+                );
+
+                return false;
+            }
+        }
+        catch (FileNotFoundException fnfe)
+        {
+            throw new TaskException(
+                    fnfe.getLocalizedMessage(),
+                    fnfe
+            );
+        }
+        catch (JSONException je)
+        {
+            throw new TaskException(
+                    je.getLocalizedMessage(),
+                    je
+            );
+        }
+        catch (IOException ioe)
+        {
+            throw new TaskException(
+                    ioe.getLocalizedMessage(),
+                    ioe
+            );
+        }
+    }
+
+    private boolean downloadLastAppFromServer(final ApkInfo apkInfo,
+                                              final int ratio,
+                                              final int factor,
+                                              final int offset)
+    {
+        boolean result = true;
+
+        final HttpClient httpClient = WebAPIClientUtils.getHttpClient(
+                LoadSettingsCallable.getInstance()
+                        .getSettings()
+                        .getSyncSettings()
+                        .getServerTimeout()
+        );
+
+        HttpResponse httpResponse = null;
+
+        try
+        {
+            final HttpPost httpPost = WebAPIClientUtils.httpPost(
+                    httpClient,
+                    LoadSettingsCallable.getInstance()
+                            .getSettings()
+                            .getSyncSettings()
+                            .getServerUrl() +
+                            LoadSettingsCallable.getInstance()
+                                    .getSettings()
+                                    .getSyncSettings()
+                                    .getAppUpdateSettings()
+                                    .getDownloadUrl() + "/" + apkInfo.getApkName() + "/",
+                    LoadSettingsCallable.getInstance()
+                            .getSettings()
+                            .getSyncSettings()
+                            .getServerToken()
+            );
+
+            httpResponse = httpClient.execute(httpPost);
+
+            // checks if server response is valid
+            StatusLine status = httpResponse.getStatusLine();
+
+            if (status.getStatusCode() == HttpStatus.SC_OK)
+            {
+                // pulls content stream from response
+                final HttpEntity entity = httpResponse.getEntity();
+
+                InputStream inputStream = entity.getContent();
+                FileOutputStream fos = new FileOutputStream(
+                        new File(
+                                TaskManager.getInstance()
+                                        .getTemporaryDirectory(),
+                                apkInfo.getApkName()
+                        )
+                );
+
+                IOUtils.copy(
+                        inputStream,
+                        new CountingOutputStream(fos)
+                        {
+                            @Override
+                            protected void afterWrite(int n) throws
+                                                             IOException
+                            {
+                                super.afterWrite(n);
+
+                                progress = computeProgress(
+                                        apkIndex,
+                                        apks.size(),
+                                        getCount(),
+                                        entity.getContentLength(),
+                                        ratio,
+                                        factor,
+                                        offset
+                                );
+                                setTaskStatus(
+                                        new TaskStatus(
+                                                progress,
+                                                MessageFormat.format(
+                                                        ResourceBundle.getBundle("messages")
+                                                                .getString("MainWindow.labelDataUpdate.update.download.text"),
+                                                        apkInfo.getApkName()
+                                                ),
+                                                Status.PENDING
+                                        )
+                                );
+                            }
+                        }
+                );
+
+                // ensure that the response body is fully consumed
+                EntityUtils.consume(entity);
+
+                fos.close();
+            }
+            else
+            {
+                LOG.error(
+                        MessageFormat.format(
+                                ResourceBundle.getBundle("messages")
+                                        .getString("MainWindow.labelDataUpdate.update.download.failed.text"),
+                                apkInfo.getApkName()
+                        ) + " (URL '" + httpPost.getURI()
+                                .toString() + "', HTTP status : " + status.getStatusCode() + ")"
+                );
+
+                progress = computeProgress(
+                        apkIndex,
+                        apks.size(),
+                        1,
+                        1,
+                        ratio,
+                        factor,
+                        offset
+                );
+                setTaskStatus(
+                        new TaskStatus(
+                                progress,
+                                MessageFormat.format(
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.labelDataUpdate.update.download.text"),
+                                        apkInfo.getApkName()
+                                ),
+                                Status.FAILED
+                        )
+                );
+                this.result.set(false);
+                result = false;
+            }
+        }
+        catch (IOException ioe)
+        {
+            LOG.error(
+                    ioe.getMessage(),
+                    ioe
+            );
+
+            progress = computeProgress(
+                    apkIndex,
+                    apks.size(),
+                    1,
+                    1,
+                    ratio,
+                    factor,
+                    offset
+            );
+            setTaskStatus(
+                    new TaskStatus(
+                            progress,
+                            MessageFormat.format(
+                                    ResourceBundle.getBundle("messages")
+                                            .getString("MainWindow.labelDataUpdate.update.download.text"),
+                                    apkInfo.getApkName()
+                            ),
+                            Status.FAILED
+                    )
+            );
+            this.result.set(false);
+            result = false;
+        }
+        finally
+        {
+            HttpClientUtils.closeQuietly(httpResponse);
+            HttpClientUtils.closeQuietly(httpClient);
+        }
+
+        return result;
+    }
+
+    private boolean installAppToDevice(ApkInfo apkInfo,
+                                       int ratio,
+                                       int factor,
+                                       int offset,
+                                       boolean keepData)
+    {
+        File apkFile = new File(
+                TaskManager.getInstance()
+                        .getTemporaryDirectory(),
+                apkInfo.getApkName()
+        );
+
+        if (apkFile.exists())
+        {
+            progress = computeProgress(
+                    apkIndex,
+                    apks.size(),
+                    0,
+                    1,
+                    ratio,
+                    factor,
+                    offset
+            );
+            setTaskStatus(
+                    new TaskStatus(
+                            progress,
+                            ResourceBundle.getBundle("messages")
+                                    .getString("MainWindow.labelDataUpdate.update.text"),
+                            Status.PENDING
+                    )
+            );
+
+            try
+            {
+                LOG.info(
+                        MessageFormat.format(
+                                ResourceBundle.getBundle("messages")
+                                        .getString("MainWindow.labelDataUpdate.update.install.text"),
+                                apkInfo.getApkName()
+                        )
+                );
+
+                boolean result = ADBCommand.getInstance()
+                        .install(
+                                apkFile.getAbsolutePath(),
+                                keepData
+                        );
+
+                if (result)
+                {
+                    LOG.info(
+                            MessageFormat.format(
+                                    ResourceBundle.getBundle("messages")
+                                            .getString("MainWindow.labelDataUpdate.update.install.success.text"),
+                                    apkInfo.getPackageName()
+                            )
+                    );
+
+                    progress = computeProgress(
+                            apkIndex,
+                            apks.size(),
+                            1,
+                            1,
+                            ratio,
+                            factor,
+                            offset
+                    );
+                    setTaskStatus(
+                            new TaskStatus(
+                                    progress,
+                                    ResourceBundle.getBundle("messages")
+                                            .getString("MainWindow.labelDataUpdate.update.text"),
+                                    Status.PENDING
+                            )
+                    );
+                }
+                else
+                {
+                    // something is going wrong : trying to uninstall and reinstall the application package
+                    LOG.warn(
+                            MessageFormat.format(
+                                    ResourceBundle.getBundle("messages")
+                                            .getString("MainWindow.labelDataUpdate.update.install.failed.text"),
+                                    apkInfo.getPackageName()
+                            )
+                    );
+
+                    if (uninstallAllApplications())
+                    {
+                        progress = computeProgress(
+                                apkIndex,
+                                apks.size(),
+                                1,
+                                2,
+                                ratio,
+                                factor,
+                                offset
+                        );
+                        setTaskStatus(
+                                new TaskStatus(
+                                        progress,
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.labelDataUpdate.update.text"),
+                                        Status.PENDING
+                                )
+                        );
+
+                        LOG.info(
+                                MessageFormat.format(
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.labelDataUpdate.update.install.text"),
+                                        apkInfo.getApkName()
+                                )
+                        );
+
+                        result = ADBCommand.getInstance()
+                                .install(
+                                        apkFile.getAbsolutePath(),
+                                        false
+                                );
+
+                        if (result)
+                        {
+                            LOG.info(
+                                    MessageFormat.format(
+                                            ResourceBundle.getBundle("messages")
+                                                    .getString("MainWindow.labelDataUpdate.update.install.success.text"),
+                                            apkInfo.getApkName()
+                                    )
+                            );
+
+                            progress = computeProgress(
+                                    apkIndex,
+                                    apks.size(),
+                                    1,
+                                    1,
+                                    ratio,
+                                    factor,
+                                    offset
+                            );
+                            setTaskStatus(
+                                    new TaskStatus(
+                                            progress,
+                                            ResourceBundle.getBundle("messages")
+                                                    .getString("MainWindow.labelDataUpdate.update.text"),
+                                            Status.PENDING
+                                    )
+                            );
+                        }
+                        else
+                        {
+                            LOG.error(
+                                    MessageFormat.format(
+                                            ResourceBundle.getBundle("messages")
+                                                    .getString("MainWindow.labelDataUpdate.update.install.failed.text"),
+                                            apkInfo.getPackageName()
+                                    )
+                            );
+
+                            progress = computeProgress(
+                                    apkIndex,
+                                    apks.size(),
+                                    1,
+                                    1,
+                                    ratio,
+                                    factor,
+                                    offset
+                            );
+                            setTaskStatus(
+                                    new TaskStatus(
+                                            progress,
+                                            ResourceBundle.getBundle("messages")
+                                                    .getString("MainWindow.labelDataUpdate.update.text"),
+                                            Status.FAILED
+                                    )
+                            );
+                            this.result.set(false);
+                        }
+                    }
+                    else
+                    {
+                        LOG.error(
+                                MessageFormat.format(
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.labelDataUpdate.update.uninstall.failed.text"),
+                                        apkInfo.getPackageName()
+                                )
+                        );
+
+                        progress = computeProgress(
+                                apkIndex,
+                                apks.size(),
+                                1,
+                                1,
+                                ratio,
+                                factor,
+                                offset
+                        );
+                        setTaskStatus(
+                                new TaskStatus(
+                                        progress,
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.labelDataUpdate.update.text"),
+                                        Status.FAILED
+                                )
+                        );
+                        this.result.set(false);
+                    }
+                }
+
+                return result;
+            }
+            catch (ADBCommandException ace)
+            {
+                LOG.error(
+                        ace.getMessage(),
+                        ace
+                );
+
+                progress = computeProgress(
+                        apkIndex,
+                        apks.size(),
+                        1,
+                        1,
+                        ratio,
+                        factor,
+                        offset
+                );
+                setTaskStatus(
+                        new TaskStatus(
+                                progress,
+                                ResourceBundle.getBundle("messages")
+                                        .getString("MainWindow.labelDataUpdate.update.text"),
+                                Status.FAILED
+                        )
+                );
+                this.result.set(false);
+
+                return false;
+            }
+        }
+        else
+        {
+            LOG.error(
+                    MessageFormat.format(
+                            ResourceBundle.getBundle("messages")
+                                    .getString("MainWindow.labelDataUpdate.update.notfound.text"),
+                            apkFile.getAbsolutePath()
+                    )
+            );
+
+            progress = computeProgress(
+                    apkIndex,
+                    apks.size(),
+                    1,
+                    1,
+                    ratio,
+                    factor,
+                    offset
+            );
+            setTaskStatus(
+                    new TaskStatus(
+                            progress,
+                            ResourceBundle.getBundle("messages")
+                                    .getString("MainWindow.labelDataUpdate.update.text"),
+                            Status.FAILED
+                    )
+            );
+            this.result.set(false);
+
+            return false;
+        }
+    }
+
+    /**
+     * Tries to uninstall all registered mobile applications
+     *
+     * @return <code>true</code> if all registered mobile applications were successfully uninstalled
+     */
+    private boolean uninstallAllApplications()
+    {
+        boolean result = true;
+
+        for (ApkInfo apkInfo : apks)
+        {
+            try
+            {
+                LOG.info(
+                        MessageFormat.format(
+                                ResourceBundle.getBundle("messages")
+                                        .getString("MainWindow.labelDataUpdate.update.uninstall.text"),
+                                apkInfo.getPackageName()
+                        )
+                );
+
+                if (ADBCommand.getInstance()
+                        .listPackages(apkInfo.getPackageName())
+                        .isEmpty())
+                {
+                    LOG.info(
+                            MessageFormat.format(
+                                    ResourceBundle.getBundle("messages")
+                                            .getString("MainWindow.labelDataUpdate.update.notinstalled.text"),
+                                    apkInfo.getPackageName()
+                            )
+                    );
+                }
+                else
+                {
+                    if (ADBCommand.getInstance()
+                            .uninstall(apkInfo.getPackageName()))
+                    {
+                        LOG.info(
+                                MessageFormat.format(
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.labelDataUpdate.update.uninstall.success.text"),
+                                        apkInfo.getPackageName()
+                                )
+                        );
+                    }
+                    else
+                    {
+                        LOG.error(
+                                MessageFormat.format(
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.labelDataUpdate.update.uninstall.failed.text"),
+                                        apkInfo.getPackageName()
+                                )
+                        );
+
+                        result = false;
+                    }
+                }
+            }
+            catch (ADBCommandException ace)
+            {
+                LOG.error(
+                        ace.getMessage(),
+                        ace
+                );
+
+                result = false;
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Computes the current progress (as percentage) according to given parameters.
+     *
+     * @param mainProgress
+     * @param mainProgressSize
+     * @param currentProgress
+     * @param currentProgressSize
+     * @param ratio               current ratio to apply for the current progress
+     * @param factor              as percentage for the current progress
+     * @param offset              as percentage for the current progress
+     *
+     * @return the progress as percentage
+     */
+    private int computeProgress(final int mainProgress,
+                                final int mainProgressSize,
+                                final long currentProgress,
+                                final long currentProgressSize,
+                                final int ratio,
+                                final int factor,
+                                final int offset)
+    {
+        return (int) ((((double) factor / 100) * ((double) ratio / (double) mainProgressSize)) * (Long.valueOf(currentProgress)
+                .doubleValue() / Long.valueOf(currentProgressSize)
+                .doubleValue()) +
+                (100 - ratio) +
+                (((double) mainProgress / (double) mainProgressSize) * ratio) +
+                (((double) offset / 100) * ((double) ratio / (double) mainProgressSize)));
+    }
 }

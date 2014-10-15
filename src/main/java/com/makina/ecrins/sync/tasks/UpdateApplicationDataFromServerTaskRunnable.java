@@ -38,252 +38,436 @@ import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 
 /**
  * {@link AbstractTaskRunnable} implementation for fetching all data to be updated from the server to the connected device.
- * 
+ *
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
-public class UpdateApplicationDataFromServerTaskRunnable extends AbstractTaskRunnable
+public class UpdateApplicationDataFromServerTaskRunnable
+        extends AbstractTaskRunnable
 {
-	private static final Logger LOG = Logger.getLogger(UpdateApplicationDataFromServerTaskRunnable.class);
-	
-	private ApkInfo apkInfo;
-	private DeviceSettings deviceSettings;
-	
-	@Override
-	public void run()
-	{
-		setTaskStatus(new TaskStatus(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.PENDING));
-		
-		if (getApkInfo())
-		{
-			loadDeviceSettings();
-			
-			if (downloadDataFromServer())
-			{
-				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.FINISH));
-			}
-			else
-			{
-				setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.FAILED));
-			}
-		}
-		else
-		{
-			setTaskStatus(new TaskStatus(100, ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.default.text"), Status.FAILED));
-		}
-	}
-	
-	private boolean getApkInfo()
-	{
-		List<ApkInfo> apks = ApkUtils.getApkInfosFromJson(new File(TaskManager.getInstance().getTemporaryDirectory(), "versions.json"));
-		
-		if (apks.isEmpty())
-		{
-			return false;
-		}
-		else
-		{
-			// uses the first mobile application declaration
-			apkInfo = apks.get(0);
-			
-			return true;
-		}
-	}
-	
-	private void loadDeviceSettings()
-	{
-		try
-		{
-			deviceSettings = DeviceUtils.findLoadedDeviceSettings(
-					new DeviceSettings(
-							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_MANUFACTURER),
-							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_MODEL),
-							ADBCommand.getInstance().getProp(Prop.RO_PRODUCT_NAME),
-							new AndroidSettings(
-									ADBCommand.getInstance().getProp(Prop.RO_BUILD_VERSION_RELEASE),
-									ADBCommand.getInstance().getBuildVersion())));
-			
-			LOG.debug("loadDeviceSettings: " + deviceSettings);
-		}
-		catch (ADBCommandException ace)
-		{
-			LOG.warn(ace.getMessage());
-			
-			deviceSettings = null;
-		}
-	}
-	
-	private boolean checkFileLastModified(String headerLastModified, String remoteName)
-	{
-		boolean check = false;
-		
-		if (StringUtils.isNotBlank(headerLastModified))
-		{
-			try
-			{
-				final Date remoteLastModified = DateUtils.parseDate(headerLastModified);
-				final Date localFileLastModified = ADBCommand.getInstance().getFileLastModified(getDeviceFilePath(remoteName, false));
-				
-				LOG.debug("remoteName: " + remoteName + ", localFileLastModified: " + localFileLastModified + ", remoteLastModified: " + remoteLastModified);
-				
-				check = (remoteLastModified == null) || (!remoteLastModified.after(localFileLastModified));
-			}
-			catch (ADBCommandException ace)
-			{
-				LOG.debug(ace.getMessage());
-			}
-		}
-		
-		return check;
-	}
-	
-	private boolean downloadDataFromServer()
-	{
-		final AtomicBoolean result = new AtomicBoolean(true);
-		
-		final HttpClient httpClient = WebAPIClientUtils.getHttpClient(LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerTimeout());
+    private static final Logger LOG = Logger.getLogger(UpdateApplicationDataFromServerTaskRunnable.class);
 
-		HttpResponse httpResponse = null;
-		
-		final List<ExportSettings> exportsSettings = LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getExportsSettings();
-		final AtomicInteger increment= new AtomicInteger();
-		
-		for (final ExportSettings exportSettings : exportsSettings)
-		{
-			setTaskStatus(new TaskStatus((int) (((double) increment.get() / (double) exportsSettings.size()) * 100), MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.PENDING));
-			LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()));
-			
-			try
-			{
-				final HttpPost httpPost = WebAPIClientUtils.httpPost(
-						httpClient,
-						LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerUrl() +
-						exportSettings.getExportUrl(),
-						LoadSettingsCallable.getInstance().getSettings().getSyncSettings().getServerToken());
-				
-				httpResponse = httpClient.execute(httpPost);
-				
-				// checks if server response is valid
-				StatusLine status = httpResponse.getStatusLine();
-				
-				if (status.getStatusCode() == HttpStatus.SC_OK)
-				{
-					// check the last modified date between the remote file and the local file
-					if (httpResponse.containsHeader("Last-Modified") && checkFileLastModified(httpResponse.getFirstHeader("Last-Modified").getValue(), exportSettings.getExportFile()))
-					{
-						LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.uptodate.text"), exportSettings.getExportFile()));
-						
-						httpPost.abort();
-					}
-					else
-					{
-						// pulls content stream from response
-						final HttpEntity entity = httpResponse.getEntity();
-						InputStream inputStream = entity.getContent();
-						
-						final File localFile = new File(TaskManager.getInstance().getTemporaryDirectory(), exportSettings.getExportFile());
-						FileUtils.touch(localFile);
-						
-						FileOutputStream fos = new FileOutputStream(localFile);
-						
-						IOUtils.copy(inputStream, new CountingOutputStream(fos)
-						{
-							@Override
-							protected void afterWrite(int n) throws IOException
-							{
-								super.afterWrite(n);
-								
-								int currentProgress =  (int) (((double) getCount() / (double) entity.getContentLength()) * 100);
-								
-								if (currentProgress < 0)
-								{
-									currentProgress = 0;
-								}
-								
-								int globalProgress = (int) (((double) increment.get() / (double) exportsSettings.size()) * 100) + (currentProgress / exportsSettings.size());
-								
-								setTaskStatus(
-										new TaskStatus(
-												globalProgress,
-												MessageFormat.format(
-														ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"),
-														exportSettings.getExportFile()
-												),
-												Status.PENDING
-										)
-								);
-							}
-						});
-						
-						// ensure that the response body is fully consumed
-						EntityUtils.consume(entity);
-						
-						setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.copytodevice.text"), exportSettings.getExportFile()), Status.PENDING));
-						copyFileToDevice(localFile, exportSettings.getExportFile());
-						setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.finish.text"), exportSettings.getExportFile()), Status.PENDING));
-						LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.finish.text"), exportSettings.getExportFile()));
-					}
-				}
-				else
-				{
-					LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()) + " (URL '" + httpPost.getURI().toString() + "', HTTP status : " + status.getStatusCode() + ")");
-					setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.FAILED));
-					
-					result.set(false);
-				}
-			}
-			catch (IOException ioe)
-			{
-				LOG.error(ioe.getLocalizedMessage());
-				
-				result.set(false);
-				setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.FAILED));
-			}
-			catch (ADBCommandException ace)
-			{
-				LOG.error(ace.getLocalizedMessage());
-				
-				result.set(false);
-				setTaskStatus(new TaskStatus(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.text"), exportSettings.getExportFile()), Status.FAILED));
-			}
-			finally
-			{
-				HttpClientUtils.closeQuietly(httpResponse);
-			}
-			
-			increment.addAndGet(1);
-		}
-		
-		HttpClientUtils.closeQuietly(httpClient);
-		
-		return result.get();
-	}
-	
-	private String getDeviceFilePath(String remoteName, boolean useDefaultExternalStorage)
-	{
-		if (useDefaultExternalStorage)
-		{
-			return DeviceUtils.getDefaultExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + remoteName;
-		}
-		else
-		{
-			return DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + remoteName;
-		}
-	}
-	
-	private void copyFileToDevice(File localFile, String remoteName) throws ADBCommandException
-	{
-		LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages").getString("MainWindow.labelDataUpdate.download.copytodevice.text"), localFile.getName()));
-		
-		if (DeviceUtils.getExternalStorageDirectory(deviceSettings).equals(DeviceUtils.getDefaultExternalStorageDirectory(deviceSettings)))
-		{
-			ADBCommand.getInstance().push(localFile.getAbsolutePath(), getDeviceFilePath(remoteName, false));
-		}
-		else
-		{
-			// uses specific service from mobile application to move the given file to the right place (use the external storage path)
-			// The direct copy to the external storage path may fail for some devices (i.e. Permission denied) 
-			ADBCommand.getInstance().push(localFile.getAbsolutePath(), getDeviceFilePath(remoteName, true));
-			ADBCommand.getInstance().executeCommand("am broadcast -a " + apkInfo.getPackageName() + ".INTENT_MOVE_FILE_TO_EXTERNAL_STORAGE -e " + apkInfo.getPackageName() + ".file " + remoteName + " -f 32");
-		}
-	}
+    private ApkInfo apkInfo;
+    private DeviceSettings deviceSettings;
+
+    @Override
+    public void run()
+    {
+        setTaskStatus(
+                new TaskStatus(
+                        ResourceBundle.getBundle("messages")
+                                .getString("MainWindow.labelDataUpdate.default.text"),
+                        Status.PENDING
+                )
+        );
+
+        if (getApkInfo())
+        {
+            loadDeviceSettings();
+
+            if (downloadDataFromServer())
+            {
+                setTaskStatus(
+                        new TaskStatus(
+                                100,
+                                ResourceBundle.getBundle("messages")
+                                        .getString("MainWindow.labelDataUpdate.default.text"),
+                                Status.FINISH
+                        )
+                );
+            }
+            else
+            {
+                setTaskStatus(
+                        new TaskStatus(
+                                100,
+                                ResourceBundle.getBundle("messages")
+                                        .getString("MainWindow.labelDataUpdate.default.text"),
+                                Status.FAILED
+                        )
+                );
+            }
+        }
+        else
+        {
+            setTaskStatus(
+                    new TaskStatus(
+                            100,
+                            ResourceBundle.getBundle("messages")
+                                    .getString("MainWindow.labelDataUpdate.default.text"),
+                            Status.FAILED
+                    )
+            );
+        }
+    }
+
+    private boolean getApkInfo()
+    {
+        final List<ApkInfo> apks = ApkUtils.getApkInfosFromJson(
+                new File(
+                        TaskManager.getInstance()
+                                .getTemporaryDirectory(),
+                        "versions.json"
+                )
+        );
+
+        if (apks.isEmpty())
+        {
+            return false;
+        }
+        else
+        {
+            // uses the first mobile application declaration
+            apkInfo = apks.get(0);
+
+            return true;
+        }
+    }
+
+    private void loadDeviceSettings()
+    {
+        try
+        {
+            deviceSettings = DeviceUtils.findLoadedDeviceSettings(
+                    new DeviceSettings(
+                            ADBCommand.getInstance()
+                                    .getProp(Prop.RO_PRODUCT_MANUFACTURER),
+                            ADBCommand.getInstance()
+                                    .getProp(Prop.RO_PRODUCT_MODEL),
+                            ADBCommand.getInstance()
+                                    .getProp(Prop.RO_PRODUCT_NAME),
+                            new AndroidSettings(
+                                    ADBCommand.getInstance()
+                                            .getProp(Prop.RO_BUILD_VERSION_RELEASE),
+                                    ADBCommand.getInstance()
+                                            .getBuildVersion()
+                            )
+                    )
+            );
+
+            LOG.debug("loadDeviceSettings: " + deviceSettings);
+        }
+        catch (ADBCommandException ace)
+        {
+            LOG.warn(ace.getMessage());
+
+            deviceSettings = null;
+        }
+    }
+
+    private boolean checkFileLastModified(String headerLastModified,
+                                          String remoteName)
+    {
+        boolean check = false;
+
+        if (StringUtils.isNotBlank(headerLastModified))
+        {
+            try
+            {
+                final Date remoteLastModified = DateUtils.parseDate(headerLastModified);
+                final Date localFileLastModified = ADBCommand.getInstance()
+                        .getFileLastModified(
+                                getDeviceFilePath(
+                                        remoteName,
+                                        false
+                                )
+                        );
+
+                LOG.debug("remoteName: " + remoteName + ", localFileLastModified: " + localFileLastModified + ", remoteLastModified: " + remoteLastModified);
+
+                check = (remoteLastModified == null) || (!remoteLastModified.after(localFileLastModified));
+            }
+            catch (ADBCommandException ace)
+            {
+                LOG.debug(ace.getMessage());
+            }
+        }
+
+        return check;
+    }
+
+    private boolean downloadDataFromServer()
+    {
+        final AtomicBoolean result = new AtomicBoolean(true);
+
+        final HttpClient httpClient = WebAPIClientUtils.getHttpClient(
+                LoadSettingsCallable.getInstance()
+                        .getSettings()
+                        .getSyncSettings()
+                        .getServerTimeout()
+        );
+
+        HttpResponse httpResponse = null;
+
+        final List<ExportSettings> exportsSettings = LoadSettingsCallable.getInstance()
+                .getSettings()
+                .getSyncSettings()
+                .getExportsSettings();
+        final AtomicInteger increment = new AtomicInteger();
+
+        for (final ExportSettings exportSettings : exportsSettings)
+        {
+            setTaskStatus(
+                    new TaskStatus(
+                            (int) (((double) increment.get() / (double) exportsSettings.size()) * 100),
+                            MessageFormat.format(
+                                    ResourceBundle.getBundle("messages")
+                                            .getString("MainWindow.labelDataUpdate.download.text"),
+                                    exportSettings.getExportFile()
+                            ),
+                            Status.PENDING
+                    )
+            );
+            LOG.info(
+                    MessageFormat.format(
+                            ResourceBundle.getBundle("messages")
+                                    .getString("MainWindow.labelDataUpdate.download.text"),
+                            exportSettings.getExportFile()
+                    )
+            );
+
+            try
+            {
+                final HttpPost httpPost = WebAPIClientUtils.httpPost(
+                        httpClient,
+                        LoadSettingsCallable.getInstance()
+                                .getSettings()
+                                .getSyncSettings()
+                                .getServerUrl() + exportSettings.getExportUrl(),
+                        LoadSettingsCallable.getInstance()
+                                .getSettings()
+                                .getSyncSettings()
+                                .getServerToken()
+                );
+
+                httpResponse = httpClient.execute(httpPost);
+
+                // checks if server response is valid
+                StatusLine status = httpResponse.getStatusLine();
+
+                if (status.getStatusCode() == HttpStatus.SC_OK)
+                {
+                    // check the last modified date between the remote file and the local file
+                    if (httpResponse.containsHeader("Last-Modified") && checkFileLastModified(
+                            httpResponse.getFirstHeader("Last-Modified")
+                                    .getValue(),
+                            exportSettings.getExportFile()
+                    ))
+                    {
+                        LOG.info(
+                                MessageFormat.format(
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.labelDataUpdate.download.uptodate.text"),
+                                        exportSettings.getExportFile()
+                                )
+                        );
+
+                        httpPost.abort();
+                    }
+                    else
+                    {
+                        // pulls content stream from response
+                        final HttpEntity entity = httpResponse.getEntity();
+                        InputStream inputStream = entity.getContent();
+
+                        final File localFile = new File(
+                                TaskManager.getInstance()
+                                        .getTemporaryDirectory(),
+                                exportSettings.getExportFile()
+                        );
+                        FileUtils.touch(localFile);
+
+                        FileOutputStream fos = new FileOutputStream(localFile);
+
+                        IOUtils.copy(
+                                inputStream,
+                                new CountingOutputStream(fos)
+                                {
+                                    @Override
+                                    protected void afterWrite(int n) throws
+                                                                     IOException
+                                    {
+                                        super.afterWrite(n);
+
+                                        int currentProgress = (int) (((double) getCount() / (double) entity.getContentLength()) * 100);
+
+                                        if (currentProgress < 0)
+                                        {
+                                            currentProgress = 0;
+                                        }
+
+                                        int globalProgress = (int) (((double) increment.get() / (double) exportsSettings.size()) * 100) + (currentProgress / exportsSettings.size());
+
+                                        setTaskStatus(
+                                                new TaskStatus(
+                                                        globalProgress,
+                                                        MessageFormat.format(
+                                                                ResourceBundle.getBundle("messages")
+                                                                        .getString("MainWindow.labelDataUpdate.download.text"),
+                                                                exportSettings.getExportFile()
+                                                        ),
+                                                        Status.PENDING
+                                                )
+                                        );
+                                    }
+                                }
+                        );
+
+                        // ensure that the response body is fully consumed
+                        EntityUtils.consume(entity);
+
+                        setTaskStatus(
+                                new TaskStatus(
+                                        MessageFormat.format(
+                                                ResourceBundle.getBundle("messages")
+                                                        .getString("MainWindow.labelDataUpdate.download.copytodevice.text"),
+                                                exportSettings.getExportFile()
+                                        ),
+                                        Status.PENDING
+                                )
+                        );
+                        copyFileToDevice(
+                                localFile,
+                                exportSettings.getExportFile()
+                        );
+                        setTaskStatus(
+                                new TaskStatus(
+                                        MessageFormat.format(
+                                                ResourceBundle.getBundle("messages")
+                                                        .getString("MainWindow.labelDataUpdate.download.finish.text"),
+                                                exportSettings.getExportFile()
+                                        ),
+                                        Status.PENDING
+                                )
+                        );
+                        LOG.info(
+                                MessageFormat.format(
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.labelDataUpdate.download.finish.text"),
+                                        exportSettings.getExportFile()
+                                )
+                        );
+                    }
+                }
+                else
+                {
+                    LOG.error(
+                            MessageFormat.format(
+                                    ResourceBundle.getBundle("messages")
+                                            .getString("MainWindow.labelDataUpdate.download.text"),
+                                    exportSettings.getExportFile()
+                            ) + " (URL '" + httpPost.getURI()
+                                    .toString() + "', HTTP status : " + status.getStatusCode() + ")"
+                    );
+                    setTaskStatus(
+                            new TaskStatus(
+                                    MessageFormat.format(
+                                            ResourceBundle.getBundle("messages")
+                                                    .getString("MainWindow.labelDataUpdate.download.text"),
+                                            exportSettings.getExportFile()
+                                    ),
+                                    Status.FAILED
+                            )
+                    );
+
+                    result.set(false);
+                }
+            }
+            catch (IOException ioe)
+            {
+                LOG.error(ioe.getLocalizedMessage());
+
+                result.set(false);
+                setTaskStatus(
+                        new TaskStatus(
+                                MessageFormat.format(
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.labelDataUpdate.download.text"),
+                                        exportSettings.getExportFile()
+                                ),
+                                Status.FAILED
+                        )
+                );
+            }
+            catch (ADBCommandException ace)
+            {
+                LOG.error(ace.getLocalizedMessage());
+
+                result.set(false);
+                setTaskStatus(
+                        new TaskStatus(
+                                MessageFormat.format(
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.labelDataUpdate.download.text"),
+                                        exportSettings.getExportFile()
+                                ),
+                                Status.FAILED
+                        )
+                );
+            }
+            finally
+            {
+                HttpClientUtils.closeQuietly(httpResponse);
+            }
+
+            increment.addAndGet(1);
+        }
+
+        HttpClientUtils.closeQuietly(httpClient);
+
+        return result.get();
+    }
+
+    private String getDeviceFilePath(String remoteName,
+                                     boolean useDefaultExternalStorage)
+    {
+        if (useDefaultExternalStorage)
+        {
+            return DeviceUtils.getDefaultExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + remoteName;
+        }
+        else
+        {
+            return DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + remoteName;
+        }
+    }
+
+    private void copyFileToDevice(File localFile,
+                                  String remoteName) throws
+                                                     ADBCommandException
+    {
+        LOG.info(
+                MessageFormat.format(
+                        ResourceBundle.getBundle("messages")
+                                .getString("MainWindow.labelDataUpdate.download.copytodevice.text"),
+                        localFile.getName()
+                )
+        );
+
+        if (DeviceUtils.getExternalStorageDirectory(deviceSettings)
+                .equals(DeviceUtils.getDefaultExternalStorageDirectory(deviceSettings)))
+        {
+            ADBCommand.getInstance()
+                    .push(
+                            localFile.getAbsolutePath(),
+                            getDeviceFilePath(
+                                    remoteName,
+                                    false
+                            )
+                    );
+        }
+        else
+        {
+            // uses specific service from mobile application to move the given file to the right place (use the external storage path)
+            // The direct copy to the external storage path may fail for some devices (i.e. Permission denied)
+            ADBCommand.getInstance()
+                    .push(
+                            localFile.getAbsolutePath(),
+                            getDeviceFilePath(
+                                    remoteName,
+                                    true
+                            )
+                    );
+            ADBCommand.getInstance()
+                    .executeCommand("am broadcast -a " + apkInfo.getPackageName() + ".INTENT_MOVE_FILE_TO_EXTERNAL_STORAGE -e " + apkInfo.getPackageName() + ".file " + remoteName + " -f 32");
+        }
+    }
 }

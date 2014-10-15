@@ -5,59 +5,72 @@ import org.json.JSONObject;
 
 /**
  * Describes an Android application package.
- * 
+ *
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
 public class ApkInfo
 {
-	public static final String KEY_PACKAGE = "package";
-	public static final String KEY_SHARED_USED_ID = "sharedUserId";
-	public static final String KEY_APK_NAME = "apkName";
-	public static final String KEY_VERSION_CODE = "versionCode";
-	public static final String KEY_VERSION_NAME = "versionName";
-	
-	private String packageName;
-	private String sharedUserId;
-	private String apkName;
-	private int versionCode;
-	private String versionName;
-	
-	public ApkInfo(JSONObject jsonObject) throws JSONException
-	{
-		this.packageName = jsonObject.getString(KEY_PACKAGE);
-		this.sharedUserId = jsonObject.getString(KEY_SHARED_USED_ID);
-		
-		if (jsonObject.has(KEY_APK_NAME))
-		{
-			this.apkName = jsonObject.getString(KEY_APK_NAME);
-		}
-		
-		this.versionCode = jsonObject.getInt(KEY_VERSION_CODE);
-		this.versionName = jsonObject.getString(KEY_VERSION_NAME);
-	}
+    public static final String KEY_PACKAGE = "package";
+    public static final String KEY_SHARED_USED_ID = "sharedUserId";
+    public static final String KEY_APK_NAME = "apkName";
+    public static final String KEY_VERSION_CODE = "versionCode";
+    public static final String KEY_VERSION_NAME = "versionName";
 
-	public String getPackageName()
-	{
-		return packageName;
-	}
+    private String packageName;
+    private String sharedUserId;
+    private String apkName;
+    private int versionCode;
+    private String versionName;
 
-	public String getSharedUserId()
-	{
-		return sharedUserId;
-	}
+    public ApkInfo(JSONObject jsonObject) throws
+                                          JSONException
+    {
+        this.packageName = jsonObject.getString(KEY_PACKAGE);
+        this.sharedUserId = jsonObject.getString(KEY_SHARED_USED_ID);
 
-	public String getApkName()
-	{
-		return apkName;
-	}
+        if (jsonObject.has(KEY_APK_NAME))
+        {
+            this.apkName = jsonObject.getString(KEY_APK_NAME);
+        }
 
-	public int getVersionCode()
-	{
-		return versionCode;
-	}
+        this.versionCode = jsonObject.getInt(KEY_VERSION_CODE);
+        this.versionName = jsonObject.getString(KEY_VERSION_NAME);
+    }
 
-	public String getVersionName()
-	{
-		return versionName;
-	}
+    public String getPackageName()
+    {
+        return packageName;
+    }
+
+    public String getSharedUserId()
+    {
+        return sharedUserId;
+    }
+
+    public String getApkName()
+    {
+        return apkName;
+    }
+
+    public int getVersionCode()
+    {
+        return versionCode;
+    }
+
+    public String getVersionName()
+    {
+        return versionName;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "ApkInfo{" +
+                "packageName='" + packageName + '\'' +
+                ", sharedUserId='" + sharedUserId + '\'' +
+                ", apkName='" + apkName + '\'' +
+                ", versionCode=" + versionCode +
+                ", versionName='" + versionName + '\'' +
+                '}';
+    }
 }

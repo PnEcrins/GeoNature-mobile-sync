@@ -10,29 +10,33 @@ import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 
 /**
  * Tests suite for {@link WebAPIClientUtilsTest}.
- * 
+ *
  * @author <a href="mailto:sebastien.grimault@makina-corpus.com">S. Grimault</a>
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses(
-{
-	WebAPIClientUtilsTest.class
-})
+        {
+                WebAPIClientUtilsTest.class
+        })
 public class WebAPITests
 {
-	private static final Logger LOG = Logger.getLogger(WebAPITests.class);
-	
-	@BeforeClass
-	public static void init()
-	{
-		try
-		{
-			LoadSettingsCallable.getInstance().call();
-		}
-		catch (Exception e)
-		{
-			LOG.error(e.getMessage(), e);
-			Assert.fail(e.getMessage());
-		}
-	}
+    private static final Logger LOG = Logger.getLogger(WebAPITests.class);
+
+    @BeforeClass
+    public static void init()
+    {
+        try
+        {
+            LoadSettingsCallable.getInstance()
+                    .call();
+        }
+        catch (Exception e)
+        {
+            LOG.error(
+                    e.getMessage(),
+                    e
+            );
+            Assert.fail(e.getMessage());
+        }
+    }
 }

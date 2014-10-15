@@ -47,7 +47,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "unzip.exe"; DestDir: "{tmp}"; Flags: ignoreversion
 Source: "sync.pdf"; DestDir: "{app}"; Flags: ignoreversion
-Source: "sync.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "../target/sync.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "../target/sync-{#MyAppVersion}-win32-{#Arch}.jar"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
