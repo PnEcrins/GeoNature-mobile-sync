@@ -6,7 +6,7 @@
     <groupId>com.makina.ecrins</groupId>
     <artifactId>sync</artifactId>
     <packaging>jar</packaging>
-    <version>0.2.8</version>
+    <version>0.2.9</version>
     <name>Sync</name>
     <description>Sync</description>
 
