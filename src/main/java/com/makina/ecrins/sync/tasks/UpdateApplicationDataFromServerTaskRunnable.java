@@ -1,16 +1,14 @@
 package com.makina.ecrins.sync.tasks;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.MessageFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.ResourceBundle;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import com.makina.ecrins.sync.adb.ADBCommand;
+import com.makina.ecrins.sync.adb.ADBCommand.Prop;
+import com.makina.ecrins.sync.adb.ADBCommandException;
+import com.makina.ecrins.sync.server.WebAPIClientUtils;
+import com.makina.ecrins.sync.service.Status;
+import com.makina.ecrins.sync.settings.AndroidSettings;
+import com.makina.ecrins.sync.settings.DeviceSettings;
+import com.makina.ecrins.sync.settings.ExportSettings;
+import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.CountingOutputStream;
@@ -26,15 +24,16 @@ import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 
-import com.makina.ecrins.sync.adb.ADBCommand;
-import com.makina.ecrins.sync.adb.ADBCommand.Prop;
-import com.makina.ecrins.sync.adb.ADBCommandException;
-import com.makina.ecrins.sync.server.WebAPIClientUtils;
-import com.makina.ecrins.sync.service.Status;
-import com.makina.ecrins.sync.settings.AndroidSettings;
-import com.makina.ecrins.sync.settings.DeviceSettings;
-import com.makina.ecrins.sync.settings.ExportSettings;
-import com.makina.ecrins.sync.settings.LoadSettingsCallable;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.MessageFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.ResourceBundle;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * {@link AbstractTaskRunnable} implementation for fetching all data to be updated from the server to the connected device.
@@ -191,8 +190,7 @@ public class UpdateApplicationDataFromServerTaskRunnable
 
         final HttpClient httpClient = WebAPIClientUtils.getHttpClient(
                 LoadSettingsCallable.getInstance()
-                        .getSettings()
-                        .getSyncSettings()
+                        .getServerSettings()
                         .getServerTimeout()
         );
 
@@ -230,12 +228,10 @@ public class UpdateApplicationDataFromServerTaskRunnable
                 final HttpPost httpPost = WebAPIClientUtils.httpPost(
                         httpClient,
                         LoadSettingsCallable.getInstance()
-                                .getSettings()
-                                .getSyncSettings()
+                                .getServerSettings()
                                 .getServerUrl() + exportSettings.getExportUrl(),
                         LoadSettingsCallable.getInstance()
-                                .getSettings()
-                                .getSyncSettings()
+                                .getServerSettings()
                                 .getServerToken()
                 );
 

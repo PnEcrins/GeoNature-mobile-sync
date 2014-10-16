@@ -19,6 +19,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLDecoder;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
 import java.util.concurrent.Callable;
@@ -31,20 +32,28 @@ import java.util.concurrent.Callable;
 public class LoadSettingsCallable
         implements Callable<Settings>
 {
+    public static final String SERVER_SETTINGS_FILE = "server.json";
     public static final String SETTINGS_FILE = "settings.json";
 
     private static final Logger LOG = Logger.getLogger(LoadSettingsCallable.class);
 
+    private ServerSettings serverSettings;
     private Settings settings;
 
     private LoadSettingsCallable()
     {
+        serverSettings = null;
         settings = null;
     }
 
     public static LoadSettingsCallable getInstance()
     {
         return LoadSettingsCallableHolder.instance;
+    }
+
+    public ServerSettings getServerSettings()
+    {
+        return serverSettings;
     }
 
     public Settings getSettings()
@@ -64,31 +73,54 @@ public class LoadSettingsCallable
                 )
         );
 
+        File rootDirectory = new File(
+                URLDecoder.decode(
+                        getClass().getProtectionDomain()
+                                .getCodeSource()
+                                .getLocation()
+                                .getPath(),
+                        "UTF-8"
+                )
+        ).getParentFile();
+
         File userDir = new File(
                 FileUtils.getUserDirectory(),
                 ".sync"
         );
         userDir.mkdir();
 
+        LOG.info(
+                MessageFormat.format(
+                        ResourceBundle.getBundle("messages")
+                                .getString("MainWindow.shell.settings.app.path.text"),
+                        rootDirectory.getAbsolutePath()
+                )
+        );
 
         LOG.info(
                 MessageFormat.format(
                         ResourceBundle.getBundle("messages")
-                                .getString("MainWindow.shell.settings.path.text"),
+                                .getString("MainWindow.shell.settings.user.path.text"),
                         userDir.getAbsolutePath()
                 )
         );
 
-        File jsonSettingsFile = new File(
+        final File jsonServerSettingsFile = new File(
+                rootDirectory,
+                SERVER_SETTINGS_FILE
+        );
+        final File jsonSettingsFile = new File(
                 userDir,
                 SETTINGS_FILE
         );
 
-        // load 'settings.json' from app installation directory or load the default 'settings.json' in case of errors
+        // load 'server.json' from app installation directory or load the default 'server.json' in case of errors
+        loadJsonServerSettings(jsonServerSettingsFile);
+        // load 'settings.json' from user directory or load the default 'settings.json' in case of errors
         loadJsonSettings(jsonSettingsFile);
         // try to update 'settings.json' from server
         updateJsonSettingsFromServer(jsonSettingsFile);
-        // reload 'settings.json' from app installation directory or load the default 'settings.json' in case of errors
+        // reload 'settings.json' from user directory or load the default 'settings.json' in case of errors
         loadJsonSettings(jsonSettingsFile);
 
         LOG.info(
@@ -96,13 +128,102 @@ public class LoadSettingsCallable
                         ResourceBundle.getBundle("messages")
                                 .getString("MainWindow.shell.settings.server.text"),
                         LoadSettingsCallable.getInstance()
-                                .getSettings()
-                                .getSyncSettings()
+                                .getServerSettings()
                                 .getServerUrl()
                 )
         );
 
         return settings;
+    }
+
+    /**
+     * Tries to load {@link #SERVER_SETTINGS_FILE} from a given {@code File}.
+     * <p>
+     * If something was wrong, try to load the default one.
+     * </p>
+     *
+     * @param jsonServerSettingsFile the {@code File} to load as JSON
+     */
+    private void loadJsonServerSettings(final File jsonServerSettingsFile)
+    {
+        if (jsonServerSettingsFile.exists())
+        {
+            try
+            {
+                serverSettings = new ServerSettings(new JSONObject(FileUtils.readFileToString(jsonServerSettingsFile)));
+            }
+            catch (IOException ioe)
+            {
+                LOG.warn(
+                        MessageFormat.format(
+                                ResourceBundle.getBundle("messages")
+                                        .getString("MainWindow.shell.settings.load.failed.text"),
+                                SERVER_SETTINGS_FILE
+                        ) + ": " + ioe.getMessage()
+                );
+            }
+        }
+
+        // something was wrong while loading server settings, try to load the default one
+        if (serverSettings == null)
+        {
+            InputStream is = null;
+
+            try
+            {
+                is = Thread.currentThread()
+                        .getContextClassLoader()
+                        .getResourceAsStream(SERVER_SETTINGS_FILE);
+
+                if (is == null)
+                {
+                    LOG.error(
+                            MessageFormat.format(
+                                    ResourceBundle.getBundle("messages")
+                                            .getString("MainWindow.shell.settings.load.default.failed.text"),
+                                    SERVER_SETTINGS_FILE
+                            )
+                    );
+                }
+                else
+                {
+                    try
+                    {
+                        serverSettings = new ServerSettings(new JSONObject(IOUtils.toString(is)));
+                    }
+                    catch (IOException ioe)
+                    {
+                        LOG.error(
+                                MessageFormat.format(
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.shell.settings.load.default.failed.text"),
+                                        SERVER_SETTINGS_FILE
+                                ) + ": " + ioe.getMessage()
+                        );
+                    }
+                }
+            }
+            finally
+            {
+                if (is != null)
+                {
+                    try
+                    {
+                        is.close();
+                    }
+                    catch (IOException ioe)
+                    {
+                        LOG.error(
+                                MessageFormat.format(
+                                        ResourceBundle.getBundle("messages")
+                                                .getString("MainWindow.shell.settings.load.default.failed.text"),
+                                        SERVER_SETTINGS_FILE
+                                )
+                        );
+                    }
+                }
+            }
+        }
     }
 
     private void updateJsonSettingsFromServer(final File jsonSettingsFile)
@@ -115,8 +236,7 @@ public class LoadSettingsCallable
 
         final HttpClient httpClient = WebAPIClientUtils.getHttpClient(
                 LoadSettingsCallable.getInstance()
-                        .getSettings()
-                        .getSyncSettings()
+                        .getServerSettings()
                         .getServerTimeout()
         );
 
@@ -127,21 +247,19 @@ public class LoadSettingsCallable
             final HttpPost httpPost = WebAPIClientUtils.httpPost(
                     httpClient,
                     LoadSettingsCallable.getInstance()
-                            .getSettings()
-                            .getSyncSettings()
+                            .getServerSettings()
                             .getServerUrl() + LoadSettingsCallable.getInstance()
                             .getSettings()
                             .getSyncSettings()
                             .getSettingsUrl(),
                     LoadSettingsCallable.getInstance()
-                            .getSettings()
-                            .getSyncSettings()
+                            .getServerSettings()
                             .getServerToken()
             );
 
             httpResponse = httpClient.execute(httpPost);
 
-            // checks if server response is valid
+            // checks if serverSettings response is valid
             final StatusLine status = httpResponse.getStatusLine();
 
             if (status.getStatusCode() == HttpStatus.SC_OK)
@@ -153,7 +271,7 @@ public class LoadSettingsCallable
                         entity.getContent(),
                         new File(
                                 tempDir,
-                                "settings.json"
+                                SETTINGS_FILE
                         )
                 );
 
@@ -161,7 +279,7 @@ public class LoadSettingsCallable
                 if (FileUtils.contentEquals(
                         new File(
                                 tempDir,
-                                "settings.json"
+                                SETTINGS_FILE
                         ),
                         jsonSettingsFile
                 ))
@@ -179,7 +297,7 @@ public class LoadSettingsCallable
                     FileUtils.copyFile(
                             new File(
                                     tempDir,
-                                    "settings.json"
+                                    SETTINGS_FILE
                             ),
                             jsonSettingsFile
                     );
@@ -226,9 +344,9 @@ public class LoadSettingsCallable
         FileDeleteStrategy.FORCE.deleteQuietly(tempDir);
     }
 
-    private void loadJsonSettings(File jsonSettingsFile) throws
-                                                         IOException,
-                                                         JSONException
+    private void loadJsonSettings(final File jsonSettingsFile) throws
+                                                               IOException,
+                                                               JSONException
     {
         if (jsonSettingsFile.exists())
         {
@@ -263,9 +381,9 @@ public class LoadSettingsCallable
         }
     }
 
-    private void copyAndLoadDefaultJsonSettingsToFile(File jsonSettingsFile) throws
-                                                                             IOException,
-                                                                             JSONException
+    private void copyAndLoadDefaultJsonSettingsToFile(final File jsonSettingsFile) throws
+                                                                                   IOException,
+                                                                                   JSONException
     {
         InputStream is = null;
 
@@ -273,7 +391,7 @@ public class LoadSettingsCallable
         {
             is = Thread.currentThread()
                     .getContextClassLoader()
-                    .getResourceAsStream("settings.json");
+                    .getResourceAsStream(SETTINGS_FILE);
 
             if (is == null)
             {

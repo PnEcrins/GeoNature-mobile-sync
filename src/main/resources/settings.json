@@ -1,9 +1,6 @@
 {
 	"sync":
 	{
-		"url": "http://dev.ecrins-parcnational.fr/synchrofaune/",
-		"token": "666",
-		"timeout": 10000,
 		"status_url": "status/",
 		"settings_url": "data_download/settings.json/",
 		"import_url": "import/",

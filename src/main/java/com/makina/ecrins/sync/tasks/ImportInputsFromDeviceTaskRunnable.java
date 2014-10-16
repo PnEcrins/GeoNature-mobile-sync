@@ -1,18 +1,13 @@
 package com.makina.ecrins.sync.tasks;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.MessageFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.ResourceBundle;
-
+import com.makina.ecrins.sync.adb.ADBCommand;
+import com.makina.ecrins.sync.adb.ADBCommand.Prop;
+import com.makina.ecrins.sync.adb.ADBCommandException;
+import com.makina.ecrins.sync.server.WebAPIClientUtils;
+import com.makina.ecrins.sync.service.Status;
+import com.makina.ecrins.sync.settings.AndroidSettings;
+import com.makina.ecrins.sync.settings.DeviceSettings;
+import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.NameFileFilter;
 import org.apache.commons.io.filefilter.PrefixFileFilter;
@@ -29,14 +24,18 @@ import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.makina.ecrins.sync.adb.ADBCommand;
-import com.makina.ecrins.sync.adb.ADBCommand.Prop;
-import com.makina.ecrins.sync.adb.ADBCommandException;
-import com.makina.ecrins.sync.server.WebAPIClientUtils;
-import com.makina.ecrins.sync.service.Status;
-import com.makina.ecrins.sync.settings.AndroidSettings;
-import com.makina.ecrins.sync.settings.DeviceSettings;
-import com.makina.ecrins.sync.settings.LoadSettingsCallable;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.MessageFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.ResourceBundle;
 
 /**
  * {@link AbstractTaskRunnable} implementation for fetching all inputs to be imported from a connected device.
@@ -291,8 +290,7 @@ public class ImportInputsFromDeviceTaskRunnable
 
         final HttpClient httpClient = WebAPIClientUtils.getHttpClient(
                 LoadSettingsCallable.getInstance()
-                        .getSettings()
-                        .getSyncSettings()
+                        .getServerSettings()
                         .getServerTimeout()
         );
         HttpPost httpPost = null;
@@ -344,15 +342,13 @@ public class ImportInputsFromDeviceTaskRunnable
                 httpPost = WebAPIClientUtils.httpPost(
                         httpClient,
                         LoadSettingsCallable.getInstance()
-                                .getSettings()
-                                .getSyncSettings()
+                                .getServerSettings()
                                 .getServerUrl() + LoadSettingsCallable.getInstance()
                                 .getSettings()
                                 .getSyncSettings()
                                 .getImportUrl(),
                         LoadSettingsCallable.getInstance()
-                                .getSettings()
-                                .getSyncSettings()
+                                .getServerSettings()
                                 .getServerToken(),
                         FileUtils.readFileToString(inputFile)
                 );

@@ -1,10 +1,8 @@
 package com.makina.ecrins.sync.server;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Observable;
-import java.util.Observer;
-
+import com.makina.ecrins.sync.server.WebAPIClientUtils.HTTPCallback;
+import com.makina.ecrins.sync.service.Status;
+import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -17,9 +15,10 @@ import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.makina.ecrins.sync.server.WebAPIClientUtils.HTTPCallback;
-import com.makina.ecrins.sync.service.Status;
-import com.makina.ecrins.sync.settings.LoadSettingsCallable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Observable;
+import java.util.Observer;
 
 /**
  * <code>Runnable</code> implementation for checking server status periodically.
@@ -73,22 +72,19 @@ public class CheckServerRunnable
 
         final HttpClient httpClient = WebAPIClientUtils.getHttpClient(
                 LoadSettingsCallable.getInstance()
-                        .getSettings()
-                        .getSyncSettings()
+                        .getServerSettings()
                         .getServerTimeout()
         );
         WebAPIClientUtils.httpPost(
                 httpClient,
                 LoadSettingsCallable.getInstance()
-                        .getSettings()
-                        .getSyncSettings()
+                        .getServerSettings()
                         .getServerUrl() + LoadSettingsCallable.getInstance()
                         .getSettings()
                         .getSyncSettings()
                         .getStatusUrl(),
                 LoadSettingsCallable.getInstance()
-                        .getSettings()
-                        .getSyncSettings()
+                        .getServerSettings()
                         .getServerToken(),
                 true,
                 new HTTPCallback()
@@ -127,17 +123,17 @@ public class CheckServerRunnable
                             }
                             catch (IllegalStateException ise)
                             {
-                                LOG.error(ise.getLocalizedMessage());
+                                LOG.error(ise.getMessage());
                                 setStatus(Status.FAILED);
                             }
                             catch (IOException ioe)
                             {
-                                LOG.error(ioe.getLocalizedMessage());
+                                LOG.error(ioe.getMessage());
                                 setStatus(Status.FAILED);
                             }
                             catch (JSONException je)
                             {
-                                LOG.error(je.getLocalizedMessage());
+                                LOG.error(je.getMessage());
                                 setStatus(Status.FAILED);
                             }
                         }
@@ -151,7 +147,7 @@ public class CheckServerRunnable
                     @Override
                     public void onError(Exception e)
                     {
-                        LOG.error(e.getLocalizedMessage());
+                        LOG.error(e.getCause().getLocalizedMessage());
                         setStatus(Status.FAILED);
                     }
                 }

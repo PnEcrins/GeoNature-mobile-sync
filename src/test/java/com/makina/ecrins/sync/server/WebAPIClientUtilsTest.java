@@ -34,8 +34,7 @@ public class WebAPIClientUtilsTest
     {
         final HttpClient httpClient = WebAPIClientUtils.getHttpClient(
                 LoadSettingsCallable.getInstance()
-                        .getSettings()
-                        .getSyncSettings()
+                        .getServerSettings()
                         .getServerTimeout()
         );
 
@@ -46,15 +45,13 @@ public class WebAPIClientUtilsTest
             final HttpPost httpPost = WebAPIClientUtils.httpPost(
                     httpClient,
                     LoadSettingsCallable.getInstance()
-                            .getSettings()
-                            .getSyncSettings()
+                            .getServerSettings()
                             .getServerUrl() + LoadSettingsCallable.getInstance()
                             .getSettings()
                             .getSyncSettings()
                             .getStatusUrl(),
                     LoadSettingsCallable.getInstance()
-                            .getSettings()
-                            .getSyncSettings()
+                            .getServerSettings()
                             .getServerToken()
             );
 
@@ -115,8 +112,7 @@ public class WebAPIClientUtilsTest
     {
         final HttpClient httpClient = WebAPIClientUtils.getHttpClient(
                 LoadSettingsCallable.getInstance()
-                        .getSettings()
-                        .getSyncSettings()
+                        .getServerSettings()
                         .getServerTimeout()
         );
 
@@ -127,16 +123,14 @@ public class WebAPIClientUtilsTest
             final HttpPost httpPost = WebAPIClientUtils.httpPost(
                     httpClient,
                     LoadSettingsCallable.getInstance()
-                            .getSettings()
-                            .getSyncSettings()
+                            .getServerSettings()
                             .getServerUrl() + LoadSettingsCallable.getInstance()
                             .getSettings()
                             .getSyncSettings()
                             .getAppUpdateSettings()
                             .getVersionUrl(),
                     LoadSettingsCallable.getInstance()
-                            .getSettings()
-                            .getSyncSettings()
+                            .getServerSettings()
                             .getServerToken()
             );
 
@@ -172,8 +166,7 @@ public class WebAPIClientUtilsTest
     {
         final HttpClient httpClient = WebAPIClientUtils.getHttpClient(
                 LoadSettingsCallable.getInstance()
-                        .getSettings()
-                        .getSyncSettings()
+                        .getServerSettings()
                         .getServerTimeout()
         );
 
@@ -191,12 +184,10 @@ public class WebAPIClientUtilsTest
                 final HttpPost httpPost = WebAPIClientUtils.httpPost(
                         httpClient,
                         LoadSettingsCallable.getInstance()
-                                .getSettings()
-                                .getSyncSettings()
+                                .getServerSettings()
                                 .getServerUrl() + exportSettings.getExportUrl(),
                         LoadSettingsCallable.getInstance()
-                                .getSettings()
-                                .getSyncSettings()
+                                .getServerSettings()
                                 .getServerToken()
                 );
 

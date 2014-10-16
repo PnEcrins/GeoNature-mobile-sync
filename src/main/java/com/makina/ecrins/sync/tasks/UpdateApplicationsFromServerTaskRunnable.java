@@ -1,17 +1,13 @@
 package com.makina.ecrins.sync.tasks;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ResourceBundle;
-import java.util.concurrent.atomic.AtomicBoolean;
-
+import com.makina.ecrins.sync.adb.ADBCommand;
+import com.makina.ecrins.sync.adb.ADBCommand.Prop;
+import com.makina.ecrins.sync.adb.ADBCommandException;
+import com.makina.ecrins.sync.server.WebAPIClientUtils;
+import com.makina.ecrins.sync.service.Status;
+import com.makina.ecrins.sync.settings.AndroidSettings;
+import com.makina.ecrins.sync.settings.DeviceSettings;
+import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.CountingOutputStream;
@@ -28,14 +24,13 @@ import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.makina.ecrins.sync.adb.ADBCommand;
-import com.makina.ecrins.sync.adb.ADBCommand.Prop;
-import com.makina.ecrins.sync.adb.ADBCommandException;
-import com.makina.ecrins.sync.server.WebAPIClientUtils;
-import com.makina.ecrins.sync.service.Status;
-import com.makina.ecrins.sync.settings.AndroidSettings;
-import com.makina.ecrins.sync.settings.DeviceSettings;
-import com.makina.ecrins.sync.settings.LoadSettingsCallable;
+import java.io.*;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ResourceBundle;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * {@link AbstractTaskRunnable} implementation about mobile applications update :
@@ -291,8 +286,7 @@ public class UpdateApplicationsFromServerTaskRunnable
     {
         final HttpClient httpClient = WebAPIClientUtils.getHttpClient(
                 LoadSettingsCallable.getInstance()
-                        .getSettings()
-                        .getSyncSettings()
+                        .getServerSettings()
                         .getServerTimeout()
         );
         HttpResponse httpResponse = null;
@@ -302,16 +296,14 @@ public class UpdateApplicationsFromServerTaskRunnable
             final HttpPost httpPost = WebAPIClientUtils.httpPost(
                     httpClient,
                     LoadSettingsCallable.getInstance()
-                            .getSettings()
-                            .getSyncSettings()
+                            .getServerSettings()
                             .getServerUrl() + LoadSettingsCallable.getInstance()
                             .getSettings()
                             .getSyncSettings()
                             .getAppUpdateSettings()
                             .getVersionUrl(),
                     LoadSettingsCallable.getInstance()
-                            .getSettings()
-                            .getSyncSettings()
+                            .getServerSettings()
                             .getServerToken()
             );
 
@@ -712,8 +704,7 @@ public class UpdateApplicationsFromServerTaskRunnable
 
         final HttpClient httpClient = WebAPIClientUtils.getHttpClient(
                 LoadSettingsCallable.getInstance()
-                        .getSettings()
-                        .getSyncSettings()
+                        .getServerSettings()
                         .getServerTimeout()
         );
 
@@ -724,8 +715,7 @@ public class UpdateApplicationsFromServerTaskRunnable
             final HttpPost httpPost = WebAPIClientUtils.httpPost(
                     httpClient,
                     LoadSettingsCallable.getInstance()
-                            .getSettings()
-                            .getSyncSettings()
+                            .getServerSettings()
                             .getServerUrl() +
                             LoadSettingsCallable.getInstance()
                                     .getSettings()
@@ -733,8 +723,7 @@ public class UpdateApplicationsFromServerTaskRunnable
                                     .getAppUpdateSettings()
                                     .getDownloadUrl() + "/" + apkInfo.getApkName() + "/",
                     LoadSettingsCallable.getInstance()
-                            .getSettings()
-                            .getSyncSettings()
+                            .getServerSettings()
                             .getServerToken()
             );
 
