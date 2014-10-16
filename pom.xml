@@ -256,7 +256,7 @@
                         <configuration>
                             <dontWrapJar>true</dontWrapJar>
                             <headerType>gui</headerType>
-                            <jar>./${artifactId}-${version}-${assembly.name}-${os.arch}.jar</jar>
+                            <jar>./${project.artifactId}-${project.version}-${assembly.name}-${os.arch}.jar</jar>
                             <outfile>${project.build.directory}/sync.exe</outfile>
                             <errTitle></errTitle>
                             <cmdLine></cmdLine>
