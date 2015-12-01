@@ -1,3 +1,5 @@
+# GeoNature-mobile-sync
+
 ## Prerequisites and requirements
 * Oracle Java JDK (6 as minimal version)
 * [Apache Maven (3.0.x)](http://maven.apache.org/download.cgi#Maven_3.0.5)
