@@ -1,12 +1,9 @@
 package com.makina.ecrins.sync.tasks;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
-import com.makina.ecrins.sync.adb.ADBCommand.Prop;
 import com.makina.ecrins.sync.adb.ADBCommandException;
 import com.makina.ecrins.sync.server.WebAPIClientUtils;
 import com.makina.ecrins.sync.service.Status;
-import com.makina.ecrins.sync.settings.AndroidSettings;
-import com.makina.ecrins.sync.settings.DeviceSettings;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.NameFileFilter;
@@ -50,7 +47,6 @@ public class ImportInputsFromDeviceTaskRunnable
     private static DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     private File inputsTempDir;
-    private DeviceSettings deviceSettings;
 
     private List<ApkInfo> apks = new ArrayList<ApkInfo>();
 
@@ -68,7 +64,6 @@ public class ImportInputsFromDeviceTaskRunnable
 
         try
         {
-            loadDeviceSettings();
             fetchInputsFromDevice();
 
             if (uploadInputs())
@@ -115,37 +110,6 @@ public class ImportInputsFromDeviceTaskRunnable
         }
     }
 
-    private void loadDeviceSettings()
-    {
-        try
-        {
-            deviceSettings = DeviceUtils.findLoadedDeviceSettings(
-                    new DeviceSettings(
-                            ADBCommand.getInstance()
-                                    .getProp(Prop.RO_PRODUCT_MANUFACTURER),
-                            ADBCommand.getInstance()
-                                    .getProp(Prop.RO_PRODUCT_MODEL),
-                            ADBCommand.getInstance()
-                                    .getProp(Prop.RO_PRODUCT_NAME),
-                            new AndroidSettings(
-                                    ADBCommand.getInstance()
-                                            .getProp(Prop.RO_BUILD_VERSION_RELEASE),
-                                    ADBCommand.getInstance()
-                                            .getBuildVersion()
-                            )
-                    )
-            );
-
-            LOG.debug("loadDeviceSettings: " + deviceSettings);
-        }
-        catch (ADBCommandException ace)
-        {
-            LOG.warn(ace.getMessage());
-
-            deviceSettings = null;
-        }
-    }
-
     private boolean fetchInputsFromDevice() throws
                                             ADBCommandException
     {
@@ -154,6 +118,8 @@ public class ImportInputsFromDeviceTaskRunnable
                         .getTemporaryDirectory(),
                 "inputs"
         );
+
+        // noinspection ResultOfMethodCallIgnored
         this.inputsTempDir.mkdir();
 
         apks = ApkUtils.getApkInfosFromJson(
@@ -172,7 +138,7 @@ public class ImportInputsFromDeviceTaskRunnable
         {
             ADBCommand.getInstance()
                     .pull(
-                            DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apks.get(0)) + "inputs/",
+                            DeviceUtils.getDefaultExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apks.get(0)) + "inputs/",
                             this.inputsTempDir.getAbsolutePath()
                     );
 
@@ -191,25 +157,11 @@ public class ImportInputsFromDeviceTaskRunnable
     private void deleteInputFromDevice(File inputJson) throws
                                                        ADBCommandException
     {
-        if (DeviceUtils.getExternalStorageDirectory(deviceSettings)
-                .equals(DeviceUtils.getDefaultExternalStorageDirectory(deviceSettings)))
-        {
-            ADBCommand.getInstance()
-                    .executeCommand(
-                            "rm " + DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apks.get(0)) + "inputs/" + inputJson.getParentFile()
-                                    .getName() + "/" + inputJson.getName()
-                    );
-        }
-        else
-        {
-            // uses specific service from mobile application to delete the given input
-            ADBCommand.getInstance()
-                    .executeCommand(
-                            "am broadcast -a " + inputJson.getParentFile()
-                                    .getName() + ".INTENT_DELETE_INPUT -e " + inputJson.getParentFile()
-                                    .getName() + ".file " + inputJson.getName() + " -f 32"
-                    );
-        }
+        ADBCommand.getInstance()
+                .executeCommand(
+                        "rm " + DeviceUtils.getDefaultExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apks.get(0)) + "inputs/" + inputJson.getParentFile()
+                                .getName() + "/" + inputJson.getName()
+                );
     }
 
     private void copyInputToUserDir(File inputJson,

@@ -163,13 +163,7 @@ public class UpdateApplicationDataFromServerTaskRunnable
             try
             {
                 final Date remoteLastModified = DateUtils.parseDate(headerLastModified);
-                final Date localFileLastModified = ADBCommand.getInstance()
-                        .getFileLastModified(
-                                getDeviceFilePath(
-                                        remoteName,
-                                        false
-                                )
-                        );
+                final Date localFileLastModified = ADBCommand.getInstance().getFileLastModified(getDeviceFilePath(remoteName));
 
                 LOG.debug("remoteName: " + remoteName + ", localFileLastModified: " + localFileLastModified + ", remoteLastModified: " + remoteLastModified);
 
@@ -413,17 +407,9 @@ public class UpdateApplicationDataFromServerTaskRunnable
         return result.get();
     }
 
-    private String getDeviceFilePath(String remoteName,
-                                     boolean useDefaultExternalStorage)
+    private String getDeviceFilePath(String remoteName)
     {
-        if (useDefaultExternalStorage)
-        {
-            return DeviceUtils.getDefaultExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + remoteName;
-        }
-        else
-        {
-            return DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + remoteName;
-        }
+        return DeviceUtils.getDefaultExternalStorageDirectory() + "/" + ApkUtils.getRelativeSharedPath(apkInfo) + remoteName;
     }
 
     private void copyFileToDevice(File localFile,
@@ -438,32 +424,10 @@ public class UpdateApplicationDataFromServerTaskRunnable
                 )
         );
 
-        if (DeviceUtils.getExternalStorageDirectory(deviceSettings)
-                .equals(DeviceUtils.getDefaultExternalStorageDirectory(deviceSettings)))
-        {
-            ADBCommand.getInstance()
-                    .push(
-                            localFile.getAbsolutePath(),
-                            getDeviceFilePath(
-                                    remoteName,
-                                    false
-                            )
-                    );
-        }
-        else
-        {
-            // uses specific service from mobile application to move the given file to the right place (use the external storage path)
-            // The direct copy to the external storage path may fail for some devices (i.e. Permission denied)
-            ADBCommand.getInstance()
-                    .push(
-                            localFile.getAbsolutePath(),
-                            getDeviceFilePath(
-                                    remoteName,
-                                    true
-                            )
-                    );
-            ADBCommand.getInstance()
-                    .executeCommand("am broadcast -a " + apkInfo.getPackageName() + ".INTENT_MOVE_FILE_TO_EXTERNAL_STORAGE -e " + apkInfo.getPackageName() + ".file " + remoteName + " -f 32");
-        }
+        ADBCommand.getInstance()
+                .push(
+                        localFile.getAbsolutePath(),
+                        getDeviceFilePath(remoteName)
+                );
     }
 }

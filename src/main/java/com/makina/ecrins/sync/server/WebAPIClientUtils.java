@@ -1,9 +1,5 @@
 package com.makina.ecrins.sync.server;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -17,6 +13,10 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 
 /**
  * Helpers for calling {@link HttpClient} used to invoke WebAPI urls.
@@ -242,9 +242,9 @@ public final class WebAPIClientUtils
 
     public interface HTTPCallback
     {
-        public void onResponse(HttpRequestBase httpRequestBase,
+        void onResponse(HttpRequestBase httpRequestBase,
                                HttpResponse httpResponse);
 
-        public void onError(Exception e);
+        void onError(Exception e);
     }
 }

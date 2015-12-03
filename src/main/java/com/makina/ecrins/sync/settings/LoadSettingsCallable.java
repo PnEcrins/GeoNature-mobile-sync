@@ -87,6 +87,8 @@ public class LoadSettingsCallable
                 FileUtils.getUserDirectory(),
                 ".sync"
         );
+
+        // noinspection ResultOfMethodCallIgnored
         userDir.mkdir();
 
         LOG.info(
@@ -232,6 +234,8 @@ public class LoadSettingsCallable
                 FileUtils.getTempDirectory(),
                 "sync_settings_" + Long.toString(System.currentTimeMillis())
         );
+
+        // noinspection ResultOfMethodCallIgnored
         tempDir.mkdir();
 
         final HttpClient httpClient = WebAPIClientUtils.getHttpClient(

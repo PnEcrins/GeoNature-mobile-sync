@@ -505,7 +505,7 @@ public class UpdateApplicationsFromServerTaskRunnable
             {
                 if (ADBCommand.getInstance()
                         .pull(
-                                DeviceUtils.getExternalStorageDirectory(deviceSettings) + "/Android/data/" + apkInfo.getSharedUserId() + "/version_" + apkInfo.getPackageName() + ".json",
+                                DeviceUtils.getDefaultExternalStorageDirectory() + "/Android/data/" + apkInfo.getSharedUserId() + "/version_" + apkInfo.getPackageName() + ".json",
                                 TaskManager.getInstance()
                                         .getTemporaryDirectory()
                                         .getAbsolutePath()
