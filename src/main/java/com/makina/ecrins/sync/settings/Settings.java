@@ -1,11 +1,11 @@
 package com.makina.ecrins.sync.settings;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Global settings for this application loaded from a JSON file.
@@ -25,11 +25,14 @@ public class Settings
     {
         syncSettings = new SyncSettings(json.getJSONObject(KEY_SYNC));
 
-        final JSONArray devicesJsonArray = json.getJSONArray(KEY_DEVICES);
+        final JSONArray devicesJsonArray = json.optJSONArray(KEY_DEVICES);
 
-        for (int i = 0; i < devicesJsonArray.length(); i++)
+        if (devicesJsonArray != null)
         {
-            devicesSettings.add(new DeviceSettings(devicesJsonArray.getJSONObject(i)));
+            for (int i = 0; i < devicesJsonArray.length(); i++)
+            {
+                devicesSettings.add(new DeviceSettings(devicesJsonArray.getJSONObject(i)));
+            }
         }
     }
 
