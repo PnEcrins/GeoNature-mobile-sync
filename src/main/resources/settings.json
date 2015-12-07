@@ -16,14 +16,6 @@
 				"file": "databases/data.db"
 			},
 			{
-				"url": "export/unity_polygons/",
-				"file": "unities.wkt"
-			},
-			{
-				"url": "data_download/unities.mbtiles/",
-				"file": "databases/unities.mbtiles"
-			},
-			{
 				"url": "data_download/settings_fauna.json/",
 				"file": "settings_fauna.json"
 			},
