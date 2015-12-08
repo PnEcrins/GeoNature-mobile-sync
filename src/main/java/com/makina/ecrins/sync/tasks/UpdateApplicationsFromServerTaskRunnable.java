@@ -81,7 +81,7 @@ public class UpdateApplicationsFromServerTaskRunnable
                             10
                     ))
                     {
-                        // gets application information from device
+                        // gets application information from device and check if a newer version is available or not
                         if (checkInstalledAppVersion(
                                 apkinfo,
                                 ratio,
@@ -89,59 +89,11 @@ public class UpdateApplicationsFromServerTaskRunnable
                                 10
                         ))
                         {
-                            // check if a newer version is available or not
-                            if (checkInstalledAppVersion(
-                                    apkinfo,
-                                    ratio,
-                                    10,
-                                    20
-                            ))
-                            {
-                                if (downloadLastAppFromServer(
-                                        apkinfo,
-                                        ratio,
-                                        30,
-                                        30
-                                ))
-                                {
-                                    if (installAppToDevice(
-                                            apkinfo,
-                                            ratio,
-                                            10,
-                                            60,
-                                            true
-                                    ))
-                                    {
-                                        // everything is OK, now check if installation was successful
-                                        if (checkInstalledAppVersion(
-                                                apkinfo,
-                                                ratio,
-                                                10,
-                                                70
-                                        ))
-                                        {
-
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // unable to check the application version, so reinstall it
-                            LOG.info(
-                                    MessageFormat.format(
-                                            ResourceBundle.getBundle("messages")
-                                                    .getString("MainWindow.labelDataUpdate.update.notinstalled.text"),
-                                            apkinfo.getPackageName()
-                                    )
-                            );
-
                             if (downloadLastAppFromServer(
                                     apkinfo,
                                     ratio,
-                                    50,
-                                    10
+                                    30,
+                                    30
                             ))
                             {
                                 if (installAppToDevice(
@@ -149,7 +101,7 @@ public class UpdateApplicationsFromServerTaskRunnable
                                         ratio,
                                         10,
                                         60,
-                                        false
+                                        true
                                 ))
                                 {
                                     // everything is OK, now check if installation was successful
@@ -311,8 +263,6 @@ public class UpdateApplicationsFromServerTaskRunnable
                         )
                 );
 
-                LOG.debug("fetchLastAppsVersionsFromServer, content length: " + entity.getContentLength());
-
                 IOUtils.copy(
                         inputStream,
                         new CountingOutputStream(fos)
@@ -322,8 +272,6 @@ public class UpdateApplicationsFromServerTaskRunnable
                                                              IOException
                             {
                                 super.afterWrite(n);
-
-                                LOG.debug("fetchLastAppsVersionsFromServer, progress: " + ((Long.valueOf(getCount()).doubleValue() / Long.valueOf(entity.getContentLength())) * 100) + "%");
 
                                 progress = computeProgress(
                                         0,
@@ -477,7 +425,7 @@ public class UpdateApplicationsFromServerTaskRunnable
             final com.makina.ecrins.sync.adb.ApkInfo apkInfoFromDevice = ADBCommand.getInstance().getApkInfo(apkInfo.getPackageName());
 
             if (apkInfoFromDevice == null) {
-                return false;
+                return true;
             }
 
             LOG.info(
@@ -1113,8 +1061,11 @@ public class UpdateApplicationsFromServerTaskRunnable
                                 final int factor,
                                 final int offset)
     {
-        return (int) ((((double) factor / 100) * ((double) ratio / (double) mainProgressSize)) * (Long.valueOf(currentProgress)
-                .doubleValue() / Long.valueOf(currentProgressSize)
+        long progress = (currentProgress <= currentProgressSize) ? currentProgress : 1;
+        long progressSize = (currentProgress <= currentProgressSize) ? currentProgressSize : 1;
+
+        return (int) ((((double) factor / 100) * ((double) ratio / (double) mainProgressSize)) * (Long.valueOf(progress)
+                .doubleValue() / Long.valueOf(progressSize)
                 .doubleValue()) +
                 (100 - ratio) +
                 (((double) mainProgress / (double) mainProgressSize) * ratio) +
