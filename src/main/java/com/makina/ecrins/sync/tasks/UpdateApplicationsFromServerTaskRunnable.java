@@ -1,17 +1,12 @@
 package com.makina.ecrins.sync.tasks;
 
 import com.makina.ecrins.sync.adb.ADBCommand;
-import com.makina.ecrins.sync.adb.ADBCommand.Prop;
 import com.makina.ecrins.sync.adb.ADBCommandException;
 import com.makina.ecrins.sync.server.WebAPIClientUtils;
 import com.makina.ecrins.sync.service.Status;
-import com.makina.ecrins.sync.settings.AndroidSettings;
-import com.makina.ecrins.sync.settings.DeviceSettings;
 import com.makina.ecrins.sync.settings.LoadSettingsCallable;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.CountingOutputStream;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -22,12 +17,13 @@ import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,7 +44,6 @@ public class UpdateApplicationsFromServerTaskRunnable
     private static final Logger LOG = Logger.getLogger(UpdateApplicationsFromServerTaskRunnable.class);
 
     private final List<ApkInfo> apks = new ArrayList<ApkInfo>();
-    private DeviceSettings deviceSettings;
     private int apkIndex;
     private int progress;
 
@@ -70,9 +65,7 @@ public class UpdateApplicationsFromServerTaskRunnable
                 )
         );
 
-        loadDeviceSettings();
-
-        // gets all available applications informations from the server
+        // gets all available applications information from the server
         if (fetchLastAppsVersionsFromServer(10))
         {
             int ratio = 100 - progress;
@@ -88,8 +81,8 @@ public class UpdateApplicationsFromServerTaskRunnable
                             10
                     ))
                     {
-                        // gets application informations from device
-                        if (fetchAppVersionFromDevice(
+                        // gets application information from device
+                        if (checkInstalledAppVersion(
                                 apkinfo,
                                 ratio,
                                 10,
@@ -120,23 +113,54 @@ public class UpdateApplicationsFromServerTaskRunnable
                                     ))
                                     {
                                         // everything is OK, now check if installation was successful
-                                        if (fetchAppVersionFromDevice(
+                                        if (checkInstalledAppVersion(
                                                 apkinfo,
                                                 ratio,
                                                 10,
                                                 70
                                         ))
                                         {
-                                            if (checkInstalledAppVersion(
-                                                    apkinfo,
-                                                    ratio,
-                                                    10,
-                                                    80
-                                            ))
-                                            {
 
-                                            }
                                         }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // unable to check the application version, so reinstall it
+                            LOG.info(
+                                    MessageFormat.format(
+                                            ResourceBundle.getBundle("messages")
+                                                    .getString("MainWindow.labelDataUpdate.update.notinstalled.text"),
+                                            apkinfo.getPackageName()
+                                    )
+                            );
+
+                            if (downloadLastAppFromServer(
+                                    apkinfo,
+                                    ratio,
+                                    50,
+                                    10
+                            ))
+                            {
+                                if (installAppToDevice(
+                                        apkinfo,
+                                        ratio,
+                                        10,
+                                        60,
+                                        false
+                                ))
+                                {
+                                    // everything is OK, now check if installation was successful
+                                    if (checkInstalledAppVersion(
+                                            apkinfo,
+                                            ratio,
+                                            10,
+                                            70
+                                    ))
+                                    {
+
                                     }
                                 }
                             }
@@ -169,22 +193,14 @@ public class UpdateApplicationsFromServerTaskRunnable
                             ))
                             {
                                 // everything is OK, now check if installation was successful
-                                if (fetchAppVersionFromDevice(
+                                if (checkInstalledAppVersion(
                                         apkinfo,
                                         ratio,
                                         10,
                                         70
                                 ))
                                 {
-                                    if (checkInstalledAppVersion(
-                                            apkinfo,
-                                            ratio,
-                                            10,
-                                            80
-                                    ))
-                                    {
 
-                                    }
                                 }
                             }
                         }
@@ -251,37 +267,6 @@ public class UpdateApplicationsFromServerTaskRunnable
         }
     }
 
-    private void loadDeviceSettings()
-    {
-        try
-        {
-            deviceSettings = DeviceUtils.findLoadedDeviceSettings(
-                    new DeviceSettings(
-                            ADBCommand.getInstance()
-                                    .getProp(Prop.RO_PRODUCT_MANUFACTURER),
-                            ADBCommand.getInstance()
-                                    .getProp(Prop.RO_PRODUCT_MODEL),
-                            ADBCommand.getInstance()
-                                    .getProp(Prop.RO_PRODUCT_NAME),
-                            new AndroidSettings(
-                                    ADBCommand.getInstance()
-                                            .getProp(Prop.RO_BUILD_VERSION_RELEASE),
-                                    ADBCommand.getInstance()
-                                            .getBuildVersion()
-                            )
-                    )
-            );
-
-            LOG.debug("loadDeviceSettings: " + deviceSettings);
-        }
-        catch (ADBCommandException ace)
-        {
-            LOG.warn(ace.getMessage());
-
-            deviceSettings = null;
-        }
-    }
-
     private boolean fetchLastAppsVersionsFromServer(final int factor)
     {
         final HttpClient httpClient = WebAPIClientUtils.getHttpClient(
@@ -326,6 +311,8 @@ public class UpdateApplicationsFromServerTaskRunnable
                         )
                 );
 
+                LOG.debug("fetchLastAppsVersionsFromServer, content length: " + entity.getContentLength());
+
                 IOUtils.copy(
                         inputStream,
                         new CountingOutputStream(fos)
@@ -335,6 +322,8 @@ public class UpdateApplicationsFromServerTaskRunnable
                                                              IOException
                             {
                                 super.afterWrite(n);
+
+                                LOG.debug("fetchLastAppsVersionsFromServer, progress: " + ((Long.valueOf(getCount()).doubleValue() / Long.valueOf(entity.getContentLength())) * 100) + "%");
 
                                 progress = computeProgress(
                                         0,
@@ -430,12 +419,12 @@ public class UpdateApplicationsFromServerTaskRunnable
     }
 
     /**
-     * Returns <code>true</code> if the given {@link ApkInfo#getPackageName()} is currently installed or not.
+     * Returns {@code true} if the given {@link ApkInfo#getPackageName()} is currently installed or not.
      *
      * @param apkInfo {@link ApkInfo} instance to check
      * @param factor  factor as percentage to apply for the current progress
      *
-     * @return <code>true</code> if the given {@link ApkInfo#getPackageName()} is currently installed, <code>false</code> otherwise
+     * @return {@code true} if the given {@link ApkInfo#getPackageName()} is currently installed, {@code false} otherwise
      *
      * @throws TaskException
      */
@@ -446,20 +435,7 @@ public class UpdateApplicationsFromServerTaskRunnable
     {
         try
         {
-            boolean result = false;
-
-            List<String> results = ADBCommand.getInstance()
-                    .executeCommand("pm list packages");
-            Iterator<String> iterator = results.iterator();
-
-            while (!result && iterator.hasNext())
-            {
-                result = StringUtils.substringAfter(
-                        iterator.next(),
-                        ":"
-                )
-                        .equals(apkInfo.getPackageName());
-            }
+            boolean result = !ADBCommand.getInstance().listPackages(apkInfo.getPackageName()).isEmpty();
 
             progress = computeProgress(
                     apkIndex,
@@ -490,97 +466,6 @@ public class UpdateApplicationsFromServerTaskRunnable
         }
     }
 
-    private boolean fetchAppVersionFromDevice(ApkInfo apkInfo,
-                                              int ratio,
-                                              int factor,
-                                              int offset) throws
-                                                          TaskException
-    {
-        try
-        {
-            // about flag -f 32, see: http://developer.android.com/reference/android/content/Intent.html#FLAG_INCLUDE_STOPPED_PACKAGES
-            if (!ADBCommand.getInstance()
-                    .executeCommand("am broadcast -a " + apkInfo.getPackageName() + ".INTENT_PACKAGE_INFO -f 32")
-                    .isEmpty())
-            {
-                if (ADBCommand.getInstance()
-                        .pull(
-                                DeviceUtils.getDefaultExternalStorageDirectory() + "/Android/data/" + apkInfo.getSharedUserId() + "/version_" + apkInfo.getPackageName() + ".json",
-                                TaskManager.getInstance()
-                                        .getTemporaryDirectory()
-                                        .getAbsolutePath()
-                        ))
-                {
-                    JSONObject versionJson = new JSONObject(
-                            FileUtils.readFileToString(
-                                    new File(
-                                            TaskManager.getInstance()
-                                                    .getTemporaryDirectory(),
-                                            "version_" + apkInfo.getPackageName() + ".json"
-                                    )
-                            )
-                    );
-
-                    progress = computeProgress(
-                            apkIndex,
-                            apks.size(),
-                            1,
-                            1,
-                            ratio,
-                            factor,
-                            offset
-                    );
-                    setTaskStatus(
-                            new TaskStatus(
-                                    progress,
-                                    ResourceBundle.getBundle("messages")
-                                            .getString("MainWindow.labelDataUpdate.check.update.text"),
-                                    Status.PENDING
-                            )
-                    );
-
-                    return versionJson.has("package") && versionJson.has("versionCode");
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                return false;
-            }
-        }
-        catch (ADBCommandException ace)
-        {
-            throw new TaskException(
-                    ace.getLocalizedMessage(),
-                    ace
-            );
-        }
-        catch (FileNotFoundException fnfe)
-        {
-            throw new TaskException(
-                    fnfe.getLocalizedMessage(),
-                    fnfe
-            );
-        }
-        catch (IOException ioe)
-        {
-            throw new TaskException(
-                    ioe.getLocalizedMessage(),
-                    ioe
-            );
-        }
-        catch (JSONException je)
-        {
-            throw new TaskException(
-                    je.getLocalizedMessage(),
-                    je
-            );
-        }
-    }
-
     private boolean checkInstalledAppVersion(ApkInfo apkInfo,
                                              int ratio,
                                              int factor,
@@ -589,17 +474,11 @@ public class UpdateApplicationsFromServerTaskRunnable
     {
         try
         {
-            ApkInfo apkInfoFromDevice = new ApkInfo(
-                    new JSONObject(
-                            FileUtils.readFileToString(
-                                    new File(
-                                            TaskManager.getInstance()
-                                                    .getTemporaryDirectory(),
-                                            "version_" + apkInfo.getPackageName() + ".json"
-                                    )
-                            )
-                    )
-            );
+            final com.makina.ecrins.sync.adb.ApkInfo apkInfoFromDevice = ADBCommand.getInstance().getApkInfo(apkInfo.getPackageName());
+
+            if (apkInfoFromDevice == null) {
+                return false;
+            }
 
             LOG.info(
                     MessageFormat.format(
@@ -672,11 +551,11 @@ public class UpdateApplicationsFromServerTaskRunnable
                 return false;
             }
         }
-        catch (FileNotFoundException fnfe)
+        catch (ADBCommandException ace)
         {
             throw new TaskException(
-                    fnfe.getLocalizedMessage(),
-                    fnfe
+                    ace.getLocalizedMessage(),
+                    ace
             );
         }
         catch (JSONException je)
@@ -684,13 +563,6 @@ public class UpdateApplicationsFromServerTaskRunnable
             throw new TaskException(
                     je.getLocalizedMessage(),
                     je
-            );
-        }
-        catch (IOException ioe)
-        {
-            throw new TaskException(
-                    ioe.getLocalizedMessage(),
-                    ioe
             );
         }
     }
@@ -901,11 +773,15 @@ public class UpdateApplicationsFromServerTaskRunnable
                         )
                 );
 
-                boolean result = ADBCommand.getInstance()
+                ADBCommand.getInstance()
                         .install(
                                 apkFile.getAbsolutePath(),
                                 keepData
                         );
+
+                com.makina.ecrins.sync.adb.ApkInfo apkInfoFromDevice = ADBCommand.getInstance().getApkInfo(apkInfo.getPackageName());
+
+                boolean result = (apkInfoFromDevice != null) && (apkInfoFromDevice.getVersionCode() > 0);
 
                 if (result)
                 {
@@ -926,6 +802,7 @@ public class UpdateApplicationsFromServerTaskRunnable
                             factor,
                             offset
                     );
+
                     setTaskStatus(
                             new TaskStatus(
                                     progress,
@@ -957,6 +834,7 @@ public class UpdateApplicationsFromServerTaskRunnable
                                 factor,
                                 offset
                         );
+
                         setTaskStatus(
                                 new TaskStatus(
                                         progress,
@@ -974,11 +852,15 @@ public class UpdateApplicationsFromServerTaskRunnable
                                 )
                         );
 
-                        result = ADBCommand.getInstance()
+                        ADBCommand.getInstance()
                                 .install(
                                         apkFile.getAbsolutePath(),
                                         false
                                 );
+
+                        apkInfoFromDevice = ADBCommand.getInstance().getApkInfo(apkInfo.getPackageName());
+
+                        result = (apkInfoFromDevice != null) && (apkInfoFromDevice.getVersionCode() > 0);
 
                         if (result)
                         {
@@ -999,6 +881,7 @@ public class UpdateApplicationsFromServerTaskRunnable
                                     factor,
                                     offset
                             );
+
                             setTaskStatus(
                                     new TaskStatus(
                                             progress,
@@ -1027,6 +910,7 @@ public class UpdateApplicationsFromServerTaskRunnable
                                     factor,
                                     offset
                             );
+
                             setTaskStatus(
                                     new TaskStatus(
                                             progress,
@@ -1035,6 +919,7 @@ public class UpdateApplicationsFromServerTaskRunnable
                                             Status.FAILED
                                     )
                             );
+
                             this.result.set(false);
                         }
                     }

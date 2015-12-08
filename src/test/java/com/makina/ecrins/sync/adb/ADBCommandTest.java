@@ -1,17 +1,16 @@
 package com.makina.ecrins.sync.adb;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Date;
-import java.util.List;
-
+import com.makina.ecrins.sync.tasks.DeviceUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.makina.ecrins.sync.tasks.DeviceUtils;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Date;
+import java.util.List;
 
 /**
  * Test class for {@link ADBCommand}
@@ -49,6 +48,8 @@ public class ADBCommandTest
                 FileUtils.getTempDirectory(),
                 "sync_" + Long.toString(System.currentTimeMillis())
         );
+
+        // noinspection ResultOfMethodCallIgnored
         tempDir.mkdir();
 
         try
@@ -154,6 +155,8 @@ public class ADBCommandTest
                 FileUtils.getTempDirectory(),
                 "sync_" + Long.toString(System.currentTimeMillis())
         );
+
+        // noinspection ResultOfMethodCallIgnored
         tempDir.mkdir();
 
         try
@@ -215,6 +218,8 @@ public class ADBCommandTest
                 FileUtils.getTempDirectory(),
                 "sync_" + Long.toString(System.currentTimeMillis())
         );
+
+        // noinspection ResultOfMethodCallIgnored
         tempDir.mkdir();
 
         try
@@ -313,5 +318,17 @@ public class ADBCommandTest
             );
             Assert.fail(ace.getMessage());
         }
+    }
+
+    @Test
+    public void testGetApkInfo() throws Exception
+    {
+        final ApkInfo apkInfo = ADBCommand.getInstance().getApkInfo("com.makina.ecrins.fauna");
+
+        Assert.assertNotNull(apkInfo);
+        Assert.assertEquals("com.makina.ecrins.fauna", apkInfo.getPackageName());
+        Assert.assertEquals("com.makina.ecrins", apkInfo.getSharedUserId());
+        Assert.assertTrue(apkInfo.getVersionCode() > 0);
+        Assert.assertNotNull(apkInfo.getVersionName());
     }
 }

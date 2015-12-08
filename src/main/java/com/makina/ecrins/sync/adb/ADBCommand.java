@@ -604,6 +604,56 @@ public final class ADBCommand
     }
 
     /**
+     * Returns the corresponding {@link ApkInfo} instance about the given application package.
+     *
+     * @param packageName the application package to fetch
+     * @return the corresponding {@link ApkInfo} instance about the application package
+     * @throws ADBCommandException
+     */
+    public ApkInfo getApkInfo(String packageName) throws ADBCommandException
+    {
+        if (StringUtils.isBlank(packageName))
+        {
+            return null;
+        }
+
+        final List<String> results = ADBCommand.getInstance().executeCommand("dumpsys package " + packageName);
+
+        String sharedUserId = null;
+        int versionCode = 0;
+        String versionName = null;
+
+        for (String line : results)
+        {
+            String lineToParse = line.trim();
+
+            if (lineToParse.startsWith("SharedUser"))
+            {
+                sharedUserId = StringUtils.substringBefore(StringUtils.substringAfter(lineToParse, "["), "]");
+            }
+
+            if (lineToParse.startsWith("versionCode"))
+            {
+                try
+                {
+                    versionCode = Integer.parseInt(StringUtils.substringBefore(StringUtils.substringAfter(lineToParse, "="), " "));
+                }
+                catch (NumberFormatException nfe)
+                {
+                    LOG.debug("getApkInfo: unable to parse 'versionCode' from " + lineToParse);
+                }
+            }
+
+            if (lineToParse.startsWith("versionName"))
+            {
+                versionName = StringUtils.substringAfter(lineToParse, "=");
+            }
+        }
+
+        return new ApkInfo(packageName, sharedUserId, versionCode, versionName);
+    }
+
+    /**
      * Blocks until device is connected.
      *
      * @throws ADBCommandException
