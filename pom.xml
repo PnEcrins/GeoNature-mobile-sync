@@ -10,7 +10,7 @@
     <name>Sync</name>
     <description>Sync</description>
 
-    <url>https://gitorious.makina-corpus.net/geobi-ecrins/geobi-ecrins-sync</url>
+    <url>https://github.com/PnEcrins/GeoNature-mobile-sync</url>
 
     <organization>
         <name>PNE</name>
@@ -33,8 +33,8 @@
 
     <repositories>
         <repository>
-            <id>swt-repo</id>
-            <url>https://swt-repo.googlecode.com/svn/repo/</url>
+            <id>maven-eclipse-repo</id>
+            <url>http://maven-eclipse.github.io/maven</url>
         </repository>
     </repositories>
 
@@ -129,7 +129,7 @@
         <dependency>
             <groupId>org.eclipse.swt</groupId>
             <artifactId>${swt.group}.${swt.artifact}</artifactId>
-            <version>4.4</version>
+            <version>4.5.1</version>
         </dependency>
         <dependency>
             <groupId>org.json</groupId>
@@ -258,14 +258,14 @@
                             <headerType>gui</headerType>
                             <jar>./${project.artifactId}-${project.version}-${assembly.name}-${os.arch}.jar</jar>
                             <outfile>${project.build.directory}/sync.exe</outfile>
-                            <errTitle></errTitle>
-                            <cmdLine></cmdLine>
-                            <chdir></chdir>
+                            <errTitle/>
+                            <cmdLine/>
+                            <chdir/>
                             <priority>normal</priority>
                             <downloadUrl>http://java.com/download</downloadUrl>
-                            <supportUrl></supportUrl>
+                            <supportUrl/>
                             <stayAlive>false</stayAlive>
-                            <manifest></manifest>
+                            <manifest/>
                             <icon>art/sync.ico</icon>
                             <classPath>
                                 <mainClass>com.makina.ecrins.sync.ui.MainWindow</mainClass>
@@ -314,10 +314,10 @@
                         <alias>sync</alias>
                         <validity>360</validity>
                         <dnameCn>S. Grimault</dnameCn>
-                        <dnameOu></dnameOu>
+                        <dnameOu/>
                         <dnameO>Makina Corpus</dnameO>
                         <dnameL>Nantes</dnameL>
-                        <dnameSt></dnameSt>
+                        <dnameSt/>
                         <dnameC>FR</dnameC>
                         <verify>true</verify>
                         <keystoreConfig>
