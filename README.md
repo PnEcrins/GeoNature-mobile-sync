@@ -1,5 +1,19 @@
 # GeoNature-mobile-sync
 
+GeoNature est une application de saisie et de synthèse des observations faune et flore : https://github.com/PnEcrins/GeoNature
+
+Pour pouvoir importer les données saisies avec [Geonature-mobile](https://github.com/PnEcrins/GeoNature-mobile) dans la BDD PostgreSQL de GeoNature, une web-API doit être installée sur le serveur : https://github.com/PnEcrins/GeoNature-mobile-webapi
+
+La synchronisation de ces données peut être faite par le réseau (wifi ou 3G) ou en connectant le mobile en USB à un PC connecté à internet. Dans ce cas, cette application de synchronisation des données doit être installée sur le PC.
+
+![GeoNature schema general](https://github.com/PnEcrins/GeoNature/raw/master/docs/images/schema-geonature-environnement.jpg)
+
+Il est possible d'installer cette application Windows à partir du .EXE disponible dans https://github.com/PnEcrins/GeoNature-mobile-sync/tree/master/docs/install
+
+Documentation d'installation : https://github.com/PnEcrins/GeoNature-mobile-sync/tree/master/docs
+
+# Development
+
 ## Prerequisites and requirements
 * Oracle Java JDK (6 as minimal version)
 * [Apache Maven (3.0.x)](http://maven.apache.org/download.cgi#Maven_3.0.5)
@@ -36,3 +50,6 @@ Click on "Compile" button or use combination keys ``CTRL+F9`` to perform the fin
 * Linux :
 
         java -jar sync-<version>-linux-gtk-<arch>.jar
+
+## License
+&copy; Makina Corpus / Parc national des Ecrins 2012 - 2015
