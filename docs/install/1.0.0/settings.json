@@ -1,0 +1,211 @@
+{
+	"sync":
+	{
+		"url": "http://mondomaine.fr/urlsynchro/",
+		"token": "mon!token#complexe",
+		"timeout": 10000,
+		"status_url": "status/",
+		"settings_url": "data_download/settings.json/",
+		"import_url": "import/",
+		"app_update":
+		{
+			"version_url": "soft_version/",
+			"download_url": "soft_download/"
+		},
+		"exports":
+		[
+			{
+				"url": "export/sqlite/",
+				"file": "databases/data.db"
+			},
+			{
+				"url": "export/unity_polygons/",
+				"file": "unities.wkt"
+			},
+			{
+				"url": "data_download/settings_fauna.json/",
+				"file": "settings_fauna.json"
+			},
+			{
+				"url": "data_download/settings_mortality.json/",
+				"file": "settings_mortality.json"
+			},
+			{
+				"url": "data_download/settings_invertebrate.json/",
+				"file": "settings_invertebrate.json"
+			},
+			{
+				"url": "data_download/settings_flora.json/",
+				"file": "settings_flora.json"
+			},
+			{
+				"url": "data_download/settings_search.json/",
+				"file": "settings_search.json"
+			}
+		]
+	},
+	"devices":
+	[
+		{
+			"manufacturer": "samsung",
+			"model": "Galaxy Nexus",
+			"name": "yakju",
+			"android":
+			{
+				"release": "4.3",
+				"sdk": 18
+			},
+			"mounts":
+			{
+				"default": "/mnt/sdcard"
+			}
+		},
+		{
+			"manufacturer": "LGE",
+			"model": "Nexus 5",
+			"name": "hammerhead",
+			"android":
+			{
+				"release": "4.4.3",
+				"sdk": 19
+			},
+			"mounts":
+			{
+				"default": "/mnt/sdcard"
+			}
+		},
+		{
+			"manufacturer": "LGE",
+			"model": "Nexus 5",
+			"name": "hammerhead",
+			"android":
+			{
+				"release": "4.4.4",
+				"sdk": 19
+			},
+			"mounts":
+			{
+				"default": "/mnt/sdcard"
+			}
+		},
+		{
+			"manufacturer": "LGE",
+			"model": "Nexus 5",
+			"name": "hammerhead",
+			"android":
+			{
+				"release": "L",
+				"sdk": 20
+			},
+			"mounts":
+			{
+				"default": "/mnt/sdcard"
+			}
+		},
+		{
+			"manufacturer": "samsung",
+			"model": "GT-I9195",
+			"name": "serranoltexx",
+			"android":
+			{
+				"release": "4.2.2",
+				"sdk": 17
+			},
+			"mounts":
+			{
+				"default": "/mnt/sdcard",
+				"external": "/mnt/extSdCard"
+			}
+		},
+		{
+			"manufacturer": "samsung",
+			"model": "GT-N7000",
+			"name": "GT-N7000",
+			"android":
+			{
+				"release": "4.0.4",
+				"sdk": 15
+			},
+			"mounts":
+			{
+				"default": "/mnt/sdcard",
+				"external": "/mnt/sdcard/external_sd"
+			}
+		},
+		{
+			"manufacturer": "samsung",
+			"model": "GT-N7000",
+			"name": "GT-N7000",
+			"android":
+			{
+				"release": "4.1.2",
+				"sdk": 16
+			},
+			"mounts":
+			{
+				"default": "/mnt/sdcard",
+				"external": "/mnt/extSdCard"
+			}
+		},
+		{
+			"manufacturer": "samsung",
+			"model": "GT-N7105",
+			"name": "t0ltexx",
+			"android":
+			{
+				"release": "4.1.2",
+				"sdk": 16
+			},
+			"mounts":
+			{
+				"default": "/mnt/sdcard",
+				"external": "/mnt/extSdCard"
+			}
+		},
+		{
+			"manufacturer": "samsung",
+			"model": "GT-I9515",
+			"name": "jfveltexx",
+			"android":
+			{
+				"release": "4.4.2",
+				"sdk": 19
+			},
+			"mounts":
+			{
+				"default": "/mnt/sdcard",
+				"external": "/mnt/extSdCard"
+			}
+		},
+        {
+			"manufacturer": "Sony",
+			"model": "C6603",
+			"name": "C6603",
+			"android":
+			{
+				"release": "4.3",
+				"sdk": 18
+			},
+			"mounts":
+			{
+				"default": "/mnt/sdcard",
+				"external": "/mnt/ext_card"
+			}
+		},
+		{
+			"manufacturer": "samsung",
+			"model": "SM-N7505",
+			"name": "hlltexx",
+			"android":
+			{
+				"release": "4.4.2",
+				"sdk": 19
+			},
+			"mounts":
+			{
+				"default": "/mnt/sdcard",
+				"external": "/mnt/extSdCard"
+			}
+		}
+	]
+}
