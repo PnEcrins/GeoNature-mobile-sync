@@ -17,6 +17,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -104,7 +105,7 @@ public class CheckServerRunnable
                                 final HttpEntity entity = httpResponse.getEntity();
 
                                 InputStream is = entity.getContent();
-                                JSONObject jsonResponse = new JSONObject(IOUtils.toString(is));
+                                JSONObject jsonResponse = new JSONObject(IOUtils.toString(is, Charset.defaultCharset()));
 
                                 if (jsonResponse.getInt("status_code") == 0)
                                 {

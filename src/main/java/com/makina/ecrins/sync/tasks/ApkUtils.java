@@ -2,6 +2,7 @@ package com.makina.ecrins.sync.tasks;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,7 +54,7 @@ public final class ApkUtils
 
         try
         {
-            final JSONObject appsVersionsJson = new JSONObject(FileUtils.readFileToString(jsonFile));
+            final JSONObject appsVersionsJson = new JSONObject(FileUtils.readFileToString(jsonFile, Charset.defaultCharset()));
             final JSONArray apksInfos = appsVersionsJson.getJSONArray("apps");
 
             for (int i = 0; i < apksInfos.length(); i++)

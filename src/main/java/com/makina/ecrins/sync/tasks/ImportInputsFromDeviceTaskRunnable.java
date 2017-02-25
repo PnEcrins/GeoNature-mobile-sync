@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.ParseException;
@@ -302,7 +303,7 @@ public class ImportInputsFromDeviceTaskRunnable
                         LoadSettingsCallable.getInstance()
                                 .getServerSettings()
                                 .getServerToken(),
-                        FileUtils.readFileToString(inputFile)
+                        FileUtils.readFileToString(inputFile, Charset.defaultCharset())
                 );
 
                 httpResponse = httpClient.execute(httpPost);

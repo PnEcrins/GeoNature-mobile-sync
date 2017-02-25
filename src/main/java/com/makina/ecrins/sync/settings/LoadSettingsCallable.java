@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
 import java.util.concurrent.Callable;
@@ -152,7 +153,7 @@ public class LoadSettingsCallable
         {
             try
             {
-                serverSettings = new ServerSettings(new JSONObject(FileUtils.readFileToString(jsonServerSettingsFile)));
+                serverSettings = new ServerSettings(new JSONObject(FileUtils.readFileToString(jsonServerSettingsFile, Charset.defaultCharset())));
             }
             catch (IOException ioe)
             {
@@ -191,7 +192,7 @@ public class LoadSettingsCallable
                 {
                     try
                     {
-                        serverSettings = new ServerSettings(new JSONObject(IOUtils.toString(is)));
+                        serverSettings = new ServerSettings(new JSONObject(IOUtils.toString(is, Charset.defaultCharset())));
                     }
                     catch (IOException ioe)
                     {
@@ -356,7 +357,7 @@ public class LoadSettingsCallable
         {
             try
             {
-                settings = new Settings(new JSONObject(FileUtils.readFileToString(jsonSettingsFile)));
+                settings = new Settings(new JSONObject(FileUtils.readFileToString(jsonSettingsFile, Charset.defaultCharset())));
 
                 LOG.info(
                         MessageFormat.format(
@@ -413,7 +414,7 @@ public class LoadSettingsCallable
                         is,
                         FileUtils.openOutputStream(jsonSettingsFile)
                 );
-                settings = new Settings(new JSONObject(FileUtils.readFileToString(jsonSettingsFile)));
+                settings = new Settings(new JSONObject(FileUtils.readFileToString(jsonSettingsFile, Charset.defaultCharset())));
 
                 LOG.info(
                         MessageFormat.format(

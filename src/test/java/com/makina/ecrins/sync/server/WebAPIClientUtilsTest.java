@@ -18,6 +18,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.List;
 
 /**
@@ -67,7 +68,7 @@ public class WebAPIClientUtilsTest
                 try
                 {
                     InputStream is = entity.getContent();
-                    JSONObject jsonResponse = new JSONObject(IOUtils.toString(is));
+                    JSONObject jsonResponse = new JSONObject(IOUtils.toString(is, Charset.defaultCharset()));
 
                     Assert.assertTrue(jsonResponse.has("status_code"));
                     Assert.assertTrue(
