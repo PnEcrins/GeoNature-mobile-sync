@@ -21,35 +21,65 @@ Documentation d'installation : https://github.com/PnEcrins/GeoNature-mobile-sync
 ## Build
 Execute the following command to build and generate a single jar of this application in ``target/`` folder :
 
-    mvn clean assembly:assembly
+```bash
+mvn clean assembly:assembly
+```
 
 ### Without tests
-    mvn clean assembly:assembly -Dmaven.test.skip=true
 
-### Build setup (Windows platform only)
+```bash
+mvn clean assembly:assembly -Dmaven.test.skip=true
+```
+
+### Packaging setup
+
+#### Windows
+
 You'll need to download and install :
 
 * **Inno Setup** : [http://www.jrsoftware.org/isdl.php#stable](http://www.jrsoftware.org/isdl.php#stable)
 * **InnoTools Downloader** : [http://www.sherlocksoftware.org/page.php?id=51](http://www.sherlocksoftware.org/page.php?id=51)
 
-#### Inno Setup Compiler
 Execute *Inno Setup Compiler* and open script file `setup/sync-x86.iss` or `setup/sync-x86_64.iss` depending on the target architecture.
 Click on "Compile" button or use combination keys ``CTRL+F9`` to perform the final build.
 *Inno Setup* will produce the final executable to distribute named `setup_sync-<version>-<arch>.exe` in `setup/Output/` folder.
 
+#### Linux (Debian flavored distributions)
+
+To generate a debian package after build, just invoke `jdeb` plugin goal:
+
+```bash
+mvn jdeb:jdeb
+```
+
+or to perform a whole build and packaging in single command: 
+
+```bash
+mvn clean assembly:assembly jdeb:jdeb -Dmaven.test.skip=true
+```
+
 ## Run
+
 ### Standalone (from Java)
-* Windows :
 
-        java -jar sync-<version>-win32-<arch>.jar
+* Windows:
 
-* Mac OS X (64 bits only) :
+```bash
+java -jar sync-<version>-win32-<arch>.jar
+```
 
-        java -jar -XstartOnFirstThread sync-<version>-macosx-cocoa.jar
+* Mac OS X (64 bits only):
 
-* Linux :
+```bash
+java -jar -XstartOnFirstThread sync-<version>-macosx-cocoa.jar
+```
 
-        java -jar sync-<version>-linux-gtk-<arch>.jar
+* Linux:
+
+```bash
+java -jar sync-<version>-linux-gtk-<arch>.jar
+```
 
 ## License
-&copy; Makina Corpus / Parc national des Ecrins 2012 - 2015
+
+&copy; Makina Corpus / Parc national des Ecrins 2012 - 2017

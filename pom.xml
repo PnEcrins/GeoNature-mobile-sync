@@ -8,13 +8,13 @@
     <packaging>jar</packaging>
     <version>1.0.0</version>
     <name>Sync</name>
-    <description>Sync</description>
+    <description>GeoNature mobile apps synchronization</description>
 
     <url>https://github.com/PnEcrins/GeoNature-mobile-sync</url>
 
     <organization>
         <name>PNE</name>
-        <url>http://www.ecrins-parcnational.fr/</url>
+        <url>http://www.ecrins-parcnational.fr</url>
     </organization>
 
     <developers>
@@ -53,6 +53,58 @@
                 <swt.group>org.eclipse.swt</swt.group>
                 <swt.artifact>win32.win32.x86</swt.artifact>
             </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                        <artifactId>launch4j-maven-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <id>l4j-gui</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>launch4j</goal>
+                                </goals>
+                                <configuration>
+                                    <dontWrapJar>true</dontWrapJar>
+                                    <headerType>gui</headerType>
+                                    <jar>./${project.artifactId}-${project.version}-${assembly.name}-${os.arch}.jar</jar>
+                                    <outfile>${project.build.directory}/sync.exe</outfile>
+                                    <errTitle/>
+                                    <cmdLine/>
+                                    <chdir/>
+                                    <priority>normal</priority>
+                                    <downloadUrl>http://java.com/download</downloadUrl>
+                                    <supportUrl/>
+                                    <stayAlive>false</stayAlive>
+                                    <manifest/>
+                                    <icon>art/sync.ico</icon>
+                                    <classPath>
+                                        <mainClass>com.makina.ecrins.sync.ui.MainWindow</mainClass>
+                                    </classPath>
+                                    <jre>
+                                        <minVersion>1.6.0</minVersion>
+                                        <jdkPreference>preferJre</jdkPreference>
+                                    </jre>
+                                    <versionInfo>
+                                        <fileVersion>${project.version}.0</fileVersion>
+                                        <txtFileVersion>${project.version}</txtFileVersion>
+                                        <fileDescription>${project.name}</fileDescription>
+                                        <copyright>Copyright (c) 2012 - 2015 Makina Corpus</copyright>
+                                        <productVersion>${project.version}.0</productVersion>
+                                        <txtProductVersion>${project.version}.0</txtProductVersion>
+                                        <productName>${project.name}</productName>
+                                        <companyName>Makina Corpus</companyName>
+                                        <internalName>sync</internalName>
+                                        <originalFilename>sync.exe</originalFilename>
+                                    </versionInfo>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
         <profile>
             <id>win-x86_64</id>
@@ -68,6 +120,58 @@
                 <swt.group>org.eclipse.swt</swt.group>
                 <swt.artifact>win32.win32.x86_64</swt.artifact>
             </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                        <artifactId>launch4j-maven-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <id>l4j-gui</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>launch4j</goal>
+                                </goals>
+                                <configuration>
+                                    <dontWrapJar>true</dontWrapJar>
+                                    <headerType>gui</headerType>
+                                    <jar>./${project.artifactId}-${project.version}-${assembly.name}-${os.arch}.jar</jar>
+                                    <outfile>${project.build.directory}/sync.exe</outfile>
+                                    <errTitle/>
+                                    <cmdLine/>
+                                    <chdir/>
+                                    <priority>normal</priority>
+                                    <downloadUrl>http://java.com/download</downloadUrl>
+                                    <supportUrl/>
+                                    <stayAlive>false</stayAlive>
+                                    <manifest/>
+                                    <icon>art/sync.ico</icon>
+                                    <classPath>
+                                        <mainClass>com.makina.ecrins.sync.ui.MainWindow</mainClass>
+                                    </classPath>
+                                    <jre>
+                                        <minVersion>1.6.0</minVersion>
+                                        <jdkPreference>preferJre</jdkPreference>
+                                    </jre>
+                                    <versionInfo>
+                                        <fileVersion>${project.version}.0</fileVersion>
+                                        <txtFileVersion>${project.version}</txtFileVersion>
+                                        <fileDescription>${project.name}</fileDescription>
+                                        <copyright>Copyright (c) 2012 - 2015 Makina Corpus</copyright>
+                                        <productVersion>${project.version}.0</productVersion>
+                                        <txtProductVersion>${project.version}.0</txtProductVersion>
+                                        <productName>${project.name}</productName>
+                                        <companyName>Makina Corpus</companyName>
+                                        <internalName>sync</internalName>
+                                        <originalFilename>sync.exe</originalFilename>
+                                    </versionInfo>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
         <profile>
             <id>linux-x86</id>
@@ -89,7 +193,7 @@
             <activation>
                 <os>
                     <family>unix</family>
-                    <arch>x86_64</arch>
+                    <arch>amd64</arch>
                 </os>
             </activation>
             <properties>
@@ -243,52 +347,40 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>com.akathist.maven.plugins.launch4j</groupId>
-                <artifactId>launch4j-maven-plugin</artifactId>
-                <version>1.6</version>
-                <executions>
-                    <execution>
-                        <id>l4j-gui</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>launch4j</goal>
-                        </goals>
-                        <configuration>
-                            <dontWrapJar>true</dontWrapJar>
-                            <headerType>gui</headerType>
-                            <jar>./${project.artifactId}-${project.version}-${assembly.name}-${os.arch}.jar</jar>
-                            <outfile>${project.build.directory}/sync.exe</outfile>
-                            <errTitle/>
-                            <cmdLine/>
-                            <chdir/>
-                            <priority>normal</priority>
-                            <downloadUrl>http://java.com/download</downloadUrl>
-                            <supportUrl/>
-                            <stayAlive>false</stayAlive>
-                            <manifest/>
-                            <icon>art/sync.ico</icon>
-                            <classPath>
-                                <mainClass>com.makina.ecrins.sync.ui.MainWindow</mainClass>
-                            </classPath>
-                            <jre>
-                                <minVersion>1.6.0</minVersion>
-                                <jdkPreference>preferJre</jdkPreference>
-                            </jre>
-                            <versionInfo>
-                                <fileVersion>${project.version}.0</fileVersion>
-                                <txtFileVersion>${project.version}</txtFileVersion>
-                                <fileDescription>${project.name}</fileDescription>
-                                <copyright>Copyright (c) 2012 - 2015 Makina Corpus</copyright>
-                                <productVersion>${project.version}.0</productVersion>
-                                <txtProductVersion>${project.version}.0</txtProductVersion>
-                                <productName>${project.name}</productName>
-                                <companyName>Makina Corpus</companyName>
-                                <internalName>sync</internalName>
-                                <originalFilename>sync.exe</originalFilename>
-                            </versionInfo>
-                        </configuration>
-                    </execution>
-                </executions>
+                <artifactId>jdeb</artifactId>
+                <groupId>org.vafer</groupId>
+                <version>1.5</version>
+                <configuration>
+                    <deb>${project.build.directory}/${project.artifactId}-${project.version}-${os.arch}.deb</deb>
+                    <dataSet>
+                        <data>
+                            <src>${project.build.directory}/${project.artifactId}-${project.version}-${assembly.name}-${os.arch}.jar</src>
+                            <dst>sync.jar</dst>
+                            <type>file</type>
+                            <mapper>
+                                <type>perm</type>
+                                <prefix>/usr/share/sync</prefix>
+                            </mapper>
+                        </data>
+                        <data>
+                            <src>${project.basedir}/art/pne_logo.svg</src>
+                            <dst>sync_icon.svg</dst>
+                            <type>file</type>
+                            <mapper>
+                                <type>perm</type>
+                                <prefix>/usr/share/sync</prefix>
+                            </mapper>
+                        </data>
+                        <data>
+                            <src>${project.basedir}/src/deb/sync.desktop</src>
+                            <type>file</type>
+                            <mapper>
+                                <type>perm</type>
+                                <prefix>/usr/share/applications</prefix>
+                            </mapper>
+                        </data>
+                    </dataSet>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
