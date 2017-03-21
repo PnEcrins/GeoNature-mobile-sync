@@ -363,6 +363,14 @@
                             </mapper>
                         </data>
                         <data>
+                            <src>${project.basedir}/src/main/resources/server.json</src>
+                            <type>file</type>
+                            <mapper>
+                                <type>perm</type>
+                                <prefix>/usr/share/sync</prefix>
+                            </mapper>
+                        </data>
+                        <data>
                             <src>${project.basedir}/art/pne_logo.svg</src>
                             <dst>sync_icon.svg</dst>
                             <type>file</type>

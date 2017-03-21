@@ -52,7 +52,7 @@ To generate a debian package after build, just invoke `jdeb` plugin goal:
 mvn jdeb:jdeb
 ```
 
-or to perform a whole build and packaging in single command: 
+or to perform a whole build and packaging from single command: 
 
 ```bash
 mvn clean assembly:assembly jdeb:jdeb -Dmaven.test.skip=true
