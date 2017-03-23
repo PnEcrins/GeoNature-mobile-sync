@@ -2,7 +2,7 @@
 	"sync":
 	{
 		"status_url": "status/",
-		"settings_url": "data_download/settings.json/",
+		"settings_url": "data_download/",
 		"import_url": "import/",
 		"app_update":
 		{
