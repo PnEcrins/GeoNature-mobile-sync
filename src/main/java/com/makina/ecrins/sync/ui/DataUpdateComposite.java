@@ -26,27 +26,24 @@ public class DataUpdateComposite
         extends Composite
         implements Observer
 {
-    protected final Layout layout;
-    protected ProgressBar progressBarDataUpdate;
-    protected Canvas canvasLedDataUpdate;
-    protected Label labelDataUpdate;
-    protected Label labelDataUpdateStatus;
+    private final Layout layout;
+    private ProgressBar progressBarDataUpdate;
+    private Canvas canvasLedDataUpdate;
+    private Label labelDataUpdate;
+    private Label labelDataUpdateStatus;
 
     private TaskStatus taskStatus;
 
     /**
      * Create the composite.
-     *
-     * @param parent
-     * @param style
      */
-    public DataUpdateComposite(Composite parent,
-                               int style,
-                               Layout layout)
+    DataUpdateComposite(Composite parent,
+                        int style,
+                        Layout layout)
     {
         super(
                 parent,
-                SWT.NONE
+                style
         );
 
         this.layout = layout;
@@ -356,7 +353,7 @@ public class DataUpdateComposite
         }
     }
 
-    public static enum Layout
+    public enum Layout
     {
         DEVICE_SERVER,
         SERVER_DEVICE

@@ -25,8 +25,8 @@ import java.util.Arrays;
  */
 public final class WebAPIClientUtils
 {
-    public static final String PARAM_TOKEN = "token";
-    public static final String PARAM_DATA = "data";
+    private static final String PARAM_TOKEN = "token";
+    private static final String PARAM_DATA = "data";
 
     private static final Logger LOG = Logger.getLogger(WebAPIClientUtils.class);
 
@@ -61,22 +61,19 @@ public final class WebAPIClientUtils
     /**
      * Build an instance of {@code HttpPost} to make synchronous calls.
      *
-     * @param httpClient the {@code HttpClient} to use
      * @param url        URL to use
      * @param token      the authentication token to use
      *
      * @return instance of {@code HttpPost}
      *
      * @throws UnsupportedEncodingException
-     * @see {@link #httpPost(HttpClient, String, String, String)}
+     * @see #httpPost(String, String, String)
      */
-    public static HttpPost httpPost(HttpClient httpClient,
-                                    String url,
+    public static HttpPost httpPost(String url,
                                     String token) throws
                                                   UnsupportedEncodingException
     {
         return httpPost(
-                httpClient,
                 url,
                 token,
                 null
@@ -86,7 +83,6 @@ public final class WebAPIClientUtils
     /**
      * Build an instance of {@code HttpPost} to make synchronous calls.
      *
-     * @param httpClient the {@code HttpClient} to use
      * @param url        URL to use
      * @param token      the authentication token to use
      * @param data       the data to send as JSON string
@@ -95,8 +91,7 @@ public final class WebAPIClientUtils
      *
      * @throws UnsupportedEncodingException
      */
-    public static HttpPost httpPost(HttpClient httpClient,
-                                    String url,
+    public static HttpPost httpPost(String url,
                                     String token,
                                     String data) throws
                                                  UnsupportedEncodingException

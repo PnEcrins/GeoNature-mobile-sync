@@ -44,7 +44,6 @@ public class WebAPIClientUtilsTest
         try
         {
             final HttpPost httpPost = WebAPIClientUtils.httpPost(
-                    httpClient,
                     LoadSettingsCallable.getInstance()
                             .getServerSettings()
                             .getServerUrl() + LoadSettingsCallable.getInstance()
@@ -122,7 +121,6 @@ public class WebAPIClientUtilsTest
         try
         {
             final HttpPost httpPost = WebAPIClientUtils.httpPost(
-                    httpClient,
                     LoadSettingsCallable.getInstance()
                             .getServerSettings()
                             .getServerUrl() + LoadSettingsCallable.getInstance()
@@ -183,7 +181,6 @@ public class WebAPIClientUtilsTest
             try
             {
                 final HttpPost httpPost = WebAPIClientUtils.httpPost(
-                        httpClient,
                         LoadSettingsCallable.getInstance()
                                 .getServerSettings()
                                 .getServerUrl() + exportSettings.getExportUrl(),

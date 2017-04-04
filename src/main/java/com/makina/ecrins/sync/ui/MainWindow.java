@@ -39,23 +39,23 @@ public class MainWindow
     private Status serverStatus;
     private Status deviceStatus;
 
-    protected Shell shell;
-    protected SmartphoneStatusWidget smartphoneStatusWidget;
-    protected ServerStatusWidget serverStatusWidget;
-    protected DataUpdateComposite appUpdateFromServerComposite;
-    protected DataUpdateComposite dataUpdateFromDeviceComposite;
-    protected DataUpdateComposite dataUpdateFromServerComposite;
-    protected ConsoleLogComposite consoleLogComposite;
+    private Shell shell;
+    private SmartphoneStatusWidget smartphoneStatusWidget;
+    private ServerStatusWidget serverStatusWidget;
+    private DataUpdateComposite appUpdateFromServerComposite;
+    private DataUpdateComposite dataUpdateFromDeviceComposite;
+    private DataUpdateComposite dataUpdateFromServerComposite;
+    private ConsoleLogComposite consoleLogComposite;
 
     /**
      * open the main window and launch tasks
      */
-    public void open()
+    private void open()
     {
         serverStatus = Status.NONE;
         deviceStatus = Status.NONE;
 
-        Display.setAppName(getAppTitle(false));
+        Display.setAppName(getAppTitle());
         Display.setAppVersion(
                 ResourceBundle.getBundle("messages")
                         .getString("version")
@@ -225,7 +225,7 @@ public class MainWindow
     /**
      * create contents of the window
      */
-    protected void createContents(Display display)
+    private void createContents(Display display)
     {
         shell = new Shell(
                 display,
@@ -235,7 +235,7 @@ public class MainWindow
                 480,
                 505
         );
-        shell.setText(getAppTitle(true));
+        shell.setText(getAppTitle());
 
         final FormLayout flShell = new FormLayout();
         flShell.marginLeft = 1;
@@ -423,24 +423,10 @@ public class MainWindow
                 .getAppender("UI")).addObserver(consoleLogComposite);
     }
 
-    private String getAppTitle(boolean showAppVersion)
+    private String getAppTitle()
     {
-        if (showAppVersion)
-        {
-            return MessageFormat.format(
-                    ResourceBundle.getBundle("messages")
-                            .getString("MainWindow.shell.text.full"),
-                    ResourceBundle.getBundle("messages")
-                            .getString("MainWindow.shell.text"),
-                    ResourceBundle.getBundle("messages")
-                            .getString("version")
-            );
-        }
-        else
-        {
-            return ResourceBundle.getBundle("messages")
-                    .getString("MainWindow.shell.text");
-        }
+        return ResourceBundle.getBundle("messages")
+                             .getString("MainWindow.shell.text");
     }
 
     @Override

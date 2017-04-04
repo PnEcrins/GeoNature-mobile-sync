@@ -196,9 +196,8 @@ public class LoadSettingsCallable
                                                                                                                                                                .getServerSettings()
                                                                                                                                                                .getOrganism()) ? SETTINGS_FILE : LoadSettingsCallable.getInstance()
                                                                                                                                                                                                                      .getServerSettings()
-                                                                                                                                                                                                                     .getOrganism() + '/' + SETTINGS_FILE);
-            final HttpPost httpPost = WebAPIClientUtils.httpPost(httpClient,
-                                                                 settingsUrl,
+                                                                                                                                                                                                                     .getOrganism() + '/' + SETTINGS_FILE) + '/';
+            final HttpPost httpPost = WebAPIClientUtils.httpPost(settingsUrl,
                                                                  LoadSettingsCallable.getInstance()
                                                                                      .getServerSettings()
                                                                                      .getServerToken());

@@ -231,7 +231,6 @@ public class UpdateApplicationsFromServerTaskRunnable
         try
         {
             final HttpPost httpPost = WebAPIClientUtils.httpPost(
-                    httpClient,
                     LoadSettingsCallable.getInstance()
                             .getServerSettings()
                             .getServerUrl() + LoadSettingsCallable.getInstance()
@@ -533,7 +532,6 @@ public class UpdateApplicationsFromServerTaskRunnable
         try
         {
             final HttpPost httpPost = WebAPIClientUtils.httpPost(
-                    httpClient,
                     LoadSettingsCallable.getInstance()
                             .getServerSettings()
                             .getServerUrl() +

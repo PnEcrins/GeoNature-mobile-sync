@@ -28,16 +28,13 @@ public class ConsoleLogComposite
 
     /**
      * Create the composite.
-     *
-     * @param parent
-     * @param style
      */
-    public ConsoleLogComposite(Composite parent,
-                               int style)
+    ConsoleLogComposite(Composite parent,
+                        int style)
     {
         super(
                 parent,
-                SWT.NONE
+                style
         );
 
         initialize();
@@ -105,7 +102,7 @@ public class ConsoleLogComposite
 
         expandItemLogs = new ExpandItem(
                 expandBarLogs,
-                SWT.NONE | SWT.H_SCROLL | SWT.V_SCROLL
+                SWT.H_SCROLL | SWT.V_SCROLL
         );
         expandItemLogs.setExpanded(false);
         expandItemLogs.setText(

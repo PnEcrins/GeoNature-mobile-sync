@@ -293,7 +293,6 @@ public class ImportInputsFromDeviceTaskRunnable
             try
             {
                 httpPost = WebAPIClientUtils.httpPost(
-                        httpClient,
                         LoadSettingsCallable.getInstance()
                                 .getServerSettings()
                                 .getServerUrl() + LoadSettingsCallable.getInstance()
