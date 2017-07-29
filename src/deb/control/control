@@ -4,7 +4,7 @@ Section: misc
 Priority: optional
 Architecture: [[os.arch]]
 Depends: jdk (>= 1.6)
-Maintainer: Sebastien Grimault <sebastien.grimault@makina-corpus.com>
+Maintainer: Sebastien Grimault <sebastien.grimault@gmail.com>
 Description: [[description]]
 Distribution: development
 Depends: default-jre | java6-runtime

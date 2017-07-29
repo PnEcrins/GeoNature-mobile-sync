@@ -6,7 +6,7 @@
     <groupId>com.makina.ecrins</groupId>
     <artifactId>sync</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.0</version>
+    <version>1.2.0</version>
     <name>Sync</name>
     <description>GeoNature mobile apps synchronization</description>
 
@@ -21,7 +21,7 @@
         <developer>
             <id>sgr</id>
             <name>Sebastien Grimault</name>
-            <email>sebastien.grimault@makina-corpus.com</email>
+            <email>sebastien.grimault@gmail.com</email>
         </developer>
     </developers>
 
@@ -341,7 +341,7 @@
                             <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
-                            <Built-By>Sebastien Grimault &#60;sebastien.grimault@makina-corpus.com&#62;</Built-By>
+                            <Built-By>Sebastien Grimault &#60;sebastien.grimault@gmail.com&#62;</Built-By>
                         </manifestEntries>
                     </archive>
                 </configuration>
