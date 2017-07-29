@@ -1,28 +1,28 @@
 {
-	"sync":
-	{
-		"status_url": "status/",
-		"settings_url": "data_download/settings.json/",
-		"import_url": "import/",
-		"app_update":
-		{
-			"version_url": "soft_version/",
-			"download_url": "soft_download/"
-		},
-		"exports":
-		[
-			{
-				"url": "export/sqlite/",
-				"file": "databases/data.db"
-			},
-			{
-				"url": "export/unity_polygons/",
-				"file": "unities.wkt"
-			},
-			{
-				"url": "data_download/unities.mbtiles/",
-				"file": "databases/unities.mbtiles"
-			}
-		]
-	}
+    "sync":
+    {
+        "status_url": "status/",
+        "settings_url": "data_download/settings.json/",
+        "import_url": "import/",
+        "app_update":
+        {
+            "version_url": "soft_version/",
+            "download_url": "soft_download/"
+        },
+        "exports":
+        [
+            {
+                "url": "export/sqlite/",
+                "file": "databases/data.db"
+            },
+            {
+                "url": "export/unity_polygons/",
+                "file": "unities.wkt"
+            },
+            {
+                "url": "data_download/unities.mbtiles/",
+                "file": "databases/unities.mbtiles"
+            }
+        ]
+    }
 }

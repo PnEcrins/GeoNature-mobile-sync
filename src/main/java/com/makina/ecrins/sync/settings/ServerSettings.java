@@ -13,12 +13,12 @@ public class ServerSettings {
     private static final String KEY_SERVER_URL = "url";
     private static final String KEY_TOKEN = "token";
     private static final String KEY_TIMEOUT = "timeout";
-    private static final String KEY_ORGANISM = "organism";
+    private static final String KEY_SETTINGS_URL = "settings_url";
 
     private String serverUrl;
     private String serverToken;
     private int serverTimeout;
-    private String organism;
+    private String settingsUrl;
 
     ServerSettings(JSONObject json) throws
                                     JSONException {
@@ -26,7 +26,7 @@ public class ServerSettings {
         this.serverToken = json.getString(KEY_TOKEN);
         this.serverTimeout = json.optInt(KEY_TIMEOUT,
                                          10000);
-        this.organism = json.optString(KEY_ORGANISM);
+        this.settingsUrl = json.optString(KEY_SETTINGS_URL);
     }
 
     public String getServerUrl() {
@@ -41,7 +41,7 @@ public class ServerSettings {
         return serverTimeout;
     }
 
-    public String getOrganism() {
-        return organism;
+    public String getSettingsUrl() {
+        return settingsUrl;
     }
 }

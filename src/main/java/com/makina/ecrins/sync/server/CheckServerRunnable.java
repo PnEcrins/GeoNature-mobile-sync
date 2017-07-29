@@ -76,17 +76,18 @@ public class CheckServerRunnable
                         .getServerSettings()
                         .getServerTimeout()
         );
-        WebAPIClientUtils.httpPost(
-                httpClient,
-                LoadSettingsCallable.getInstance()
-                        .getServerSettings()
-                        .getServerUrl() + LoadSettingsCallable.getInstance()
-                        .getSettings()
-                        .getSyncSettings()
-                        .getStatusUrl(),
-                LoadSettingsCallable.getInstance()
-                        .getServerSettings()
-                        .getServerToken(),
+        WebAPIClientUtils.httpPost(httpClient,
+                                   WebAPIClientUtils.buildUrl(LoadSettingsCallable.getInstance()
+                                                                                  .getServerSettings()
+                                                                                  .getServerUrl(),
+                                                              LoadSettingsCallable.getInstance()
+                                                                                  .getSettings()
+                                                                                  .getSyncSettings()
+                                                                                  .getStatusUrl()),
+
+                                   LoadSettingsCallable.getInstance()
+                                                       .getServerSettings()
+                                                       .getServerToken(),
                 true,
                 new HTTPCallback()
                 {

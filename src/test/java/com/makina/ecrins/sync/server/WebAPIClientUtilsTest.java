@@ -13,13 +13,14 @@ import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.List;
+
+import static org.junit.Assert.*;
 
 /**
  * Test class for {@link WebAPIClientUtils}
@@ -69,8 +70,8 @@ public class WebAPIClientUtilsTest
                     InputStream is = entity.getContent();
                     JSONObject jsonResponse = new JSONObject(IOUtils.toString(is, Charset.defaultCharset()));
 
-                    Assert.assertTrue(jsonResponse.has("status_code"));
-                    Assert.assertTrue(
+                    assertTrue(jsonResponse.has("status_code"));
+                    assertTrue(
                             "status_code",
                             jsonResponse.getInt("status_code") == 0
                     );
@@ -79,26 +80,26 @@ public class WebAPIClientUtilsTest
                 }
                 catch (IllegalStateException ise)
                 {
-                    Assert.fail(ise.getMessage());
+                    fail(ise.getMessage());
                 }
                 catch (IOException ioe)
                 {
-                    Assert.fail(ioe.getMessage());
+                    fail(ioe.getMessage());
                 }
                 catch (JSONException je)
                 {
-                    Assert.fail(je.getMessage());
+                    fail(je.getMessage());
                 }
             }
             else
             {
                 httpPost.abort();
-                Assert.fail("unable to check server status, HTTP status : " + status.getStatusCode());
+                fail("unable to check server status, HTTP status : " + status.getStatusCode());
             }
         }
         catch (IOException ioe)
         {
-            Assert.fail(ioe.getMessage());
+            fail(ioe.getMessage());
         }
         finally
         {
@@ -141,17 +142,17 @@ public class WebAPIClientUtilsTest
             if (status.getStatusCode() == HttpStatus.SC_OK)
             {
                 httpPost.abort();
-                Assert.assertTrue(true);
+                assertTrue(true);
             }
             else
             {
                 httpPost.abort();
-                Assert.fail("unable to get mobile apps versions, HTTP status : " + status.getStatusCode());
+                fail("unable to get mobile apps versions, HTTP status : " + status.getStatusCode());
             }
         }
         catch (IOException ioe)
         {
-            Assert.fail(ioe.getMessage());
+            fail(ioe.getMessage());
         }
         finally
         {
@@ -197,7 +198,7 @@ public class WebAPIClientUtilsTest
                 if (status.getStatusCode() == HttpStatus.SC_OK)
                 {
                     httpPost.abort();
-                    Assert.assertTrue(
+                    assertTrue(
                             "success",
                             true
                     );
@@ -205,12 +206,12 @@ public class WebAPIClientUtilsTest
                 else
                 {
                     httpPost.abort();
-                    Assert.fail("unable to download file from URL '" + httpPost.getURI() + "', HTTP status : " + status.getStatusCode());
+                    fail("unable to download file from URL '" + httpPost.getURI() + "', HTTP status : " + status.getStatusCode());
                 }
             }
             catch (IOException ioe)
             {
-                Assert.fail(ioe.getMessage());
+                fail(ioe.getMessage());
             }
             finally
             {
@@ -219,5 +220,34 @@ public class WebAPIClientUtilsTest
         }
 
         HttpClientUtils.closeQuietly(httpClient);
+    }
+
+    @Test
+    public void testBuildUrl() throws
+                               Exception {
+        final String baseUrl = "http://webapi";
+        assertEquals(baseUrl + '/', WebAPIClientUtils.buildUrl(baseUrl));
+
+        final String baseUrlWithEndingSlash = "http://webapi/";
+        assertEquals(baseUrlWithEndingSlash, WebAPIClientUtils.buildUrl(baseUrlWithEndingSlash));
+
+        final String segment1 = "segment1";
+        assertEquals(baseUrl + '/' + segment1 + '/', WebAPIClientUtils.buildUrl(baseUrl, segment1));
+
+        final String segment1WithStartingSlash = "/segment1";
+        assertEquals(baseUrl + segment1WithStartingSlash + '/', WebAPIClientUtils.buildUrl(baseUrl, segment1WithStartingSlash));
+
+        final String segment1WithEndingSlash = "segment1/";
+        assertEquals(baseUrl + '/' + segment1WithEndingSlash, WebAPIClientUtils.buildUrl(baseUrl, segment1WithEndingSlash));
+
+        final String segment1WithSlashs = "/segment1/";
+        assertEquals(baseUrl + segment1WithSlashs, WebAPIClientUtils.buildUrl(baseUrl, segment1WithSlashs));
+
+        final String segment2 = "segment2";
+        assertEquals(baseUrl + '/' + segment1 + '/' + segment2 + '/', WebAPIClientUtils.buildUrl(baseUrl, segment1, segment2));
+
+        final String multiplePartSegment = "seg1/seg2";
+        assertEquals(baseUrl + '/' + multiplePartSegment + '/', WebAPIClientUtils.buildUrl(baseUrl, multiplePartSegment));
+        assertEquals(baseUrl + '/' + segment1 + '/' + multiplePartSegment + '/', WebAPIClientUtils.buildUrl(baseUrl, segment1, multiplePartSegment));
     }
 }

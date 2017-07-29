@@ -219,14 +219,13 @@ public class UpdateApplicationDataFromServerTaskRunnable
 
             try
             {
-                final HttpPost httpPost = WebAPIClientUtils.httpPost(
-                        LoadSettingsCallable.getInstance()
-                                .getServerSettings()
-                                .getServerUrl() + exportSettings.getExportUrl(),
-                        LoadSettingsCallable.getInstance()
-                                .getServerSettings()
-                                .getServerToken()
-                );
+                final HttpPost httpPost = WebAPIClientUtils.httpPost(WebAPIClientUtils.buildUrl(LoadSettingsCallable.getInstance()
+                                                                                                                    .getServerSettings()
+                                                                                                                    .getServerUrl(),
+                                                                                                exportSettings.getExportUrl()),
+                                                                     LoadSettingsCallable.getInstance()
+                                                                                         .getServerSettings()
+                                                                                         .getServerToken());
 
                 httpResponse = httpClient.execute(httpPost);
 

@@ -292,18 +292,18 @@ public class ImportInputsFromDeviceTaskRunnable
 
             try
             {
-                httpPost = WebAPIClientUtils.httpPost(
-                        LoadSettingsCallable.getInstance()
-                                .getServerSettings()
-                                .getServerUrl() + LoadSettingsCallable.getInstance()
-                                .getSettings()
-                                .getSyncSettings()
-                                .getImportUrl(),
-                        LoadSettingsCallable.getInstance()
-                                .getServerSettings()
-                                .getServerToken(),
-                        FileUtils.readFileToString(inputFile, Charset.defaultCharset())
-                );
+                httpPost = WebAPIClientUtils.httpPost(WebAPIClientUtils.buildUrl(LoadSettingsCallable.getInstance()
+                                                                                                     .getServerSettings()
+                                                                                                     .getServerUrl(),
+                                                                                 LoadSettingsCallable.getInstance()
+                                                                                                     .getSettings()
+                                                                                                     .getSyncSettings()
+                                                                                                     .getImportUrl()),
+                                                      LoadSettingsCallable.getInstance()
+                                                                          .getServerSettings()
+                                                                          .getServerToken(),
+                                                      FileUtils.readFileToString(inputFile,
+                                                                                 Charset.defaultCharset()));
 
                 httpResponse = httpClient.execute(httpPost);
 

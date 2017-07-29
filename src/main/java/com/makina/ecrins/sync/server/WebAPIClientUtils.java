@@ -1,5 +1,7 @@
 package com.makina.ecrins.sync.server;
 
+import com.makina.ecrins.sync.settings.ServerSettings;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -235,10 +237,35 @@ public final class WebAPIClientUtils
         }
     }
 
+    /**
+     * Builds a complete URL to be used through WebAPI.
+     *
+     * @param baseUrl the base URL (e.g. {@link ServerSettings#getServerUrl()}
+     * @param segment a set of segments URL to add
+     *
+     * @return the complete URL
+     */
+    public static String buildUrl(final String baseUrl, final String... segment)
+    {
+        final StringBuilder urlBuilder = new StringBuilder(StringUtils.endsWith(baseUrl, "/") ? StringUtils.substringBeforeLast(baseUrl, "/") : baseUrl);
+
+        for (String part : segment)
+        {
+            if (StringUtils.isNotBlank(part)) {
+                urlBuilder.append('/');
+                urlBuilder.append(StringUtils.join(StringUtils.split(part, '/'), '/'));
+            }
+        }
+
+        urlBuilder.append('/');
+
+        return urlBuilder.toString();
+    }
+
     public interface HTTPCallback
     {
         void onResponse(HttpRequestBase httpRequestBase,
-                               HttpResponse httpResponse);
+                        HttpResponse httpResponse);
 
         void onError(Exception e);
     }
