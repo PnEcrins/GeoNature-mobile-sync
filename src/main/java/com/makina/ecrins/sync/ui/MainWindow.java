@@ -55,7 +55,7 @@ public class MainWindow
         serverStatus = Status.NONE;
         deviceStatus = Status.NONE;
 
-        Display.setAppName(getAppTitle());
+        Display.setAppName(getAppTitle(false));
         Display.setAppVersion(
                 ResourceBundle.getBundle("messages")
                         .getString("version")
@@ -235,7 +235,7 @@ public class MainWindow
                 480,
                 505
         );
-        shell.setText(getAppTitle());
+        shell.setText(getAppTitle(true));
 
         final FormLayout flShell = new FormLayout();
         flShell.marginLeft = 1;
@@ -423,10 +423,24 @@ public class MainWindow
                 .getAppender("UI")).addObserver(consoleLogComposite);
     }
 
-    private String getAppTitle()
+    private String getAppTitle(boolean showAppVersion)
     {
-        return ResourceBundle.getBundle("messages")
-                             .getString("MainWindow.shell.text");
+        if (showAppVersion)
+        {
+            return MessageFormat.format(
+                    ResourceBundle.getBundle("messages")
+                                  .getString("MainWindow.shell.text.full"),
+                    ResourceBundle.getBundle("messages")
+                                  .getString("MainWindow.shell.text"),
+                    ResourceBundle.getBundle("messages")
+                                  .getString("version")
+            );
+        }
+        else
+        {
+            return ResourceBundle.getBundle("messages")
+                                 .getString("MainWindow.shell.text");
+        }
     }
 
     @Override
