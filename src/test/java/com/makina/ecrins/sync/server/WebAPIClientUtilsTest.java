@@ -233,21 +233,27 @@ public class WebAPIClientUtilsTest
 
         final String segment1 = "segment1";
         assertEquals(baseUrl + '/' + segment1 + '/', WebAPIClientUtils.buildUrl(baseUrl, segment1));
+        assertEquals(baseUrl + '/' + segment1 + '/', WebAPIClientUtils.buildUrl(baseUrlWithEndingSlash, segment1));
 
         final String segment1WithStartingSlash = "/segment1";
         assertEquals(baseUrl + segment1WithStartingSlash + '/', WebAPIClientUtils.buildUrl(baseUrl, segment1WithStartingSlash));
+        assertEquals(baseUrl + segment1WithStartingSlash + '/', WebAPIClientUtils.buildUrl(baseUrlWithEndingSlash, segment1WithStartingSlash));
 
         final String segment1WithEndingSlash = "segment1/";
         assertEquals(baseUrl + '/' + segment1WithEndingSlash, WebAPIClientUtils.buildUrl(baseUrl, segment1WithEndingSlash));
+        assertEquals(baseUrl + '/' + segment1WithEndingSlash, WebAPIClientUtils.buildUrl(baseUrlWithEndingSlash, segment1WithEndingSlash));
 
         final String segment1WithSlashs = "/segment1/";
         assertEquals(baseUrl + segment1WithSlashs, WebAPIClientUtils.buildUrl(baseUrl, segment1WithSlashs));
+        assertEquals(baseUrl + segment1WithSlashs, WebAPIClientUtils.buildUrl(baseUrlWithEndingSlash, segment1WithSlashs));
 
         final String segment2 = "segment2";
         assertEquals(baseUrl + '/' + segment1 + '/' + segment2 + '/', WebAPIClientUtils.buildUrl(baseUrl, segment1, segment2));
+        assertEquals(baseUrl + '/' + segment1 + '/' + segment2 + '/', WebAPIClientUtils.buildUrl(baseUrlWithEndingSlash, segment1, segment2));
 
         final String multiplePartSegment = "seg1/seg2";
         assertEquals(baseUrl + '/' + multiplePartSegment + '/', WebAPIClientUtils.buildUrl(baseUrl, multiplePartSegment));
         assertEquals(baseUrl + '/' + segment1 + '/' + multiplePartSegment + '/', WebAPIClientUtils.buildUrl(baseUrl, segment1, multiplePartSegment));
+        assertEquals(baseUrl + '/' + segment1 + '/' + multiplePartSegment + '/', WebAPIClientUtils.buildUrl(baseUrlWithEndingSlash, segment1, multiplePartSegment));
     }
 }

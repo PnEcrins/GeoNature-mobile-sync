@@ -1,5 +1,6 @@
 {
     "url": "",
     "token": "",
-    "timeout": 10000
+    "timeout": 10000,
+    "settings_url": ""
 }
