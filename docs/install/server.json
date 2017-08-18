@@ -1,0 +1,6 @@
+{
+    "url": "http://localhost/synchronomade/",
+    "token": "mon!token#complexe",
+    "timeout": 10000,
+    "settings_url": "data_download/orgnismx"
+}
