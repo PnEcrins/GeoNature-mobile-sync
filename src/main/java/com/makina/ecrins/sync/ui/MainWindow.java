@@ -12,6 +12,7 @@ import com.makina.ecrins.sync.tasks.ImportInputsFromDeviceTaskRunnable;
 import com.makina.ecrins.sync.tasks.TaskManager;
 import com.makina.ecrins.sync.tasks.UpdateApplicationDataFromServerTaskRunnable;
 import com.makina.ecrins.sync.tasks.UpdateApplicationsFromServerTaskRunnable;
+
 import org.apache.log4j.Logger;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
@@ -56,30 +57,25 @@ public class MainWindow
         deviceStatus = Status.NONE;
 
         Display.setAppName(getAppTitle(false));
-        Display.setAppVersion(
-                ResourceBundle.getBundle("messages")
-                        .getString("version")
-        );
+        Display.setAppVersion(ResourceBundle.getBundle("messages")
+                                            .getString("version"));
 
         final Display display = Display.getDefault();
         createContents(display);
 
         configureLogger();
 
-        LOG.info(
-                MessageFormat.format(
-                        ResourceBundle.getBundle("messages")
-                                .getString("MainWindow.shell.startup.text"),
-                        ResourceBundle.getBundle("messages")
-                                .getString("MainWindow.shell.text"),
-                        ResourceBundle.getBundle("messages")
-                                .getString("version")
-                )
-        );
+        LOG.info(MessageFormat.format(ResourceBundle.getBundle("messages")
+                                                    .getString("MainWindow.shell.startup.text"),
+                                      ResourceBundle.getBundle("messages")
+                                                    .getString("MainWindow.shell.text"),
+                                      ResourceBundle.getBundle("messages")
+                                                    .getString("version")));
 
         final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
+        // noinspection ResultOfMethodCallIgnored
         TaskManager.getInstance();
 
         try
@@ -87,104 +83,88 @@ public class MainWindow
             shell.open();
             shell.layout();
 
-            threadExecutor.execute(
-                    new Runnable()
+            threadExecutor.execute(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    try
                     {
-                        @Override
-                        public void run()
+                        ADBCommand.getInstance();
+                    }
+                    catch (ADBCommandException ace)
+                    {
+                        LOG.warn(ace.getMessage());
+                    }
+
+                    UpdateApplicationsFromServerTaskRunnable updateApplicationsFromServerTaskRunnable = new UpdateApplicationsFromServerTaskRunnable();
+                    updateApplicationsFromServerTaskRunnable.addObserver(appUpdateFromServerComposite);
+                    TaskManager.getInstance()
+                               .addTask(updateApplicationsFromServerTaskRunnable);
+
+                    ImportInputsFromDeviceTaskRunnable importInputsFromDeviceTaskRunnable = new ImportInputsFromDeviceTaskRunnable();
+                    importInputsFromDeviceTaskRunnable.addObserver(dataUpdateFromDeviceComposite);
+                    TaskManager.getInstance()
+                               .addTask(importInputsFromDeviceTaskRunnable);
+
+                    UpdateApplicationDataFromServerTaskRunnable updateApplicationDataFromServerTaskRunnable = new UpdateApplicationDataFromServerTaskRunnable();
+                    updateApplicationDataFromServerTaskRunnable.addObserver(dataUpdateFromServerComposite);
+                    TaskManager.getInstance()
+                               .addTask(updateApplicationDataFromServerTaskRunnable);
+                }
+            });
+
+            threadExecutor.execute(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    CompletionService<Settings> completionService = new ExecutorCompletionService<Settings>(Executors.newSingleThreadExecutor());
+                    Future<Settings> future = completionService.submit(LoadSettingsCallable.getInstance());
+
+                    try
+                    {
+                        Settings settings = completionService.take()
+                                                             .get();
+
+                        if (settings != null)
                         {
-                            try
-                            {
-                                ADBCommand.getInstance();
-                            }
-                            catch (ADBCommandException ace)
-                            {
-                                LOG.warn(ace.getMessage());
-                            }
+                            CheckDeviceRunnable checkDeviceRunnable = new CheckDeviceRunnable();
+                            checkDeviceRunnable.addObserver(smartphoneStatusWidget);
+                            checkDeviceRunnable.addObserver(MainWindow.this);
+                            scheduler.scheduleAtFixedRate(checkDeviceRunnable,
+                                                          2,
+                                                          2,
+                                                          TimeUnit.SECONDS);
 
-                            UpdateApplicationsFromServerTaskRunnable updateApplicationsFromServerTaskRunnable = new UpdateApplicationsFromServerTaskRunnable();
-                            updateApplicationsFromServerTaskRunnable.addObserver(appUpdateFromServerComposite);
-                            TaskManager.getInstance()
-                                    .addTask(updateApplicationsFromServerTaskRunnable);
-
-                            ImportInputsFromDeviceTaskRunnable importInputsFromDeviceTaskRunnable = new ImportInputsFromDeviceTaskRunnable();
-                            importInputsFromDeviceTaskRunnable.addObserver(dataUpdateFromDeviceComposite);
-                            TaskManager.getInstance()
-                                    .addTask(importInputsFromDeviceTaskRunnable);
-
-                            UpdateApplicationDataFromServerTaskRunnable updateApplicationDataFromServerTaskRunnable = new UpdateApplicationDataFromServerTaskRunnable();
-                            updateApplicationDataFromServerTaskRunnable.addObserver(dataUpdateFromServerComposite);
-                            TaskManager.getInstance()
-                                    .addTask(updateApplicationDataFromServerTaskRunnable);
+                            CheckServerRunnable checkServerRunnable = new CheckServerRunnable();
+                            checkServerRunnable.addObserver(serverStatusWidget);
+                            checkServerRunnable.addObserver(MainWindow.this);
+                            scheduler.scheduleAtFixedRate(checkServerRunnable,
+                                                          5,
+                                                          5,
+                                                          TimeUnit.SECONDS);
                         }
                     }
-            );
-
-            threadExecutor.execute(
-                    new Runnable()
+                    catch (InterruptedException ie)
                     {
-                        @Override
-                        public void run()
-                        {
-                            CompletionService<Settings> completionService = new ExecutorCompletionService<Settings>(Executors.newSingleThreadExecutor());
-                            Future<Settings> future = completionService.submit(LoadSettingsCallable.getInstance());
-
-                            try
-                            {
-                                Settings settings = completionService.take()
-                                        .get();
-
-                                if (settings != null)
-                                {
-                                    CheckDeviceRunnable checkDeviceRunnable = new CheckDeviceRunnable();
-                                    checkDeviceRunnable.addObserver(smartphoneStatusWidget);
-                                    checkDeviceRunnable.addObserver(MainWindow.this);
-                                    scheduler.scheduleAtFixedRate(
-                                            checkDeviceRunnable,
-                                            2,
-                                            2,
-                                            TimeUnit.SECONDS
-                                    );
-
-                                    CheckServerRunnable checkServerRunnable = new CheckServerRunnable();
-                                    checkServerRunnable.addObserver(serverStatusWidget);
-                                    checkServerRunnable.addObserver(MainWindow.this);
-                                    scheduler.scheduleAtFixedRate(
-                                            checkServerRunnable,
-                                            5,
-                                            5,
-                                            TimeUnit.SECONDS
-                                    );
-                                }
-                            }
-                            catch (InterruptedException ie)
-                            {
-                                LOG.error(
-                                        ie.getMessage(),
-                                        ie
-                                );
-                            }
-                            catch (ExecutionException ee)
-                            {
-                                LOG.error(
-                                        ee.getLocalizedMessage(),
-                                        ee
-                                );
-                                LOG.error(
-                                        MessageFormat.format(
-                                                ResourceBundle.getBundle("messages")
-                                                        .getString("MainWindow.shell.settings.load.failed.text"),
-                                                LoadSettingsCallable.SETTINGS_FILE
-                                        )
-                                );
-                            }
-                            finally
-                            {
-                                future.cancel(true);
-                            }
-                        }
+                        LOG.error(ie.getMessage(),
+                                  ie);
                     }
-            );
+                    catch (ExecutionException ee)
+                    {
+                        LOG.error(ee.getLocalizedMessage(),
+                                  ee);
+                        LOG.error(MessageFormat.format(ResourceBundle.getBundle("messages")
+                                                                     .getString("MainWindow.shell.settings.load.failed.text"),
+                                                       LoadSettingsCallable.SETTINGS_FILE));
+                    }
+                    finally
+                    {
+                        future.cancel(true);
+                    }
+                }
+            });
 
             while (!shell.isDisposed())
             {
@@ -199,12 +179,12 @@ public class MainWindow
             threadExecutor.shutdownNow();
             scheduler.shutdownNow();
             TaskManager.getInstance()
-                    .shutdownNow();
+                       .shutdownNow();
 
             try
             {
                 ADBCommand.getInstance()
-                        .dispose();
+                          .dispose();
             }
             catch (ADBCommandException ace)
             {
@@ -227,14 +207,10 @@ public class MainWindow
      */
     private void createContents(Display display)
     {
-        shell = new Shell(
-                display,
-                SWT.CLOSE | SWT.TITLE | SWT.MIN
-        );
-        shell.setSize(
-                480,
-                505
-        );
+        shell = new Shell(display,
+                          SWT.CLOSE | SWT.TITLE | SWT.MIN);
+        shell.setSize(480,
+                      505);
         shell.setText(getAppTitle(true));
 
         final FormLayout flShell = new FormLayout();
@@ -244,20 +220,16 @@ public class MainWindow
         flShell.marginBottom = 1;
 
         shell.setLayout(flShell);
-        shell.setImages(
-                new Image[] {
-                        UIResourceManager.getImage("icon_32.png"),
-                        UIResourceManager.getImage("icon_64.png"),
-                        UIResourceManager.getImage("icon_128.png"),
-                        UIResourceManager.getImage("icon_256.png"),
-                        UIResourceManager.getImage("icon_512.png")
-                }
-        );
+        shell.setImages(new Image[] {
+                UIResourceManager.getImage("icon_32.png"),
+                UIResourceManager.getImage("icon_64.png"),
+                UIResourceManager.getImage("icon_128.png"),
+                UIResourceManager.getImage("icon_256.png"),
+                UIResourceManager.getImage("icon_512.png")
+        });
 
-        final Composite composite = new Composite(
-                shell,
-                SWT.BORDER
-        );
+        final Composite composite = new Composite(shell,
+                                                  SWT.BORDER);
         composite.setLayout(new FormLayout());
 
         final FormData fdComposite = new FormData();
@@ -268,141 +240,93 @@ public class MainWindow
 
         composite.setLayoutData(fdComposite);
 
-        final Group groupStatuses = new Group(
-                composite,
-                SWT.NONE
-        );
-        groupStatuses.setFont(
-                UIResourceManager.getFont(
-                        "Lucida Grande",
-                        11,
-                        SWT.BOLD
-                )
-        );
+        final Group groupStatuses = new Group(composite,
+                                              SWT.NONE);
+        groupStatuses.setFont(UIResourceManager.getFont("Lucida Grande",
+                                                        11,
+                                                        SWT.BOLD));
         groupStatuses.setBackground(UIResourceManager.getColor(SWT.COLOR_WIDGET_BACKGROUND));
-        groupStatuses.setText(
-                ResourceBundle.getBundle("messages")
-                        .getString("MainWindow.groupStatuses.text")
-        );
+        groupStatuses.setText(ResourceBundle.getBundle("messages")
+                                            .getString("MainWindow.groupStatuses.text"));
         groupStatuses.setLayout(new FormLayout());
 
         final FormData fdGroupStatuses = new FormData();
         fdGroupStatuses.top = new FormAttachment(0);
-        fdGroupStatuses.left = new FormAttachment(
-                0,
-                5
-        );
-        fdGroupStatuses.right = new FormAttachment(
-                100,
-                -5
-        );
+        fdGroupStatuses.left = new FormAttachment(0,
+                                                  5);
+        fdGroupStatuses.right = new FormAttachment(100,
+                                                   -5);
         fdGroupStatuses.height = 70;
 
         groupStatuses.setLayoutData(fdGroupStatuses);
 
-        smartphoneStatusWidget = new SmartphoneStatusWidget(
-                display,
-                groupStatuses
-        );
-        serverStatusWidget = new ServerStatusWidget(
-                display,
-                groupStatuses
-        );
+        smartphoneStatusWidget = new SmartphoneStatusWidget(display,
+                                                            groupStatuses);
+        serverStatusWidget = new ServerStatusWidget(display,
+                                                    groupStatuses);
 
-        final Button buttonQuit = new Button(
-                composite,
-                SWT.NONE
-        );
+        final Button buttonQuit = new Button(composite,
+                                             SWT.NONE);
 
         final FormData fdButtonValidate = new FormData();
-        fdButtonValidate.right = new FormAttachment(
-                100,
-                -5
-        );
+        fdButtonValidate.right = new FormAttachment(100,
+                                                    -5);
         fdButtonValidate.bottom = new FormAttachment(100);
 
         buttonQuit.setLayoutData(fdButtonValidate);
-        buttonQuit.setText(
-                ResourceBundle.getBundle("messages")
-                        .getString("MainWindow.buttonQuit.text")
-        );
-        buttonQuit.addListener(
-                SWT.Selection,
-                new Listener()
-                {
-                    @Override
-                    public void handleEvent(Event e)
-                    {
-                        shell.dispose();
-                    }
-                }
-        );
+        buttonQuit.setText(ResourceBundle.getBundle("messages")
+                                         .getString("MainWindow.buttonQuit.text"));
+        buttonQuit.addListener(SWT.Selection,
+                               new Listener()
+                               {
+                                   @Override
+                                   public void handleEvent(Event e)
+                                   {
+                                       shell.dispose();
+                                   }
+                               });
 
-        final Group groupUpdate = new Group(
-                composite,
-                SWT.NONE
-        );
-        groupUpdate.setFont(
-                UIResourceManager.getFont(
-                        "Lucida Grande",
-                        11,
-                        SWT.BOLD
-                )
-        );
+        final Group groupUpdate = new Group(composite,
+                                            SWT.NONE);
+        groupUpdate.setFont(UIResourceManager.getFont("Lucida Grande",
+                                                      11,
+                                                      SWT.BOLD));
         groupUpdate.setBackground(UIResourceManager.getColor(SWT.COLOR_WIDGET_BACKGROUND));
-        groupUpdate.setText(
-                ResourceBundle.getBundle("messages")
-                        .getString("MainWindow.groupUpdate.text")
-        );
+        groupUpdate.setText(ResourceBundle.getBundle("messages")
+                                          .getString("MainWindow.groupUpdate.text"));
         groupUpdate.setLayout(new FormLayout());
 
         final FormData fdGroupUpdate = new FormData();
         fdGroupUpdate.top = new FormAttachment(groupStatuses);
-        fdGroupUpdate.left = new FormAttachment(
-                0,
-                5
-        );
-        fdGroupUpdate.right = new FormAttachment(
-                100,
-                -5
-        );
+        fdGroupUpdate.left = new FormAttachment(0,
+                                                5);
+        fdGroupUpdate.right = new FormAttachment(100,
+                                                 -5);
         fdGroupUpdate.height = 300;
 
         groupUpdate.setLayoutData(fdGroupUpdate);
 
-        appUpdateFromServerComposite = new DataUpdateComposite(
-                groupUpdate,
-                SWT.NONE,
-                DataUpdateComposite.Layout.SERVER_DEVICE
-        );
-        dataUpdateFromDeviceComposite = new DataUpdateComposite(
-                groupUpdate,
-                SWT.NONE,
-                DataUpdateComposite.Layout.DEVICE_SERVER
-        );
+        appUpdateFromServerComposite = new DataUpdateComposite(groupUpdate,
+                                                               SWT.NONE,
+                                                               DataUpdateComposite.Layout.SERVER_DEVICE);
+        dataUpdateFromDeviceComposite = new DataUpdateComposite(groupUpdate,
+                                                                SWT.NONE,
+                                                                DataUpdateComposite.Layout.DEVICE_SERVER);
         ((FormData) dataUpdateFromDeviceComposite.getLayoutData()).top = new FormAttachment(appUpdateFromServerComposite);
-        dataUpdateFromServerComposite = new DataUpdateComposite(
-                groupUpdate,
-                SWT.NONE,
-                DataUpdateComposite.Layout.SERVER_DEVICE
-        );
+        dataUpdateFromServerComposite = new DataUpdateComposite(groupUpdate,
+                                                                SWT.NONE,
+                                                                DataUpdateComposite.Layout.SERVER_DEVICE);
         ((FormData) dataUpdateFromServerComposite.getLayoutData()).top = new FormAttachment(dataUpdateFromDeviceComposite);
 
-        consoleLogComposite = new ConsoleLogComposite(
-                composite,
-                SWT.NONE
-        );
+        consoleLogComposite = new ConsoleLogComposite(composite,
+                                                      SWT.NONE);
 
         final FormData fdConsoleLogComposite = new FormData();
         fdConsoleLogComposite.top = new FormAttachment(groupUpdate);
-        fdConsoleLogComposite.left = new FormAttachment(
-                0,
-                5
-        );
-        fdConsoleLogComposite.right = new FormAttachment(
-                100,
-                -5
-        );
+        fdConsoleLogComposite.left = new FormAttachment(0,
+                                                        5);
+        fdConsoleLogComposite.right = new FormAttachment(100,
+                                                         -5);
         fdConsoleLogComposite.bottom = new FormAttachment(buttonQuit);
 
         consoleLogComposite.setLayoutData(fdConsoleLogComposite);
@@ -413,28 +337,26 @@ public class MainWindow
         if (this.deviceStatus.equals(Status.CONNECTED) && this.serverStatus.equals((Status.CONNECTED)))
         {
             TaskManager.getInstance()
-                    .start();
+                       .start();
         }
     }
 
     private void configureLogger()
     {
         ((ConsoleLogAppender) Logger.getRootLogger()
-                .getAppender("UI")).addObserver(consoleLogComposite);
+                                    .getAppender("UI")).addObserver(consoleLogComposite);
     }
 
     private String getAppTitle(boolean showAppVersion)
     {
         if (showAppVersion)
         {
-            return MessageFormat.format(
-                    ResourceBundle.getBundle("messages")
-                                  .getString("MainWindow.shell.text.full"),
-                    ResourceBundle.getBundle("messages")
-                                  .getString("MainWindow.shell.text"),
-                    ResourceBundle.getBundle("messages")
-                                  .getString("version")
-            );
+            return MessageFormat.format(ResourceBundle.getBundle("messages")
+                                                      .getString("MainWindow.shell.text.full"),
+                                        ResourceBundle.getBundle("messages")
+                                                      .getString("MainWindow.shell.text"),
+                                        ResourceBundle.getBundle("messages")
+                                                      .getString("version"));
         }
         else
         {
