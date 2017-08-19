@@ -359,7 +359,7 @@
                             <type>file</type>
                             <mapper>
                                 <type>perm</type>
-                                <prefix>/usr/share/sync</prefix>
+                                <prefix>/usr/share/geonature-sync</prefix>
                             </mapper>
                         </data>
                         <data>
@@ -367,7 +367,7 @@
                             <type>file</type>
                             <mapper>
                                 <type>perm</type>
-                                <prefix>/usr/share/sync</prefix>
+                                <prefix>/usr/share/geonature-sync</prefix>
                             </mapper>
                         </data>
                         <data>
@@ -375,7 +375,7 @@
                             <type>file</type>
                             <mapper>
                                 <type>perm</type>
-                                <prefix>/usr/share/sync</prefix>
+                                <prefix>/usr/share/geonature-sync</prefix>
                             </mapper>
                         </data>
                         <data>
