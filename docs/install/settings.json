@@ -1,0 +1,43 @@
+{
+	"sync":
+	{
+		"url": "http://localhost/synchronomade/",
+		"token": "mon!token#complexe",
+		"timeout": 10000,
+		"status_url": "status/",
+		"settings_url": "data_download/organismx",
+		"import_url": "import/",
+		"app_update":
+		{
+			"version_url": "soft_version/",
+			"download_url": "soft_download/"
+		},
+		"exports":
+		[
+			{
+				"url": "export/sqlite/",
+				"file": "databases/data.db"
+			},
+			{
+				"url": "data_download/organismx/settings_fauna.json/",
+				"file": "settings_fauna.json"
+			},
+			{
+				"url": "data_download/organismx/settings_mortality.json/",
+				"file": "settings_mortality.json"
+			},
+			{
+				"url": "data_download/organismx/settings_invertebrate.json/",
+				"file": "settings_invertebrate.json"
+			},
+			{
+				"url": "data_download/organismx/settings_flora.json/",
+				"file": "settings_flora.json"
+			},
+			{
+				"url": "data_download/organismx/settings_search.json/",
+				"file": "settings_search.json"
+			}
+		]
+	}
+}

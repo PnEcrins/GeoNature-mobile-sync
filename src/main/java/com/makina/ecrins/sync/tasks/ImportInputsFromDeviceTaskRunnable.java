@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.ParseException;
@@ -291,19 +292,18 @@ public class ImportInputsFromDeviceTaskRunnable
 
             try
             {
-                httpPost = WebAPIClientUtils.httpPost(
-                        httpClient,
-                        LoadSettingsCallable.getInstance()
-                                .getServerSettings()
-                                .getServerUrl() + LoadSettingsCallable.getInstance()
-                                .getSettings()
-                                .getSyncSettings()
-                                .getImportUrl(),
-                        LoadSettingsCallable.getInstance()
-                                .getServerSettings()
-                                .getServerToken(),
-                        FileUtils.readFileToString(inputFile)
-                );
+                httpPost = WebAPIClientUtils.httpPost(WebAPIClientUtils.buildUrl(LoadSettingsCallable.getInstance()
+                                                                                                     .getServerSettings()
+                                                                                                     .getServerUrl(),
+                                                                                 LoadSettingsCallable.getInstance()
+                                                                                                     .getSettings()
+                                                                                                     .getSyncSettings()
+                                                                                                     .getImportUrl()),
+                                                      LoadSettingsCallable.getInstance()
+                                                                          .getServerSettings()
+                                                                          .getServerToken(),
+                                                      FileUtils.readFileToString(inputFile,
+                                                                                 Charset.defaultCharset()));
 
                 httpResponse = httpClient.execute(httpPost);
 

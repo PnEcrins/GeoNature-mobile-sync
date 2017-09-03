@@ -2,6 +2,7 @@ package com.makina.ecrins.sync.tasks;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.text.ParseException;
 
 import org.apache.commons.io.FileUtils;
@@ -39,6 +40,6 @@ public final class InputUtils
                                                         ParseException,
                                                         IOException
     {
-        return new Input(new JSONObject(FileUtils.readFileToString(jsonFile)));
+        return new Input(new JSONObject(FileUtils.readFileToString(jsonFile, Charset.defaultCharset())));
     }
 }

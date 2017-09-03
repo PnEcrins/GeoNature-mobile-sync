@@ -31,12 +31,12 @@ public class ConsoleLogAppender
     /**
      * There is no level threshold filtering by default.
      */
-    protected Priority threshold;
+    private Priority threshold;
 
     /**
      * It is assumed and enforced that errorHandler is never null.
      */
-    protected ErrorHandler errorHandler = new OnlyOnceErrorHandler();
+    private ErrorHandler errorHandler = new OnlyOnceErrorHandler();
 
     /**
      * The first filter in the filter chain. Set to <code>null</code> initially.
@@ -51,7 +51,7 @@ public class ConsoleLogAppender
     /**
      * Is this appender closed ?
      */
-    protected boolean closed = false;
+    private boolean closed = false;
 
     public ConsoleLogAppender()
     {

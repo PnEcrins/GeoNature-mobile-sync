@@ -14,7 +14,7 @@ import java.util.List;
  */
 public class Settings
 {
-    private static final String KEY_SYNC = "sync";
+    protected static final String KEY_SYNC = "sync";
     private static final String KEY_DEVICES = "devices";
 
     private SyncSettings syncSettings;

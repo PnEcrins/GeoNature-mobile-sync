@@ -1,5 +1,7 @@
 package com.makina.ecrins.sync.server;
 
+import com.makina.ecrins.sync.settings.ServerSettings;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -25,8 +27,8 @@ import java.util.Arrays;
  */
 public final class WebAPIClientUtils
 {
-    public static final String PARAM_TOKEN = "token";
-    public static final String PARAM_DATA = "data";
+    private static final String PARAM_TOKEN = "token";
+    private static final String PARAM_DATA = "data";
 
     private static final Logger LOG = Logger.getLogger(WebAPIClientUtils.class);
 
@@ -61,22 +63,19 @@ public final class WebAPIClientUtils
     /**
      * Build an instance of {@code HttpPost} to make synchronous calls.
      *
-     * @param httpClient the {@code HttpClient} to use
      * @param url        URL to use
      * @param token      the authentication token to use
      *
      * @return instance of {@code HttpPost}
      *
      * @throws UnsupportedEncodingException
-     * @see {@link #httpPost(HttpClient, String, String, String)}
+     * @see #httpPost(String, String, String)
      */
-    public static HttpPost httpPost(HttpClient httpClient,
-                                    String url,
+    public static HttpPost httpPost(String url,
                                     String token) throws
                                                   UnsupportedEncodingException
     {
         return httpPost(
-                httpClient,
                 url,
                 token,
                 null
@@ -86,7 +85,6 @@ public final class WebAPIClientUtils
     /**
      * Build an instance of {@code HttpPost} to make synchronous calls.
      *
-     * @param httpClient the {@code HttpClient} to use
      * @param url        URL to use
      * @param token      the authentication token to use
      * @param data       the data to send as JSON string
@@ -95,8 +93,7 @@ public final class WebAPIClientUtils
      *
      * @throws UnsupportedEncodingException
      */
-    public static HttpPost httpPost(HttpClient httpClient,
-                                    String url,
+    public static HttpPost httpPost(String url,
                                     String token,
                                     String data) throws
                                                  UnsupportedEncodingException
@@ -240,10 +237,35 @@ public final class WebAPIClientUtils
         }
     }
 
+    /**
+     * Builds a complete URL to be used through WebAPI.
+     *
+     * @param baseUrl the base URL (e.g. {@link ServerSettings#getServerUrl()}
+     * @param segment a set of segments URL to add
+     *
+     * @return the complete URL
+     */
+    public static String buildUrl(final String baseUrl, final String... segment)
+    {
+        final StringBuilder urlBuilder = new StringBuilder(StringUtils.endsWith(baseUrl, "/") ? StringUtils.substringBeforeLast(baseUrl, "/") : baseUrl);
+
+        for (String part : segment)
+        {
+            if (StringUtils.isNotBlank(part)) {
+                urlBuilder.append('/');
+                urlBuilder.append(StringUtils.join(StringUtils.split(part, '/'), '/'));
+            }
+        }
+
+        urlBuilder.append('/');
+
+        return urlBuilder.toString();
+    }
+
     public interface HTTPCallback
     {
         void onResponse(HttpRequestBase httpRequestBase,
-                               HttpResponse httpResponse);
+                        HttpResponse httpResponse);
 
         void onError(Exception e);
     }

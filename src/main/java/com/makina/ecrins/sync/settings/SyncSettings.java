@@ -15,7 +15,7 @@ import java.util.List;
 public class SyncSettings
 {
     private static final String KEY_STATUS_URL = "status_url";
-    private static final String KEY_SETTINGS_URL = "settings_url";
+    protected static final String KEY_SETTINGS_URL = "settings_url";
     private static final String KEY_IMPORT_URL = "import_url";
     private static final String KEY_APP_UPDATE = "app_update";
     private static final String KEY_EXPORTS = "exports";

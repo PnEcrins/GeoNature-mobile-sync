@@ -230,19 +230,18 @@ public class UpdateApplicationsFromServerTaskRunnable
 
         try
         {
-            final HttpPost httpPost = WebAPIClientUtils.httpPost(
-                    httpClient,
-                    LoadSettingsCallable.getInstance()
-                            .getServerSettings()
-                            .getServerUrl() + LoadSettingsCallable.getInstance()
-                            .getSettings()
-                            .getSyncSettings()
-                            .getAppUpdateSettings()
-                            .getVersionUrl(),
-                    LoadSettingsCallable.getInstance()
-                            .getServerSettings()
-                            .getServerToken()
-            );
+            final HttpPost httpPost = WebAPIClientUtils.httpPost(WebAPIClientUtils.buildUrl(LoadSettingsCallable.getInstance()
+                                                                                                                .getServerSettings()
+                                                                                                                .getServerUrl(),
+                                                                                            LoadSettingsCallable.getInstance()
+                                                                                                                .getSettings()
+                                                                                                                .getSyncSettings()
+                                                                                                                .getAppUpdateSettings()
+                                                                                                                .getVersionUrl()),
+
+                                                                 LoadSettingsCallable.getInstance()
+                                                                                     .getServerSettings()
+                                                                                     .getServerToken());
 
             httpResponse = httpClient.execute(httpPost);
 
@@ -532,20 +531,18 @@ public class UpdateApplicationsFromServerTaskRunnable
 
         try
         {
-            final HttpPost httpPost = WebAPIClientUtils.httpPost(
-                    httpClient,
-                    LoadSettingsCallable.getInstance()
-                            .getServerSettings()
-                            .getServerUrl() +
-                            LoadSettingsCallable.getInstance()
-                                    .getSettings()
-                                    .getSyncSettings()
-                                    .getAppUpdateSettings()
-                                    .getDownloadUrl() + "/" + apkInfo.getApkName() + "/",
-                    LoadSettingsCallable.getInstance()
-                            .getServerSettings()
-                            .getServerToken()
-            );
+            final HttpPost httpPost = WebAPIClientUtils.httpPost(WebAPIClientUtils.buildUrl(LoadSettingsCallable.getInstance()
+                                                                                                                .getServerSettings()
+                                                                                                                .getServerUrl(),
+                                                                                            LoadSettingsCallable.getInstance()
+                                                                                                                .getSettings()
+                                                                                                                .getSyncSettings()
+                                                                                                                .getAppUpdateSettings()
+                                                                                                                .getDownloadUrl(),
+                                                                                            apkInfo.getApkName()),
+                                                                 LoadSettingsCallable.getInstance()
+                                                                                     .getServerSettings()
+                                                                                     .getServerToken());
 
             httpResponse = httpClient.execute(httpPost);
 

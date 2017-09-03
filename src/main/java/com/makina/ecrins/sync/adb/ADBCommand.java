@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -124,7 +125,7 @@ public final class ADBCommand
 
             boolean firstLine = true;
 
-            for (String line : IOUtils.readLines(p.getInputStream()))
+            for (String line : IOUtils.readLines(p.getInputStream(), Charset.defaultCharset()))
             {
                 if (firstLine)
                 {
@@ -247,7 +248,7 @@ public final class ADBCommand
             );
             resultHandler.waitFor();
 
-            return !baos.toString()
+            return !baos.toString(Charset.defaultCharset())
                     .trim()
                     .contains("does not exist");
         }
@@ -302,7 +303,7 @@ public final class ADBCommand
 
             Process p = pb.start();
 
-            for (String line : IOUtils.readLines(p.getInputStream()))
+            for (String line : IOUtils.readLines(p.getInputStream(), Charset.defaultCharset()))
             {
                 output.add(line);
             }
@@ -425,7 +426,7 @@ public final class ADBCommand
             );
             Process p = pb.start();
 
-            return IOUtils.toString(p.getInputStream())
+            return IOUtils.toString(p.getInputStream(), Charset.defaultCharset())
                     .trim();
         }
         catch (IOException ioe)
@@ -828,7 +829,7 @@ public final class ADBCommand
             );
             Process p = pb.start();
 
-            return IOUtils.toString(p.getInputStream())
+            return IOUtils.toString(p.getInputStream(), Charset.defaultCharset())
                     .trim();
         }
         catch (IOException ioe)

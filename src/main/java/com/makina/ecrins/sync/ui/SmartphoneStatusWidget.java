@@ -34,8 +34,8 @@ public class SmartphoneStatusWidget
 
     private Status status;
 
-    public SmartphoneStatusWidget(Display display,
-                                  Composite parent)
+    SmartphoneStatusWidget(Display display,
+                           Composite parent)
     {
         this.display = display;
         this.parent = parent;

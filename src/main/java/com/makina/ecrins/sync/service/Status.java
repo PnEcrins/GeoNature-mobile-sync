@@ -12,5 +12,5 @@ public enum Status
     RUNNING,
     CONNECTED,
     FINISH,
-    FAILED;
+    FAILED
 }

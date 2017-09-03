@@ -34,8 +34,8 @@ public class ServerStatusWidget
 
     private Status status;
 
-    public ServerStatusWidget(Display display,
-                              Composite parent)
+    ServerStatusWidget(Display display,
+                       Composite parent)
     {
         this.display = display;
         this.parent = parent;

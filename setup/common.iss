@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Sync"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.2.0"
 #define MyAppPublisher "Makina Corpus"
 #define MyAppExeName "sync.exe"
 #define MyAppHelpFileName "sync.pdf"
@@ -16,7 +16,7 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={pf}\PNE Sync
+DefaultDirName={pf}\geonature-sync
 DefaultGroupName={#MyAppName}
 OutputBaseFilename=setup_sync-{#MyAppVersion}-{#Arch}
 LicenseFile=LICENSE.txt
@@ -39,7 +39,7 @@ Name: "custom"; Description: "Custom installation"; Flags: iscustom
 
 [Components]
 Name: "program"; Description: "Program Files"; Types: full compact custom; Flags: fixed
-Name: "drivers"; Description: "Google USB Driver"; Types: full; ExtraDiskSpaceRequired: 8682752
+Name: "drivers"; Description: "Google USB Driver"; Types: full; ExtraDiskSpaceRequired: 8682859
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Components: program; Flags: unchecked
